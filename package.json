@@ -1,0 +1,6 @@
+{
+  "name": "eslint-plugin-html",
+  "dependencies": {
+    "htmlparser2": "^3.8.2"
+  }
+}

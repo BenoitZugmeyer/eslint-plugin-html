@@ -37,6 +37,7 @@ function extract(code) {
         return;
       }
 
+      scriptCode[scriptCode.length - 1] = scriptCode[scriptCode.length - 1].replace(/[ \t]*$/, "");
       inScript = false;
       index = parser.startIndex;
       indent = null;
@@ -58,8 +59,6 @@ function extract(code) {
         lineNumber += 1;
         return line;
       });
-
-      data = data.replace(/[ \t]*$/, "");
 
       lineNumber -= 1;
 

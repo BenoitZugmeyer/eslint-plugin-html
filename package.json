@@ -1,5 +1,6 @@
 {
   "name": "eslint-plugin-html",
+  "version": "0.0.1",
   "dependencies": {
     "htmlparser2": "^3.8.2"
   }

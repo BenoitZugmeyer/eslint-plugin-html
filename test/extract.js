@@ -111,4 +111,24 @@ describe("extract", function () {
         { line: 8, column: 2 } ]
     );
   });
+
+  it("trim last line spaces", function () {
+    assertExtract(
+      s(
+        "some html",
+        "  <script>",
+        "    var foo = 1;",
+        "  </script>",
+        "other"
+      ),
+      s(
+        "",
+        "",
+        "var foo = 1;",
+        ""
+      ),
+      [ { line: 4, column: 4 } ]
+    );
+  });
+
 });

@@ -131,4 +131,20 @@ describe("extract", function () {
     );
   });
 
+  it("extract script containing 'lower than' characters correctly (#1)", function () {
+    assertExtract(
+      s(
+        "<script>",
+        "  if (a < b) { doit(); }",
+        "</script>"
+      ),
+      s(
+        "",
+        "if (a < b) { doit(); }",
+        ""
+      ),
+      [ { line: 3, column: 2 } ]
+    );
+  });
+
 });

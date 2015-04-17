@@ -14,11 +14,14 @@
     "eslint",
     "html"
   ],
+  "main": "src/index.js",
   "dependencies": {
     "htmlparser2": "^3.8.2"
   },
-  "main": "src/index.js",
   "devDependencies": {
     "mocha": "^2.2.4"
+  },
+  "scripts": {
+      "test": "mocha"
   }
 }

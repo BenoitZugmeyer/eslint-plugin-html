@@ -28,6 +28,7 @@ module.exports = {
   processors: {
     ".html": htmlProcessor,
     ".xhtml": htmlProcessor,
-    ".htm": htmlProcessor
+    ".htm": htmlProcessor,
+    ".vue": htmlProcessor
   }
 };

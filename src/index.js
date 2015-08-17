@@ -3,6 +3,7 @@
 var extract = require("./extract");
 
 var currentInfos;
+var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs"];
 
 var htmlProcessor = {
   preprocess: function (content) {
@@ -24,11 +25,16 @@ var htmlProcessor = {
   }
 };
 
+var getProcessors = function() {
+  var processors = {};
+
+  allowedExtensions.forEach(function(ext) {
+    processors["." + ext] = htmlProcessor;
+  });
+
+  return processors;
+};
+
 module.exports = {
-  processors: {
-    ".html": htmlProcessor,
-    ".xhtml": htmlProcessor,
-    ".htm": htmlProcessor,
-    ".vue": htmlProcessor
-  }
+  processors: getProcessors()
 };

@@ -148,7 +148,7 @@ describe("extract", function () {
   });
 
 
-  it.only("extract empty script tag (#7)", function () {
+  it("extract empty script tag (#7)", function () {
     assertExtract(
       s(
         "<script></script>"

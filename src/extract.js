@@ -29,7 +29,9 @@ function extract(code) {
       inScript = true;
       var newLines = code.slice(index, parser.endIndex).match(/\n\r|\n|\r/g);
       if (newLines) {
-        scriptCode.push.apply(scriptCode, newLines);
+        scriptCode.push.apply(scriptCode, newLines.map(function (newLine) {
+          return "//eslint-disable-line spaced-comment" + newLine
+        }));
         lineNumber += newLines.length;
       }
     },

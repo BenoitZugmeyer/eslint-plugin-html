@@ -2,6 +2,8 @@
 var assert = require("assert");
 var extract = require("../src/extract");
 
+var htmlLine = "//eslint-disable-line spaced-comment";
+
 function assertExtract(html, code, map) {
   var infos = extract(html);
   assert.equal(infos.code, code);
@@ -21,7 +23,7 @@ describe("extract", function () {
         "other"
       ),
       s(
-        "",
+        htmlLine,
         "var foo = 1;"
       ),
       [ { line: 2, column: 0 } ]
@@ -38,7 +40,7 @@ describe("extract", function () {
         "other"
       ),
       s(
-        "",
+        htmlLine,
         "",
         "var foo = 1;",
         ""
@@ -57,7 +59,7 @@ describe("extract", function () {
         "other"
       ),
       s(
-        "",
+        htmlLine,
         "var foo = 1;",
         "  var baz = 1;",
         ""
@@ -76,7 +78,7 @@ describe("extract", function () {
         "other"
       ),
       s(
-        "",
+        htmlLine,
         "",
         "var foo = 1;",
         "var baz = 1;"
@@ -98,11 +100,11 @@ describe("extract", function () {
         "</script>"
       ),
       s(
-        "",
+        htmlLine,
         "",
         "var foo = 1;",
-        "",
-        "",
+        htmlLine,
+        htmlLine,
         "",
         "var bar = 1;",
         ""
@@ -122,7 +124,7 @@ describe("extract", function () {
         "other"
       ),
       s(
-        "",
+        htmlLine,
         "",
         "var foo = 1;",
         ""

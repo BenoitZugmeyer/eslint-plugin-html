@@ -3,7 +3,7 @@
 var extract = require("./extract");
 
 var currentInfos;
-var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs"];
+var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs", "mustache"];
 
 var htmlProcessor = {
   preprocess: function (content) {

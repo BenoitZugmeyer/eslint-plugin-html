@@ -2,14 +2,30 @@
 
 var htmlparser = require("htmlparser2");
 
-function extract(code) {
+function parseIndentDescriptor(indentDescriptor) {
+  var match = /^(\+)?(tab|\d+)$/.exec(indentDescriptor);
 
+  if (!match) {
+    return { relative: false, spaces: "auto" };
+  }
+
+  return {
+    relative: match[1] === "+",
+    spaces: match[2] === "tab" ? "\t" : Array(Number(match[2]) + 1).join(" "),
+  };
+
+}
+function extract(code, rawIndentDescriptor) {
+
+  var indentDescriptor = parseIndentDescriptor(rawIndentDescriptor);
   var scriptCode = [];
   var map = [];
   var inScript = false;
+  var scriptIndent;
   var index = 0;
   var lineNumber = 1;
-  var indent;
+  var badIndentationLines = [];
+  var currentIndent;
 
   var parser = new htmlparser.Parser({
 
@@ -27,13 +43,16 @@ function extract(code) {
       // in between the last </script> tag and this <script> tag to preserve
       // location information.
       inScript = true;
-      var newLines = code.slice(index, parser.endIndex).match(/\n\r|\n|\r/g);
+      var previousCode = code.slice(index, parser.endIndex);
+      var newLines = previousCode.match(/\n\r|\n|\r/g);
       if (newLines) {
         scriptCode.push.apply(scriptCode, newLines.map(function (newLine) {
           return "//eslint-disable-line spaced-comment" + newLine
         }));
         lineNumber += newLines.length;
       }
+
+      scriptIndent = previousCode.match(/([^\n\r]*)<[^<]*$/)[1];
     },
 
     onclosetag: function (name) {
@@ -46,7 +65,7 @@ function extract(code) {
       }
       inScript = false;
       index = parser.startIndex;
-      indent = null;
+      currentIndent = undefined;
     },
 
     ontext: function (data) {
@@ -54,26 +73,40 @@ function extract(code) {
         return;
       }
 
-      var spaces;
-      if (!indent) {
-        spaces = /^[\n\r]*(\s*)/.exec(data)[1];
-        indent = new RegExp("^(?:" + spaces + ")?(.*)", "gm");
+      var isFirstScriptText = currentIndent === undefined;
+      if (isFirstScriptText) {
+        if (indentDescriptor.spaces === "auto") {
+          currentIndent = /^[\n\r]*([ \t]*)/.exec(data)[1];
+        }
+        else {
+          currentIndent = indentDescriptor.spaces;
+          if (indentDescriptor.relative) {
+            currentIndent = scriptIndent + currentIndent;
+          }
+        }
       }
 
       // dedent code
-      data = data.replace(indent, function (_, line) {
+      data = data.replace(/([\n\r])(.*)/g, function (_, newLineChar, line) {
         lineNumber += 1;
-        return line;
+
+        if (line.indexOf(currentIndent) === 0) {
+          line = line.slice(currentIndent.length);
+        }
+        else if (/\S/.test(line)) {
+          badIndentationLines.push(lineNumber);
+        }
+
+        return newLineChar + line;
       });
 
-      lineNumber -= 1;
-
-      if (spaces !== undefined) {
-        map.push({ line: lineNumber, column: spaces.length });
+      if (isFirstScriptText) {
+        map.push({ line: lineNumber, column: currentIndent.length });
       }
       else {
         map[map.length - 1].line = lineNumber;
       }
+
       scriptCode.push(data); // Collect JavaScript code.
     },
 
@@ -81,7 +114,11 @@ function extract(code) {
 
   parser.parseComplete(code);
 
-  return { map: map, code: scriptCode.join("") };
+  return {
+    map: map,
+    code: scriptCode.join(""),
+    badIndentationLines: badIndentationLines,
+  };
 }
 
 module.exports = extract;

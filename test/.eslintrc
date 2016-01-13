@@ -1,3 +1,6 @@
 
 env:
     mocha: true
+
+plugins:
+    - html

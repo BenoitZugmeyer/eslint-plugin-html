@@ -21,9 +21,12 @@ function dedent(str) {
 
 function makeTest(fn, description, params) {
   fn(description, function () {
-    var infos = extract(dedent(params.input));
+    var infos = extract(dedent(params.input), params.indent);
     assert.equal(infos.code, dedent(params.output));
     assert.deepEqual(infos.map, params.map);
+
+    var badIndentationLines = params.badIndentationLines || [];
+    assert.deepEqual(infos.badIndentationLines, badIndentationLines);
   });
 }
 
@@ -168,5 +171,118 @@ describe("extract", function () {
       var foo = 1;
     `,
     map: [ { line: 2, column: 0 } ],
+  });
+
+  makeTest(it, "collects bad indentations", {
+    input: `
+      <script>
+        a;
+      a;
+       a;
+      </script>
+    `,
+    output: `
+
+      a;
+      a;
+       a;
+
+    `,
+    map: [ { line: 5, column: 2 } ],
+    badIndentationLines: [ 3, 4 ],
+  });
+
+  describe("indent option", function () {
+    makeTest(it, "absolute indent with spaces", {
+      input: `
+        <head>
+          <script>
+            a;
+          a;
+        a;
+          </script>
+        </head>
+      `,
+      indent: "2",
+      output: `
+        ${htmlLine}
+
+          a;
+        a;
+        a;
+
+      `,
+      map: [ { line: 6, column: 2 } ],
+      badIndentationLines: [ 5 ],
+    });
+
+    makeTest(it, "relative indent with spaces", {
+      input: `
+        <head>
+          <script>
+            a;
+          a;
+        a;
+          </script>
+        </head>
+      `,
+      indent: "+2",
+      output: `
+        ${htmlLine}
+
+        a;
+          a;
+        a;
+
+      `,
+      map: [ { line: 6, column: 4 } ],
+      badIndentationLines: [ 4, 5 ],
+    });
+
+    makeTest(it, "absolute indent with tabs", {
+      input: `
+        <head>
+        \t<script>
+        \t\ta;
+        \ta;
+        a;
+        \t</script>
+        </head>
+      `,
+      indent: "tab",
+      output: `
+        ${htmlLine}
+
+        \ta;
+        a;
+        a;
+
+      `,
+      map: [ { line: 6, column: 1 } ],
+      badIndentationLines: [ 5 ],
+    });
+
+    makeTest(it, "relative indent with tabs", {
+      input: `
+        <head>
+        \t<script>
+        \t\ta;
+        \ta;
+        a;
+        \t</script>
+        </head>
+      `,
+      indent: "+tab",
+      output: `
+        ${htmlLine}
+
+        a;
+        \ta;
+        a;
+
+      `,
+      map: [ { line: 6, column: 2 } ],
+      badIndentationLines: [ 4, 5 ],
+    });
   });
 });

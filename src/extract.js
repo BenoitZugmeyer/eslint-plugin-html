@@ -19,7 +19,7 @@ function extract(code) {
         return;
       }
 
-      if (attrs.type && attrs.type.toLowerCase().search(new RegExp(/text\/(javascript|babel)/)) < 0) {
+      if (attrs.type && !/text\/(javascript|babel)/i.test(attrs.type)) {
         return;
       }
 

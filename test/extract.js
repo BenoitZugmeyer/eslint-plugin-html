@@ -161,4 +161,19 @@ describe("extract", function () {
       [ ]
     );
   });
+
+  it("extracts a script tag with type=text/babel", function() {
+    assertExtract(
+      s(
+        "some html",
+        "<script type=\"text/babel\">var foo = 1;</script>",
+        "other"
+      ),
+      s(
+        htmlLine,
+        "var foo = 1;"
+      ),
+      [ { line: 2, column: 0 } ]
+    );
+  });
 });

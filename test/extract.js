@@ -161,18 +161,32 @@ describe("extract", function () {
     map: [ ],
   });
 
-  makeTest(it, "extracts a script tag with type=text/babel", {
-    input: `
-      some html
-      <script type="text/babel">var foo = 1;</script>
-      other
-    `,
-    output: `
-      ${htmlLine}
-      var foo = 1;
-    `,
-    map: [ , , 26 ],
-  });
+  let prefixes = ["text/",
+                  "text/x-",
+                  "application/",
+                  "application/x-"];
+
+  let types = ["javascript", "babel"];
+
+  for (let prefix of prefixes) {
+    for (let type of types) {
+      let tag = `${prefix}${type}`;
+      let column = 16 + tag.length;
+
+      makeTest(it, `extracts a script tag with type=${tag}`, {
+        input: `
+          some html
+          <script type="${tag}">var foo = 1;</script>
+          other
+        `,
+        output: `
+          ${htmlLine}
+          var foo = 1;
+        `,
+        map: [ , , column ],
+      });
+    }
+  }
 
   makeTest(it, "collects bad indentations", {
     input: `

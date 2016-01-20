@@ -28,7 +28,7 @@ function iterateScripts(code, onScript) {
         return;
       }
 
-      if (attrs.type && !/text\/(javascript|babel)/i.test(attrs.type)) {
+      if (attrs.type && !/^(application|text)\/(x-)?(javascript|babel)$/i.test(attrs.type)) {
         return;
       }
 

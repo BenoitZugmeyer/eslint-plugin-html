@@ -75,7 +75,7 @@ function extract(code) {
         map[map.length - 1].line = lineNumber;
       }
       scriptCode.push(data); // Collect JavaScript code.
-    }
+    },
 
   });
 

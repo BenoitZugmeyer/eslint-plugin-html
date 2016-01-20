@@ -1,2 +1,9 @@
+
+extends: eslint:recommended
+
+rules:
+  comma-dangle: [2, "always-multiline"]
+  quotes: [2, "double"]
+
 env:
     node: true

@@ -6,10 +6,12 @@ var currentInfos;
 var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs", "mustache"];
 
 var htmlProcessor = {
+
   preprocess: function (content) {
     currentInfos = extract(content);
     return [currentInfos.code];
   },
+
   postprocess: function (messages) {
     var map = currentInfos.map;
     var blockIndex = 0;
@@ -22,7 +24,8 @@ var htmlProcessor = {
       }
     });
     return messages[0];
-  }
+  },
+
 };
 
 var getProcessors = function() {
@@ -36,5 +39,5 @@ var getProcessors = function() {
 };
 
 module.exports = {
-  processors: getProcessors()
+  processors: getProcessors(),
 };

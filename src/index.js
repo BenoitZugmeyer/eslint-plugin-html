@@ -13,15 +13,8 @@ var htmlProcessor = {
   },
 
   postprocess: function (messages) {
-    var map = currentInfos.map;
-    var blockIndex = 0;
     messages[0].forEach(function (message) {
-      while (blockIndex < map.length - 1 && map[blockIndex].line < message.line) {
-        blockIndex += 1;
-      }
-      if (blockIndex < map.length) {
-        message.column += map[blockIndex].column;
-      }
+      message.column += currentInfos.map[message.line] || 0;
     });
     return messages[0];
   },

@@ -43,13 +43,14 @@ function extract(code, rawIndentDescriptor) {
       // in between the last </script> tag and this <script> tag to preserve
       // location information.
       inScript = true;
-      var previousCode = code.slice(index, parser.endIndex);
+      var previousCode = code.slice(index, parser.endIndex + 1);
       var newLines = previousCode.match(/\n\r|\n|\r/g);
       if (newLines) {
         scriptCode.push.apply(scriptCode, newLines.map(function (newLine) {
           return "//eslint-disable-line spaced-comment" + newLine
         }));
         lineNumber += newLines.length;
+        map[lineNumber] = previousCode.match(/[^\n\r]*$/)[0].length;
       }
 
       scriptIndent = previousCode.match(/([^\n\r]*)<[^<]*$/)[1];
@@ -92,20 +93,18 @@ function extract(code, rawIndentDescriptor) {
 
         if (line.indexOf(currentIndent) === 0) {
           line = line.slice(currentIndent.length);
+          map[lineNumber] = currentIndent.length;
         }
-        else if (/\S/.test(line)) {
-          badIndentationLines.push(lineNumber);
+        else {
+          // Don't report line if the line is empty
+          if (/\S/.test(line)) {
+            badIndentationLines.push(lineNumber);
+          }
+          map[lineNumber] = 0;
         }
 
         return newLineChar + line;
       });
-
-      if (isFirstScriptText) {
-        map.push({ line: lineNumber, column: currentIndent.length });
-      }
-      else {
-        map[map.length - 1].line = lineNumber;
-      }
 
       scriptCode.push(data); // Collect JavaScript code.
     },

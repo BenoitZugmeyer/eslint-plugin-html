@@ -1,4 +1,6 @@
 /*eslint-env es6*/
+/*eslint no-sparse-arrays: 0*/
+
 "use strict";
 var assert = require("assert");
 var extract = require("../src/extract");
@@ -41,7 +43,7 @@ describe("extract", function () {
       ${htmlLine}
       var foo = 1;
     `,
-    map: [ { line: 2, column: 0 } ],
+    map: [ , , 8 ],
   });
 
   makeTest(it, "extract indented javascript", {
@@ -58,7 +60,7 @@ describe("extract", function () {
       var foo = 1;
 
     `,
-    map: [ { line: 4, column: 2 } ],
+    map: [ , , 8, 2, 0 ],
   });
 
   makeTest(it, "extract javascript with first line next to the script tag", {
@@ -75,7 +77,7 @@ describe("extract", function () {
         var baz = 1;
 
     `,
-    map: [ { line: 4, column: 0 } ],
+    map: [ , , 8, 0, 0 ],
   });
 
   makeTest(it, "extract javascript with last line next to the script tag", {
@@ -92,7 +94,7 @@ describe("extract", function () {
       var foo = 1;
       var baz = 1;
     `,
-    map: [ { line: 4, column: 2 } ],
+    map: [ , , 8, 2, 2 ],
   });
 
   makeTest(it, "extract multiple script tags", {
@@ -116,8 +118,7 @@ describe("extract", function () {
       var bar = 1;
 
     `,
-    map: [ { line: 4, column: 2 },
-           { line: 8, column: 2 } ],
+    map: [ , , 8, 2, 0, , 8, 2, 0 ],
   });
 
   makeTest(it, "trim last line spaces", {
@@ -134,7 +135,7 @@ describe("extract", function () {
       var foo = 1;
 
     `,
-    map: [ { line: 4, column: 4 } ],
+    map: [ , , 10, 4, 0 ],
   });
 
   makeTest(it, "extract script containing 'lower than' characters correctly (#1)", {
@@ -148,7 +149,7 @@ describe("extract", function () {
       if (a < b) { doit(); }
 
     `,
-    map: [ { line: 3, column: 2 } ],
+    map: [ , , 2, 0 ],
   });
 
 
@@ -170,7 +171,7 @@ describe("extract", function () {
       ${htmlLine}
       var foo = 1;
     `,
-    map: [ { line: 2, column: 0 } ],
+    map: [ , , 26 ],
   });
 
   makeTest(it, "collects bad indentations", {
@@ -188,7 +189,7 @@ describe("extract", function () {
        a;
 
     `,
-    map: [ { line: 5, column: 2 } ],
+    map: [ , , 2, 0, 0, 0 ],
     badIndentationLines: [ 3, 4 ],
   });
 
@@ -212,7 +213,7 @@ describe("extract", function () {
         a;
 
       `,
-      map: [ { line: 6, column: 2 } ],
+      map: [ , , 10, 2, 2, 0, 2 ],
       badIndentationLines: [ 5 ],
     });
 
@@ -235,7 +236,7 @@ describe("extract", function () {
         a;
 
       `,
-      map: [ { line: 6, column: 4 } ],
+      map: [ , , 10, 4, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
     });
 
@@ -258,7 +259,7 @@ describe("extract", function () {
         a;
 
       `,
-      map: [ { line: 6, column: 1 } ],
+      map: [ , , 9, 1, 1, 0, 1 ],
       badIndentationLines: [ 5 ],
     });
 
@@ -281,7 +282,7 @@ describe("extract", function () {
         a;
 
       `,
-      map: [ { line: 6, column: 2 } ],
+      map: [ , , 9, 2, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
     });
   });

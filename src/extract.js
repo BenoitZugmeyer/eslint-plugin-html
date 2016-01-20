@@ -15,17 +15,10 @@ function parseIndentDescriptor(indentDescriptor) {
   };
 
 }
-function extract(code, rawIndentDescriptor) {
 
-  var indentDescriptor = parseIndentDescriptor(rawIndentDescriptor);
-  var scriptCode = [];
-  var map = [];
-  var inScript = false;
-  var scriptIndent;
+function iterateScripts(code, onScript) {
   var index = 0;
-  var lineNumber = 1;
-  var badIndentationLines = [];
-  var currentIndent;
+  var currentScript = null;
 
   var parser = new htmlparser.Parser({
 
@@ -39,61 +32,77 @@ function extract(code, rawIndentDescriptor) {
         return;
       }
 
-      // Mark that we're inside a <script> a tag and push all new lines
-      // in between the last </script> tag and this <script> tag to preserve
-      // location information.
-      inScript = true;
-      var previousCode = code.slice(index, parser.endIndex + 1);
-      var newLines = previousCode.match(/\n\r|\n|\r/g);
-      if (newLines) {
-        scriptCode.push.apply(scriptCode, newLines.map(function (newLine) {
-          return "//eslint-disable-line spaced-comment" + newLine
-        }));
-        lineNumber += newLines.length;
-        map[lineNumber] = previousCode.match(/[^\n\r]*$/)[0].length;
-      }
-
-      scriptIndent = previousCode.match(/([^\n\r]*)<[^<]*$/)[1];
+      currentScript = "";
     },
 
     onclosetag: function (name) {
-      if (name !== "script" || !inScript) {
+      if (name !== "script" || currentScript === null) {
         return;
       }
 
-      if (scriptCode.length) {
-        scriptCode[scriptCode.length - 1] = scriptCode[scriptCode.length - 1].replace(/[ \t]*$/, "");
-      }
-      inScript = false;
+      onScript(code.slice(index, parser.startIndex - currentScript.length), currentScript);
+
       index = parser.startIndex;
-      currentIndent = undefined;
+      currentScript = null;
     },
 
     ontext: function (data) {
-      if (!inScript) {
+      if (currentScript === null) {
         return;
       }
 
-      var isFirstScriptText = currentIndent === undefined;
-      if (isFirstScriptText) {
-        if (indentDescriptor.spaces === "auto") {
-          currentIndent = /^[\n\r]*([ \t]*)/.exec(data)[1];
-        }
-        else {
-          currentIndent = indentDescriptor.spaces;
-          if (indentDescriptor.relative) {
-            currentIndent = scriptIndent + currentIndent;
-          }
-        }
-      }
+      currentScript += data;
+    },
 
-      // dedent code
-      data = data.replace(/([\n\r])(.*)/g, function (_, newLineChar, line) {
+  });
+
+  parser.parseComplete(code);
+}
+
+
+function extract(code, rawIndentDescriptor) {
+
+  var indentDescriptor = parseIndentDescriptor(rawIndentDescriptor);
+  var resultCode = "";
+  var map = [];
+  var lineNumber = 1;
+  var badIndentationLines = [];
+
+  iterateScripts(code, function (previousCode, scriptCode) {
+
+    // Mark that we're inside a <script> a tag and push all new lines
+    // in between the last </script> tag and this <script> tag to preserve
+    // location information.
+    var newLines = previousCode.match(/\n\r|\n|\r/g);
+    if (newLines) {
+      resultCode += newLines.map(function (newLine) {
+        return "//eslint-disable-line spaced-comment" + newLine
+      }).join("");
+      lineNumber += newLines.length;
+      map[lineNumber] = previousCode.match(/[^\n\r]*$/)[0].length;
+    }
+
+    var currentScriptIndent = previousCode.match(/([^\n\r]*)<[^<]*$/)[1];
+
+    var indent;
+    if (indentDescriptor.spaces === "auto") {
+      indent = /^[\n\r]*([ \t]*)/.exec(scriptCode)[1];
+    }
+    else {
+      indent = indentDescriptor.spaces;
+      if (indentDescriptor.relative) {
+        indent = currentScriptIndent + indent;
+      }
+    }
+
+    resultCode += scriptCode
+      .replace(/([\n\r])(.*)/g, function (_, newLineChar, line) {
         lineNumber += 1;
 
-        if (line.indexOf(currentIndent) === 0) {
-          line = line.slice(currentIndent.length);
-          map[lineNumber] = currentIndent.length;
+        if (line.indexOf(indent) === 0) {
+          // Dedent code
+          line = line.slice(indent.length);
+          map[lineNumber] = indent.length;
         }
         else {
           // Don't report line if the line is empty
@@ -104,18 +113,13 @@ function extract(code, rawIndentDescriptor) {
         }
 
         return newLineChar + line;
-      });
-
-      scriptCode.push(data); // Collect JavaScript code.
-    },
-
+      })
+      .replace(/[ \t]*$/, "");  // Remove spaces on the last line
   });
-
-  parser.parseComplete(code);
 
   return {
     map: map,
-    code: scriptCode.join(""),
+    code: resultCode,
     badIndentationLines: badIndentationLines,
   };
 }

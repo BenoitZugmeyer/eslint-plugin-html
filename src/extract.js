@@ -86,7 +86,8 @@ function extract(code, rawIndentDescriptor, reportBadIndentation) {
 
     var indent;
     if (indentDescriptor.spaces === "auto") {
-      indent = /^[\n\r]*([ \t]*)/.exec(scriptCode)[1];
+      var indentMatch = /[\n\r]+([ \t]*)/.exec(scriptCode);
+      indent = indentMatch ? indentMatch[1] : "";
     }
     else {
       indent = indentDescriptor.spaces;

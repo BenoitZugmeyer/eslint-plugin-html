@@ -74,10 +74,10 @@ describe("extract", function () {
     output: `
       ${htmlLine}
       var foo = 1;
-        var baz = 1;
+      var baz = 1;
 
     `,
-    map: [ , , 8, 0, 0 ],
+    map: [ , , 8, 2, 0 ],
   });
 
   makeTest(it, "extract javascript with last line next to the script tag", {

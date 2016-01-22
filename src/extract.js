@@ -60,7 +60,7 @@ function iterateScripts(code, onScript) {
 }
 
 
-function extract(code, rawIndentDescriptor) {
+function extract(code, rawIndentDescriptor, reportBadIndentation) {
 
   var indentDescriptor = parseIndentDescriptor(rawIndentDescriptor);
   var resultCode = "";
@@ -106,7 +106,7 @@ function extract(code, rawIndentDescriptor) {
         }
         else {
           // Don't report line if the line is empty
-          if (/\S/.test(line)) {
+          if (reportBadIndentation && /\S/.test(line)) {
             badIndentationLines.push(lineNumber);
           }
           map[lineNumber] = 0;

@@ -14,11 +14,13 @@ var extract = require("./extract");
 // https://github.com/eslint/eslint/issues/4153
 
 var verify = eslint.linter.verify;
+var reportBadIndent;
 
 function patch() {
   eslint.linter.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
     var indentDescriptor = config.settings && config.settings["html/indent"];
-    currentInfos = extract(textOrSourceCode, indentDescriptor);
+    reportBadIndent = config.settings && config.settings["html/report-bad-indent"];
+    currentInfos = extract(textOrSourceCode, indentDescriptor, Boolean(reportBadIndent));
     return verify.call(this, currentInfos.code, config, filenameOrOptions, saveState);
   };
 }
@@ -43,6 +45,21 @@ var htmlProcessor = {
     messages[0].forEach(function (message) {
       message.column += currentInfos.map[message.line] || 0;
     });
+
+    currentInfos.badIndentationLines.forEach(function (line) {
+      messages[0].push({
+        message: "Bad line indentation.",
+        line: line,
+        column: 1,
+        ruleId: "(html plugin)",
+        severity: reportBadIndent === true ? 2 : reportBadIndent,
+      });
+    });
+
+    messages[0].sort(function (ma, mb) {
+      return ma.line - mb.line || ma.column - mb.column;
+    });
+
     return messages[0];
   },
 

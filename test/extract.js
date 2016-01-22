@@ -23,7 +23,7 @@ function dedent(str) {
 
 function makeTest(fn, description, params) {
   fn(description, function () {
-    var infos = extract(dedent(params.input), params.indent);
+    var infos = extract(dedent(params.input), params.indent, true);
     assert.equal(infos.code, dedent(params.output));
     assert.deepEqual(infos.map, params.map);
 

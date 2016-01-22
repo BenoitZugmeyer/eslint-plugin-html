@@ -139,4 +139,43 @@ describe("plugin", function () {
     });
   });
 
+  describe("html/report-bad-indent setting", function () {
+    it("should report under-indented code with auto indent setting", function () {
+      var messages = execute("report-bad-indent-setting.html", {
+        settings: {
+          "html/report-bad-indent": true,
+        },
+      });
+
+      assert.equal(messages.length, 1);
+
+      assert.equal(messages[0].message, "Bad line indentation.");
+      assert.equal(messages[0].line, 10);
+      assert.equal(messages[0].column, 1);
+    });
+
+    it("should report under-indented code with provided indent setting", function () {
+      var messages = execute("report-bad-indent-setting.html", {
+        settings: {
+          "html/report-bad-indent": true,
+          "html/indent": "+4",
+        },
+      });
+
+      assert.equal(messages.length, 3);
+
+      assert.equal(messages[0].message, "Bad line indentation.");
+      assert.equal(messages[0].line, 9);
+      assert.equal(messages[0].column, 1);
+
+      assert.equal(messages[1].message, "Bad line indentation.");
+      assert.equal(messages[1].line, 10);
+      assert.equal(messages[1].column, 1);
+
+      assert.equal(messages[2].message, "Bad line indentation.");
+      assert.equal(messages[2].line, 11);
+      assert.equal(messages[2].column, 1);
+    });
+  });
+
 });

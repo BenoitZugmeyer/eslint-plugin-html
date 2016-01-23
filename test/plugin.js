@@ -98,7 +98,7 @@ describe("plugin", function () {
         },
       });
 
-      assert.equal(messages.length, 3);
+      assert.equal(messages.length, 7);
 
       // The first script is incorrect since the second line gets dedented
       assert.equal(messages[0].message, "Expected indentation of 2 space characters but found 0.");
@@ -106,11 +106,24 @@ describe("plugin", function () {
 
       // The second script is correct.
 
-      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 4.");
+      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 6.");
       assert.equal(messages[1].line, 22);
 
-      assert.equal(messages[2].message, "Expected indentation of 0 space characters but found 8.");
-      assert.equal(messages[2].line, 28);
+      assert.equal(messages[2].message, "Expected indentation of 8 space characters but found 6.");
+      assert.equal(messages[2].line, 23);
+
+      assert.equal(messages[3].message, "Expected indentation of 6 space characters but found 4.");
+      assert.equal(messages[3].line, 24);
+
+
+      assert.equal(messages[4].message, "Expected indentation of 0 space characters but found 10.");
+      assert.equal(messages[4].line, 28);
+
+      assert.equal(messages[5].message, "Expected indentation of 12 space characters but found 10.");
+      assert.equal(messages[5].line, 29);
+
+      assert.equal(messages[6].message, "Expected indentation of 10 space characters but found 8.");
+      assert.equal(messages[6].line, 30);
     });
 
     it("should work with relative indentation descriptor", function () {
@@ -124,7 +137,7 @@ describe("plugin", function () {
         },
       });
 
-      assert.equal(messages.length, 2);
+      assert.equal(messages.length, 4);
 
       // The first script is correct since it can't be dedented, but follows the indent
       // rule anyway.
@@ -134,8 +147,14 @@ describe("plugin", function () {
 
       // The third script is correct.
 
-      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 2.");
+      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 10.");
       assert.equal(messages[1].line, 28);
+
+      assert.equal(messages[2].message, "Expected indentation of 12 space characters but found 4.");
+      assert.equal(messages[2].line, 29);
+
+      assert.equal(messages[3].message, "Expected indentation of 10 space characters but found 2.");
+      assert.equal(messages[3].line, 30);
     });
   });
 

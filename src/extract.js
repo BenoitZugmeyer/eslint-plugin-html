@@ -96,24 +96,38 @@ function extract(code, rawIndentDescriptor, reportBadIndentation) {
       }
     }
 
+    var hadNonEmptyLine = false;
     resultCode += scriptCode
-      .replace(/([\n\r])(.*)/g, function (_, newLineChar, line) {
+      .replace(/([\n\r])([ \t]*)(.*)/g, function (_, newLineChar, lineIndent, lineText) {
         lineNumber += 1;
 
-        if (line.indexOf(indent) === 0) {
-          // Dedent code
-          line = line.slice(indent.length);
-          map[lineNumber] = indent.length;
-        }
-        else {
+        var isNonEmptyLine = Boolean(lineText);
+        var isFirstNonEmptyLine = isNonEmptyLine && !hadNonEmptyLine;
+
+        var badIndentation =
+          // Be stricter on the first line
+          isFirstNonEmptyLine ?
+            indent !== lineIndent :
+            lineIndent.indexOf(indent) !== 0;
+
+        if (badIndentation) {
           // Don't report line if the line is empty
-          if (reportBadIndentation && /\S/.test(line)) {
+          if (reportBadIndentation && isNonEmptyLine) {
             badIndentationLines.push(lineNumber);
           }
           map[lineNumber] = 0;
         }
+        else {
+          // Dedent code
+          lineIndent = lineIndent.slice(indent.length);
+          map[lineNumber] = indent.length;
+        }
 
-        return newLineChar + line;
+        if (isNonEmptyLine) {
+          hadNonEmptyLine = true;
+        }
+
+        return newLineChar + lineIndent + lineText;
       })
       .replace(/[ \t]*$/, "");  // Remove spaces on the last line
   });

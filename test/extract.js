@@ -222,13 +222,13 @@ describe("extract", function () {
       output: `
         ${htmlLine}
 
-          a;
+            a;
         a;
         a;
 
       `,
-      map: [ , , 10, 2, 2, 0, 2 ],
-      badIndentationLines: [ 5 ],
+      map: [ , , 10, 0, 2, 0, 2 ],
+      badIndentationLines: [ 3, 5 ],
     });
 
     makeTest(it, "relative indent with spaces", {
@@ -268,13 +268,13 @@ describe("extract", function () {
       output: `
         ${htmlLine}
 
-        \ta;
+        \t\ta;
         a;
         a;
 
       `,
-      map: [ , , 9, 1, 1, 0, 1 ],
-      badIndentationLines: [ 5 ],
+      map: [ , , 9, 0, 1, 0, 1 ],
+      badIndentationLines: [ 3, 5 ],
     });
 
     makeTest(it, "relative indent with tabs", {

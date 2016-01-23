@@ -17,7 +17,7 @@ Simply add the plugin to your ESLint configuration. See
 
 Example:
 
-```json
+```javascript
 {
     "plugins": [
         "html"
@@ -33,7 +33,7 @@ setting `html/indent` allows to ensure every script tags follows an uniform inde
 `indent` rule, you can pass a number of spaces, or `"tab"` to indent with one tab. Prefix this value
 with a `+` to be relative to the `<script>` tag indentation. Example:
 
-```json
+```javascript
 {
     "plugins": [ "html" ],
     "settings": {
@@ -48,7 +48,7 @@ By default, this plugin won't warn if it encounter a problematic indentation (ex
 indented). If you want to make sure the indentation is correct, use the `html/report-bad-indent` in
 conjonction with the `indent` rule. Pass `1` to display warnings, or `2` to display errors. Example:
 
-```json
+```javascript
 {
     "plugins": [ "html" ],
     "settings": {

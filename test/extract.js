@@ -16,7 +16,7 @@ function dedent(str) {
   }
 
   // Remove the last empty line
-  str = str.replace(/(\n)[\t ]*$/, "");
+  str = str.replace(/(\r\n|\r|\n)[\t ]*$/, "");
 
   return str;
 }
@@ -299,5 +299,12 @@ describe("extract", function () {
       map: [ , , 9, 2, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
     });
+  });
+
+  makeTest(it, "works with crlf new lines", {
+    input: `<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n`,
+    output: `${htmlLine}\r\n${htmlLine}\r\n\r\nfoo;\r\nbar;\r\n  baz;\r\n\r\n`,
+    map: [ , , , 8, 2, 0, 2, 0 ],
+    badIndentationLines: [ 5 ],
   });
 });

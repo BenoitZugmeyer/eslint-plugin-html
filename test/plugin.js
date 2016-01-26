@@ -51,6 +51,16 @@ describe("plugin", function () {
     assert.equal(messages[4].column, 13);
   });
 
+  it("should report correct line numbers with crlf newlines", function () {
+    var messages = execute("crlf-newlines.html");
+
+    assert.equal(messages.length, 1);
+
+    assert.equal(messages[0].message, "Unexpected console statement.");
+    assert.equal(messages[0].line, 8);
+    assert.equal(messages[0].column, 7);
+  });
+
   describe("html/indent setting", function () {
     it("should automatically compute indent when nothing is specified", function () {
       var messages = execute("indent-setting.html", {

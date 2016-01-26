@@ -73,7 +73,7 @@ function extract(code, rawIndentDescriptor, reportBadIndentation) {
     // Mark that we're inside a <script> a tag and push all new lines
     // in between the last </script> tag and this <script> tag to preserve
     // location information.
-    var newLines = previousCode.match(/\n\r|\n|\r/g);
+    var newLines = previousCode.match(/\r\n|\n|\r/g);
     if (newLines) {
       resultCode += newLines.map(function (newLine) {
         return "//eslint-disable-line spaced-comment" + newLine
@@ -98,7 +98,7 @@ function extract(code, rawIndentDescriptor, reportBadIndentation) {
 
     var hadNonEmptyLine = false;
     resultCode += scriptCode
-      .replace(/([\n\r])([ \t]*)(.*)/g, function (_, newLineChar, lineIndent, lineText) {
+      .replace(/(\r\n|\n|\r)([ \t]*)(.*)/g, function (_, newLineChar, lineIndent, lineText) {
         lineNumber += 1;
 
         var isNonEmptyLine = Boolean(lineText);

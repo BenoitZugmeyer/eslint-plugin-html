@@ -1,6 +1,6 @@
 "use strict";
 
-var eslint = require("eslint");
+var path = require("path");
 var extract = require("./extract");
 
 // Disclaimer:
@@ -13,11 +13,26 @@ var extract = require("./extract");
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-var verify = eslint.linter.verify;
+var needle = path.join("eslint", "lib", "eslint.js");
+var eslint;
+for (var key in require.cache) {
+  if (key.indexOf(needle, key.length - needle.length) >= 0) {
+    eslint = require(key);
+    break;
+  }
+}
+
+if (!eslint) {
+  throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
+                  "If you think it is a bug, please file a report at " +
+                  "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues");
+}
+
+var verify = eslint.verify;
 var reportBadIndent;
 
 function patch() {
-  eslint.linter.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
+  eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
     var indentDescriptor = config.settings && config.settings["html/indent"];
     reportBadIndent = config.settings && config.settings["html/report-bad-indent"];
     currentInfos = extract(textOrSourceCode, indentDescriptor, Boolean(reportBadIndent));
@@ -26,7 +41,7 @@ function patch() {
 }
 
 function unpatch() {
-  eslint.linter.verify = verify;
+  eslint.verify = verify;
 }
 
 var currentInfos;

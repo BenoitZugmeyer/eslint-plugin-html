@@ -5,7 +5,7 @@ eslint-plugin-html
 
 This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML files.
 
-Supported HTML extensions: `.html`, `.xhtml`, `.htm`, `.vue`, `.hbs`, `.mustache`
+Supported HTML extensions: `.html`, `.xhtml`, `.htm`, `.vue`, `.hbs`, `.mustache`, `.php`
 
 Only script tags with no type attribute, with a type attribute containing a standard JavaScript MIME type such as `text/javascript` or `application/javascript`, or `text/babel` will be linted.
 

@@ -45,7 +45,7 @@ function unpatch() {
 }
 
 var currentInfos;
-var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs", "mustache"];
+var allowedExtensions = ["htm", "html", "xhtml", "vue", "hbs", "mustache", "php"];
 
 var htmlProcessor = {
 

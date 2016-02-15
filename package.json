@@ -19,7 +19,7 @@
     "htmlparser2": "^3.8.2"
   },
   "devDependencies": {
-    "eslint": "^1.10.3",
+    "eslint": "^2.1.0",
     "mocha": "^2.2.4"
   },
   "scripts": {

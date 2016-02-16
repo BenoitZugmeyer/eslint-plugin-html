@@ -2,6 +2,7 @@
   "name": "eslint-plugin-html",
   "version": "1.4.0",
   "description": "An ESLint plugin to extract and lint scripts from HTML files.",
+  "license": "ISC",
   "repository": {
     "type": "git",
     "url": "https://github.com/BenoitZugmeyer/eslint-plugin-html"

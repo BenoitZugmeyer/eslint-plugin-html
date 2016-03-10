@@ -17,6 +17,7 @@
   ],
   "main": "src/index.js",
   "dependencies": {
+    "gray-matter": "^2.0.2",
     "htmlparser2": "^3.8.2"
   },
   "devDependencies": {

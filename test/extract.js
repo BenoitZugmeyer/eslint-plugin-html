@@ -23,7 +23,11 @@ function dedent(str) {
 
 function makeTest(fn, description, params) {
   fn(description, function () {
-    var infos = extract(dedent(params.input), params.indent, true);
+    var infos = extract(dedent(params.input), {
+      indent: params.indent,
+      reportBadIndent: true,
+      xmlMode: params.xmlMode,
+    });
     assert.equal(infos.code, dedent(params.output));
     assert.deepEqual(infos.map, params.map);
 
@@ -306,5 +310,27 @@ describe("extract", function () {
     output: `${htmlLine}\r\n${htmlLine}\r\n\r\nfoo;\r\nbar;\r\n  baz;\r\n\r\n`,
     map: [ , , , 8, 2, 0, 2, 0 ],
     badIndentationLines: [ 5 ],
+  });
+
+  makeTest(it, "works with CDATA", {
+    input: `
+    <script>
+      a;
+      <![CDATA[
+      b;
+      ]]>
+      c;
+    </script>`,
+    xmlMode: true,
+    output: `
+
+      a;
+
+      b;
+
+      c;
+
+    `,
+    map: [ , , 2, 2, 2, 2, 2, 0 ],
   });
 });

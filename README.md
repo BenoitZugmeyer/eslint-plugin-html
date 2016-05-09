@@ -5,9 +5,10 @@ eslint-plugin-html
 
 This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML files.
 
-Supported HTML extensions: `.html`, `.xhtml`, `.htm`, `.vue`, `.hbs`, `.mustache`, `.php`, `.twig`
+Supported HTML extensions: `.html`, `.xhtml`, `.htm`, `.xml`, `.vue`, `.hbs`, `.mustache`, `.php`, `.twig`
 
 Only script tags with no type attribute, with a type attribute containing a standard JavaScript MIME type such as `text/javascript` or `application/javascript`, or `text/babel` will be linted.
+
 
 Usage
 -----
@@ -25,8 +26,11 @@ Example:
 }
 ```
 
+
 Settings
 --------
+
+### `html/indent`
 
 By default, the code between `<script>` tags is dedented according to the first non-empty line. The
 setting `html/indent` allows to ensure every script tags follows an uniform indentation. Like the
@@ -44,7 +48,10 @@ with a `+` to be relative to the `<script>` tag indentation. Example:
 }
 ```
 
-By default, this plugin won't warn if it encounter a problematic indentation (ex: a line is under
+
+### `html/report-bad-indent`
+
+By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
 indented). If you want to make sure the indentation is correct, use the `html/report-bad-indent` in
 conjonction with the `indent` rule. Pass `1` to display warnings, or `2` to display errors. Example:
 
@@ -53,6 +60,28 @@ conjonction with the `indent` rule. Pass `1` to display warnings, or `2` to disp
     "plugins": [ "html" ],
     "settings": {
       "html/report-bad-indent": 2,
+    }
+}
+```
+
+
+### `html/xml-mode`
+
+By default, files with an extension known to be XML (`.xml`, `.xhtml`) will be considered as XML.
+This slightly changes the markup parsing, mainly when considering `CDATA` sections:
+* in XML, any data inside a `CDATA` section will be considered as raw text (not XML) and the `CDATA`
+  delimiter will be droped ;
+* in HTML, there is no such thing for `<script>` tags: the `CDATA` delimiter is considered as normal
+  text and thus, part of the script.
+
+The setting `html/xml-mode` allows to force all files to be considered as XML (by passing `true`) or
+HTML (by passing `false`). Example:
+
+```javascript
+{
+    "plugins": [ "html" ],
+    "settings": {
+      "html/xml-mode": true,
     }
 }
 ```

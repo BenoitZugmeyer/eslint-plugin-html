@@ -16,9 +16,10 @@ function parseIndentDescriptor(indentDescriptor) {
 
 }
 
-function iterateScripts(code, onScript) {
+function iterateScripts(code, options, onScript) {
   var index = 0;
   var currentScript = null;
+  var cdataSize = 0;
 
   var parser = new htmlparser.Parser({
 
@@ -35,12 +36,16 @@ function iterateScripts(code, onScript) {
       currentScript = "";
     },
 
+    oncdatastart: function () {
+      cdataSize += 12; // CDATA sections adds a 12 characters overhead (<![CDATA[]]>)
+    },
+
     onclosetag: function (name) {
       if (name !== "script" || currentScript === null) {
         return;
       }
 
-      onScript(code.slice(index, parser.startIndex - currentScript.length), currentScript);
+      onScript(code.slice(index, parser.startIndex - currentScript.length - cdataSize), currentScript);
 
       index = parser.startIndex;
       currentScript = null;
@@ -54,21 +59,27 @@ function iterateScripts(code, onScript) {
       currentScript += data;
     },
 
+  }, {
+    xmlMode: options.xmlMode === true,
   });
 
   parser.parseComplete(code);
 }
 
 
-function extract(code, rawIndentDescriptor, reportBadIndentation) {
+function extract(code, options) {
 
-  var indentDescriptor = parseIndentDescriptor(rawIndentDescriptor);
+  var indentDescriptor = parseIndentDescriptor(options && options.indent);
+  var reportBadIndentation = options && options.reportBadIndent;
+  var xmlMode = options && options.xmlMode;
   var resultCode = "";
   var map = [];
   var lineNumber = 1;
   var badIndentationLines = [];
 
-  iterateScripts(code, function (previousCode, scriptCode) {
+  iterateScripts(code, {
+    xmlMode: xmlMode,
+  }, function (previousCode, scriptCode) {
 
     // Mark that we're inside a <script> a tag and push all new lines
     // in between the last </script> tag and this <script> tag to preserve

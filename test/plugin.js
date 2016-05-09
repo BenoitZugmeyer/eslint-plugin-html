@@ -18,7 +18,8 @@ function execute(file, baseConfig) {
     useEslintrc: false,
   });
   cli.addPlugin("html", plugin);
-  return cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results[0].messages;
+  var results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results;
+  return results[0] && results[0].messages;
 }
 
 
@@ -204,6 +205,58 @@ describe("plugin", function () {
       assert.equal(messages[2].message, "Bad line indentation.");
       assert.equal(messages[2].line, 11);
       assert.equal(messages[2].column, 1);
+    });
+  });
+
+  describe("xml support", () => {
+    it("consider .html files as HTML", () => {
+      var messages = execute("cdata.html");
+
+      assert.equal(messages.length, 1);
+
+      assert.equal(messages[0].message, "Parsing error: Unexpected token <");
+      assert.equal(messages[0].fatal, true);
+      assert.equal(messages[0].line, 10);
+      assert.equal(messages[0].column, 7);
+    });
+
+    it("can be forced to consider .html files as XML", () => {
+      var messages = execute("cdata.html", {
+        settings: {
+          "html/xml-mode": true
+        }
+      });
+
+      assert.equal(messages.length, 1);
+
+      assert.equal(messages[0].message, "Unexpected console statement.");
+      assert.equal(messages[0].line, 11);
+      assert.equal(messages[0].column, 9);
+    });
+
+    it("consider .xhtml files as XML", () => {
+      var messages = execute("cdata.xhtml");
+
+      assert.equal(messages.length, 1);
+
+      assert.equal(messages[0].message, "Unexpected console statement.");
+      assert.equal(messages[0].line, 13);
+      assert.equal(messages[0].column, 9);
+    });
+
+    it("can be forced to consider .xhtml files as HTML", () => {
+      var messages = execute("cdata.xhtml", {
+        settings: {
+          "html/xml-mode": false
+        }
+      });
+
+      assert.equal(messages.length, 1);
+
+      assert.equal(messages[0].message, "Parsing error: Unexpected token <");
+      assert.equal(messages[0].fatal, true);
+      assert.equal(messages[0].line, 12);
+      assert.equal(messages[0].column, 7);
     });
   });
 

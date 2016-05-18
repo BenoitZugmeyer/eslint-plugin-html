@@ -5,6 +5,7 @@ var extract = require("./extract");
 
 var htmlExtensions = [
   ".hbs",
+  ".handelbars",
   ".htm",
   ".html",
   ".mustache",

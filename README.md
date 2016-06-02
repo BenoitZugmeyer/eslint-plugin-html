@@ -13,7 +13,7 @@ Only script tags with no type attribute or a type attribute containing a MIME ty
 Usage
 -----
 
-Simply add the plugin to your ESLint configuration. See
+Simply install via npm `npm install eslint-plugin-html --save` add the plugin to your ESLint configuration. See
 [ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
 
 Example:

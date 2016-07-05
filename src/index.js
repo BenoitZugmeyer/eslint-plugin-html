@@ -48,7 +48,7 @@ function createProcessor(defaultXMLMode) {
   var verify = eslint.verify;
   var reportBadIndent;
 
-  var currentInfos;
+  var currentInfos = {};
 
   function patch() {
     eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {

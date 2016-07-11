@@ -10,6 +10,7 @@ var htmlExtensions = [
   ".html",
   ".mustache",
   ".php",
+  ".tag",
   ".twig",
   ".vue",
 ];

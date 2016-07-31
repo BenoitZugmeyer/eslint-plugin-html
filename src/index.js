@@ -13,6 +13,7 @@ var htmlExtensions = [
   ".tag",
   ".twig",
   ".vue",
+  ".erb",
 ];
 
 var xmlExtensions = [

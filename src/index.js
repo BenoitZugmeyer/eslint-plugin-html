@@ -4,8 +4,9 @@ var path = require("path");
 var extract = require("./extract");
 
 var htmlExtensions = [
-  ".hbs",
+  ".erb",
   ".handelbars",
+  ".hbs",
   ".htm",
   ".html",
   ".mustache",
@@ -13,7 +14,6 @@ var htmlExtensions = [
   ".tag",
   ".twig",
   ".vue",
-  ".erb",
 ];
 
 var xmlExtensions = [

@@ -31,12 +31,14 @@ var xmlExtensions = [
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-var needle = path.join("eslint", "lib", "eslint.js");
+var needle = path.join("lib", "eslint.js");
 var eslint;
 for (var key in require.cache) {
   if (key.indexOf(needle, key.length - needle.length) >= 0) {
     eslint = require(key);
-    break;
+    if (typeof eslint.verify === "function") {
+      break;
+    }
   }
 }
 

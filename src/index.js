@@ -74,8 +74,6 @@ function getPluginSettings(settings) {
   const xmlExtensions = settings["html/xml-extensions"] ||
       filterOut(defaultXMLExtensions, settings["html/html-extensions"])
 
-  const xmlMode = settings["html/xml-mode"]
-
   let reportBadIndent
   switch (settings["html/report-bad-indent"]) {
     case undefined: case false: case 0: case "off":
@@ -103,7 +101,6 @@ function getPluginSettings(settings) {
     xmlExtensions,
     indent,
     reportBadIndent,
-    xmlMode,
   }
 }
 
@@ -127,7 +124,7 @@ function patch(eslint) {
       const currentInfos = extract(
         textOrSourceCode,
         pluginSettings.indent,
-        typeof pluginSettings.xmlMode === "boolean" ? pluginSettings.xmlMode : isXML
+        isXML
       )
 
       messages = remapMessages(

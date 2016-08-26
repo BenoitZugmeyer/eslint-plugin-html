@@ -230,7 +230,7 @@ describe("xml support", () => {
   it("can be forced to consider .html files as XML", () => {
     const messages = execute("cdata.html", {
       settings: {
-        "html/xml-mode": true,
+        "html/xml-extensions": [".html"],
       },
     })
 
@@ -254,7 +254,7 @@ describe("xml support", () => {
   it("can be forced to consider .xhtml files as HTML", () => {
     const messages = execute("cdata.xhtml", {
       settings: {
-        "html/xml-mode": false,
+        "html/html-extensions": [".xhtml"],
       },
     })
 

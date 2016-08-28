@@ -24,6 +24,7 @@
     "jest": "^17.0.3"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "lint": "eslint ."
   }
 }

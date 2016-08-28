@@ -28,35 +28,47 @@ it("should extract and remap messages", () => {
 
   expect(messages.length, 5)
 
+  const hasEndPosition = messages[0].endLine !== undefined
+
   expect(messages[0].message).toBe("Unexpected console statement.")
   expect(messages[0].line).toBe(8)
   expect(messages[0].column).toBe(7)
-  expect(messages[0].endLine).toBe(8)
-  expect(messages[0].endColumn).toBe(18)
+  if (hasEndPosition) {
+    expect(messages[0].endLine).toBe(8)
+    expect(messages[0].endColumn).toBe(18)
+  }
 
   expect(messages[1].message).toBe("Unexpected console statement.")
   expect(messages[1].line).toBe(14)
   expect(messages[1].column).toBe(7)
-  expect(messages[1].endLine).toBe(14)
-  expect(messages[1].endColumn).toBe(18)
+  if (hasEndPosition) {
+    expect(messages[1].endLine).toBe(14)
+    expect(messages[1].endColumn).toBe(18)
+  }
 
   expect(messages[2].message).toBe("Unexpected console statement.")
   expect(messages[2].line).toBe(20)
   expect(messages[2].column).toBe(3)
-  expect(messages[2].endLine).toBe(20)
-  expect(messages[2].endColumn).toBe(14)
+  if (hasEndPosition) {
+    expect(messages[2].endLine).toBe(20)
+    expect(messages[2].endColumn).toBe(14)
+  }
 
   expect(messages[3].message).toBe("Unexpected console statement.")
   expect(messages[3].line).toBe(25)
   expect(messages[3].column).toBe(11)
-  expect(messages[3].endLine).toBe(25)
-  expect(messages[3].endColumn).toBe(22)
+  if (hasEndPosition) {
+    expect(messages[3].endLine).toBe(25)
+    expect(messages[3].endColumn).toBe(22)
+  }
 
   expect(messages[4].message).toBe("Unexpected console statement.")
   expect(messages[4].line).toBe(28)
   expect(messages[4].column).toBe(13)
-  expect(messages[4].endLine).toBe(28)
-  expect(messages[4].endColumn).toBe(24)
+  if (hasEndPosition) {
+    expect(messages[4].endLine).toBe(28)
+    expect(messages[4].endColumn).toBe(24)
+  }
 })
 
 it("should report correct line numbers with crlf newlines", () => {

@@ -3,3 +3,7 @@ node_js:
   - "6"
   - "5"
   - "4"
+script:
+  - "npm install eslint@2 && npm test"
+  - "npm install eslint@3 && npm test"
+  - "npm run lint"

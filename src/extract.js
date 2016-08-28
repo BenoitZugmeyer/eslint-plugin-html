@@ -5,6 +5,7 @@ const TransformableString = require("./TransformableString")
 
 function iterateScripts(code, options, onChunk) {
   const xmlMode = options.xmlMode
+  const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
   let index = 0
   let inScript = false
   let nextType = null
@@ -45,7 +46,7 @@ function iterateScripts(code, options, onChunk) {
         return
       }
 
-      if (attrs.type && !/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i.test(attrs.type)) {
+      if (attrs.type && !isJavaScriptMIMEType(attrs.type)) {
         return
       }
 
@@ -147,14 +148,14 @@ function* dedent(indent, slice) {
   }
 }
 
-function extract(code, indentDescriptor, xmlMode) {
+function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   const badIndentationLines = []
   const transformedCode = new TransformableString(code)
   let lineNumber = 1
   let previousHTML = ""
   let placeholderCount = 0
 
-  iterateScripts(code, { xmlMode }, (chunk) => {
+  iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
 
     if (chunk.type === "html" || chunk.type === "cdata start" || chunk.type === "cdata end") {

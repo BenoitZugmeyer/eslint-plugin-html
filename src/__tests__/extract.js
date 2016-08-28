@@ -23,7 +23,12 @@ function placeholder(n) {
 }
 
 function test(params) {
-  const infos = extract(dedent(params.input), params.indent, params.xmlMode)
+  const infos = extract(
+    dedent(params.input),
+    params.indent,
+    params.xmlMode,
+    params.isJavaScriptMIMEType
+  )
   expect(infos.code.toString()).toBe(dedent(params.output))
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
@@ -333,6 +338,32 @@ it("works with CDATA", () => {
       ${placeholder(2)}
       c;
       ${placeholder(3)}
+    `,
+  })
+})
+
+it("handles the isJavaScriptMIMEType option", () => {
+  test({
+    input: `
+    <script>
+      a
+    </script>
+
+    <script type="foo/bar">
+      b
+    </script>
+
+    <script type="foo/baz">
+      c
+    </script>
+    `,
+    isJavaScriptMIMEType(type) { return type === "foo/bar" },
+    output: `
+    ${placeholder(0)}
+    a
+    ${placeholder(1)}
+    b
+    ${placeholder(2)}
     `,
   })
 })

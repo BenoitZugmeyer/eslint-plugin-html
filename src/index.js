@@ -66,6 +66,15 @@ function filterOut(array, excludeArray) {
   return array.filter((item) => excludeArray.indexOf(item) < 0)
 }
 
+function compileRegExp(re) {
+  const tokens = re.split("/")
+  if (tokens.shift()) { // Ignore first token
+    throw new Error(`Invalid regexp: ${re}`)
+  }
+  const flags = tokens.pop()
+  return new RegExp(tokens.join("/"), flags)
+}
+
 function getPluginSettings(settings) {
 
   const htmlExtensions = settings["html/html-extensions"] ||
@@ -96,11 +105,24 @@ function getPluginSettings(settings) {
     spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
   }
 
+  const javaScriptMIMETypes = settings["html/javascript-mime-types"] ?
+    (
+      Array.isArray(settings["html/javascript-mime-types"]) ?
+        settings["html/javascript-mime-types"] :
+        [settings["html/javascript-mime-types"]]
+    ).map((s) => s.startsWith("/") ? compileRegExp(s) : s) :
+    [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
+
+  function isJavaScriptMIMEType(type) {
+    return javaScriptMIMETypes.some((o) => typeof o === "string" ? type === o : o.test(type))
+  }
+
   return {
     htmlExtensions,
     xmlExtensions,
     indent,
     reportBadIndent,
+    isJavaScriptMIMEType,
   }
 }
 
@@ -124,7 +146,8 @@ function patch(eslint) {
       const currentInfos = extract(
         textOrSourceCode,
         pluginSettings.indent,
-        isXML
+        isXML,
+        pluginSettings.isJavaScriptMIMEType
       )
 
       messages = remapMessages(

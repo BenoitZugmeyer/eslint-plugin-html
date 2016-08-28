@@ -291,3 +291,52 @@ describe("fix ranges", () => {
     expect(messages[0].fix.range).toEqual([ 74, 75 ])
   })
 })
+
+describe("html/javascript-mime-types", () => {
+  it("ignores unknown mime types by default", () => {
+    const messages = execute("javascript-mime-types.html")
+
+    expect(messages.length).toBe(2)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(12)
+  })
+
+  it("specifies a list of valid mime types", () => {
+    const messages = execute("javascript-mime-types.html", {
+      settings: {
+        "html/javascript-mime-types": ["text/foo"],
+      },
+    })
+
+    expect(messages.length, 2)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(16)
+  })
+
+  it("specifies a regexp of valid mime types", () => {
+    const messages = execute("javascript-mime-types.html", {
+      settings: {
+        "html/javascript-mime-types": "/^(application|text)\/foo$/",
+      },
+    })
+
+    expect(messages.length).toBe(3)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(16)
+
+    expect(messages[2].ruleId).toBe("no-console")
+    expect(messages[2].line).toBe(20)
+  })
+})

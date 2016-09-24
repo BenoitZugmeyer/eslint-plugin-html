@@ -3,6 +3,12 @@ var path = require("path");
 var CLIEngine = require("eslint").CLIEngine;
 var plugin = require("..");
 
+function assertMatch(message, re) {
+  if (!re.test(message)) {
+    throw new Error(`${JSON.stringify(message)} does not match ${re}`);
+  }
+}
+
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {};
 
@@ -88,13 +94,13 @@ describe("plugin", function () {
 
       // Only the first script is correctly indented (aligned on the first column)
 
-      assert.equal(messages[0].message, "Expected indentation of 0 space characters but found 2.");
+      assertMatch(messages[0].message, /Expected indentation of 0 .* but found 2\./);
       assert.equal(messages[0].line, 16);
 
-      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 6.");
+      assertMatch(messages[1].message, /Expected indentation of 0 .* but found 6\./);
       assert.equal(messages[1].line, 22);
 
-      assert.equal(messages[2].message, "Expected indentation of 0 space characters but found 10.");
+      assertMatch(messages[2].message, /Expected indentation of 0 .* but found 10\./);
       assert.equal(messages[2].line, 28);
     });
 
@@ -112,28 +118,28 @@ describe("plugin", function () {
       assert.equal(messages.length, 7);
 
       // The first script is incorrect since the second line gets dedented
-      assert.equal(messages[0].message, "Expected indentation of 2 space characters but found 0.");
+      assertMatch(messages[0].message, /Expected indentation of 2 .* but found 0\./);
       assert.equal(messages[0].line, 11);
 
       // The second script is correct.
 
-      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 6.");
+      assertMatch(messages[1].message, /Expected indentation of 0 .* but found 6\./);
       assert.equal(messages[1].line, 22);
 
-      assert.equal(messages[2].message, "Expected indentation of 8 space characters but found 6.");
+      assertMatch(messages[2].message, /Expected indentation of 8 .* but found 6\./);
       assert.equal(messages[2].line, 23);
 
-      assert.equal(messages[3].message, "Expected indentation of 6 space characters but found 4.");
+      assertMatch(messages[3].message, /Expected indentation of 6 .* but found 4\./);
       assert.equal(messages[3].line, 24);
 
 
-      assert.equal(messages[4].message, "Expected indentation of 0 space characters but found 10.");
+      assertMatch(messages[4].message, /Expected indentation of 0 .* but found 10\./);
       assert.equal(messages[4].line, 28);
 
-      assert.equal(messages[5].message, "Expected indentation of 12 space characters but found 10.");
+      assertMatch(messages[5].message, /Expected indentation of 12 .* but found 10\./);
       assert.equal(messages[5].line, 29);
 
-      assert.equal(messages[6].message, "Expected indentation of 10 space characters but found 8.");
+      assertMatch(messages[6].message, /Expected indentation of 10 .* but found 8\./);
       assert.equal(messages[6].line, 30);
     });
 
@@ -153,18 +159,18 @@ describe("plugin", function () {
       // The first script is correct since it can't be dedented, but follows the indent
       // rule anyway.
 
-      assert.equal(messages[0].message, "Expected indentation of 0 space characters but found 2.");
+      assertMatch(messages[0].message, /Expected indentation of 0 .* but found 2\./);
       assert.equal(messages[0].line, 16);
 
       // The third script is correct.
 
-      assert.equal(messages[1].message, "Expected indentation of 0 space characters but found 10.");
+      assertMatch(messages[1].message, /Expected indentation of 0 .* but found 10\./);
       assert.equal(messages[1].line, 28);
 
-      assert.equal(messages[2].message, "Expected indentation of 12 space characters but found 4.");
+      assertMatch(messages[2].message, /Expected indentation of 12 .* but found 4\./);
       assert.equal(messages[2].line, 29);
 
-      assert.equal(messages[3].message, "Expected indentation of 10 space characters but found 2.");
+      assertMatch(messages[3].message, /Expected indentation of 10 .* but found 2\./);
       assert.equal(messages[3].line, 30);
     });
   });

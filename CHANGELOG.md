@@ -1,3 +1,6 @@
+UNRELEASED v1.5.3
+* Fix tests for ESLint 3.6.0 #32
+
 2016-08-06 v1.5.2
 * Laxer way to retrieve the eslint package #27
 * Support `.erb` files #26

@@ -1,6 +1,5 @@
 "use strict";
 
-var path = require("path");
 var extract = require("./extract");
 var linter = require("eslint").linter;
 
@@ -32,23 +31,6 @@ var xmlExtensions = [
 // Related github issues:
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
-
-var needle = path.join("lib", "eslint.js");
-var eslint;
-for (var key in require.cache) {
-  if (key.indexOf(needle, key.length - needle.length) >= 0) {
-    eslint = require(key);
-    if (typeof eslint.verify === "function") {
-      break;
-    }
-  }
-}
-
-if (!eslint) {
-  throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
-                  "If you think it is a bug, please file a report at " +
-                  "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues");
-}
 
 function createProcessor(defaultXMLMode) {
   var verify = linter.verify;

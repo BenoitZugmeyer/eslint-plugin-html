@@ -1,4 +1,4 @@
-UNRELEASED v1.5.3
+2016-09-24 v1.5.3
 * Fix tests for ESLint 3.6.0 #32
 * Support `.we` files #30
 

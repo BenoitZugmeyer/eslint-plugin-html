@@ -14,6 +14,7 @@ var htmlExtensions = [
   ".tag",
   ".twig",
   ".vue",
+  ".we",
 ];
 
 var xmlExtensions = [

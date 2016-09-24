@@ -17,6 +17,7 @@ Supported HTML extensions:
 * .tag
 * .twig
 * .vue
+* .we
 
 Supported XHTML extensions:
 

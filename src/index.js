@@ -2,6 +2,7 @@
 
 var path = require("path");
 var extract = require("./extract");
+var linter = require("eslint").linter;
 
 var htmlExtensions = [
   ".erb",
@@ -50,13 +51,13 @@ if (!eslint) {
 }
 
 function createProcessor(defaultXMLMode) {
-  var verify = eslint.verify;
+  var verify = linter.verify;
   var reportBadIndent;
 
   var currentInfos;
 
   function patch() {
-    eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
+    linter.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
       var indentDescriptor = config.settings && config.settings["html/indent"];
       var xmlMode = config.settings && config.settings["html/xml-mode"];
       reportBadIndent = config.settings && config.settings["html/report-bad-indent"];
@@ -75,7 +76,7 @@ function createProcessor(defaultXMLMode) {
   }
 
   function unpatch() {
-    eslint.verify = verify;
+    linter.verify = verify;
   }
   return {
 

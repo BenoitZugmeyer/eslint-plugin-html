@@ -34,6 +34,12 @@ var xmlExtensions = [
 // https://github.com/eslint/eslint/issues/4153
 
 function findESLintModules() {
+
+  if (!require.cache || Object.keys(require.cache).length === 0) {
+    // Jest is replacing the node "require" function, and "require.cache" isn't available here.
+    return [require("eslint/lib/eslint")];
+  }
+
   var modules = [];
   var needle = path.join("lib", "eslint.js");
   for (var key in require.cache) {

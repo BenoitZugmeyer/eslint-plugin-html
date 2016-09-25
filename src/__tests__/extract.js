@@ -1,34 +1,34 @@
 /*eslint-env es6*/
 /*eslint no-sparse-arrays: 0*/
 
-"use strict";
-var extract = require("../extract");
+"use strict"
+const extract = require("../extract")
 
-var htmlLine = "//eslint-disable-line";
+const htmlLine = "//eslint-disable-line"
 
 function dedent(str) {
-  if (str[0] === "\n") str = str.slice(1);
+  if (str[0] === "\n") str = str.slice(1)
 
-  const indent = str.match(/([\t ]*)\S/);
+  const indent = str.match(/([\t ]*)\S/)
   if (indent) {
-    str = str.replace(new RegExp("^" + indent[1], "mg"), "");
+    str = str.replace(new RegExp(`^${indent[1]}`, "mg"), "")
   }
 
   // Remove the last empty line
-  str = str.replace(/(\r\n|\r|\n)[\t ]*$/, "");
+  str = str.replace(/(\r\n|\r|\n)[\t ]*$/, "")
 
-  return str;
+  return str
 }
 
 function test(params) {
-  var infos = extract(dedent(params.input), {
+  const infos = extract(dedent(params.input), {
     indent: params.indent,
     reportBadIndent: true,
     xmlMode: params.xmlMode,
-  });
-  expect(infos.code).toBe(dedent(params.output));
-  expect(infos.map).toEqual(params.map);
-  expect(infos.badIndentationLines).toEqual(params.badIndentationLines || []);
+  })
+  expect(infos.code).toBe(dedent(params.output))
+  expect(infos.map).toEqual(params.map)
+  expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
 
 it("extract simple javascript", () => {
@@ -43,8 +43,8 @@ it("extract simple javascript", () => {
       var foo = 1;
     `,
     map: [ , , 8 ],
-  });
-});
+  })
+})
 
 it("extract indented javascript", () => {
   test({
@@ -62,8 +62,8 @@ it("extract indented javascript", () => {
 
     `,
     map: [ , , 8, 2, 0 ],
-  });
-});
+  })
+})
 
 it("extract javascript with first line next to the script tag", () => {
   test({
@@ -81,8 +81,8 @@ it("extract javascript with first line next to the script tag", () => {
 
     `,
     map: [ , , 8, 2, 0 ],
-  });
-});
+  })
+})
 
 it("extract javascript with last line next to the script tag", () => {
   test({
@@ -100,8 +100,8 @@ it("extract javascript with last line next to the script tag", () => {
       var baz = 1;
     `,
     map: [ , , 8, 2, 2 ],
-  });
-});
+  })
+})
 
 it("extract multiple script tags", () => {
   test({
@@ -126,8 +126,8 @@ it("extract multiple script tags", () => {
 
     `,
     map: [ , , 8, 2, 0, , 8, 2, 0 ],
-  });
-});
+  })
+})
 
 it("trim last line spaces", () => {
   test({
@@ -145,8 +145,8 @@ it("trim last line spaces", () => {
 
     `,
     map: [ , , 10, 4, 0 ],
-  });
-});
+  })
+})
 
 it("extract script containing 'lower than' characters correctly (#1)", () => {
   test({
@@ -161,8 +161,8 @@ it("extract script containing 'lower than' characters correctly (#1)", () => {
 
     `,
     map: [ , , 2, 0 ],
-  });
-});
+  })
+})
 
 
 it("extract empty script tag (#7)", () => {
@@ -172,20 +172,20 @@ it("extract empty script tag (#7)", () => {
     `,
     output: "",
     map: [ ],
-  });
-});
+  })
+})
 
-let prefixes = ["text/",
+const prefixes = ["text/",
                 "text/x-",
                 "application/",
-                "application/x-"];
+                "application/x-"]
 
-let types = ["javascript", "babel"];
+const types = ["javascript", "babel"]
 
-for (let prefix of prefixes) {
-  for (let type of types) {
-    let tag = `${prefix}${type}`;
-    let column = 16 + tag.length;
+for (const prefix of prefixes) {
+  for (const type of types) {
+    const tag = `${prefix}${type}`
+    const column = 16 + tag.length
 
     it(`extracts a script tag with type=${tag}`, () => {
       test({
@@ -199,8 +199,8 @@ for (let prefix of prefixes) {
           var foo = 1;
         `,
         map: [ , , column ],
-      });
-    });
+      })
+    })
   }
 }
 
@@ -222,10 +222,10 @@ it("collects bad indentations", () => {
     `,
     map: [ , , 2, 0, 0, 0 ],
     badIndentationLines: [ 3, 4 ],
-  });
-});
+  })
+})
 
-describe("indent option", function () {
+describe("indent option", () => {
   it("absolute indent with spaces", () => {
     test({
       input: `
@@ -248,8 +248,8 @@ describe("indent option", function () {
       `,
       map: [ , , 10, 0, 2, 0, 2 ],
       badIndentationLines: [ 3, 5 ],
-    });
-  });
+    })
+  })
 
   it("relative indent with spaces", () => {
     test({
@@ -273,8 +273,8 @@ describe("indent option", function () {
       `,
       map: [ , , 10, 4, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
-    });
-  });
+    })
+  })
 
   it("absolute indent with tabs", () => {
     test({
@@ -298,8 +298,8 @@ describe("indent option", function () {
       `,
       map: [ , , 9, 0, 1, 0, 1 ],
       badIndentationLines: [ 3, 5 ],
-    });
-  });
+    })
+  })
 
   it("relative indent with tabs", () => {
     test({
@@ -323,9 +323,9 @@ describe("indent option", function () {
       `,
       map: [ , , 9, 2, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
-    });
-  });
-});
+    })
+  })
+})
 
 it("works with crlf new lines", () => {
   test({
@@ -333,8 +333,8 @@ it("works with crlf new lines", () => {
     output: `${htmlLine}\r\n${htmlLine}\r\n\r\nfoo;\r\nbar;\r\n  baz;\r\n\r\n`,
     map: [ , , , 8, 2, 0, 2, 0 ],
     badIndentationLines: [ 5 ],
-  });
-});
+  })
+})
 
 it("works with CDATA", () => {
   test({
@@ -357,5 +357,5 @@ it("works with CDATA", () => {
 
     `,
     map: [ , , 2, 2, 2, 2, 2, 0 ],
-  });
-});
+  })
+})

@@ -1,3 +1,6 @@
+2016-10-22 v1.5.4
+* Support `.nunjucks` files #35
+
 2016-09-24 v1.5.3
 * Fix tests for ESLint 3.6.0 #32
 * Support `.we` files #30

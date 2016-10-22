@@ -10,6 +10,7 @@ var htmlExtensions = [
   ".htm",
   ".html",
   ".mustache",
+  ".nunjucks",
   ".php",
   ".tag",
   ".twig",

@@ -13,6 +13,7 @@ Supported HTML extensions:
 * .htm
 * .html
 * .mustache
+* .nunjucks
 * .php
 * .tag
 * .twig

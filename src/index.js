@@ -5,7 +5,7 @@ var extract = require("./extract");
 
 var htmlExtensions = [
   ".erb",
-  ".handelbars",
+  ".handlebars",
   ".hbs",
   ".htm",
   ".html",

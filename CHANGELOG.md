@@ -1,3 +1,6 @@
+2016-10-23 v1.5.5
+* Fix typo in handlebars extension #36
+
 2016-10-22 v1.5.4
 * Support `.nunjucks` files #35
 

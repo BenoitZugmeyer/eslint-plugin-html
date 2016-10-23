@@ -8,7 +8,7 @@ This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML f
 Supported HTML extensions:
 
 * .erb
-* .handelbars
+* .handlebars
 * .hbs
 * .htm
 * .html

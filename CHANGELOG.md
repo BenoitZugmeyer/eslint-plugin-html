@@ -1,3 +1,6 @@
+2016-11-05 v1.6.0
+* Patch all loaded eslint packages #28
+
 2016-10-23 v1.5.5
 * Fix typo in handlebars extension #36
 

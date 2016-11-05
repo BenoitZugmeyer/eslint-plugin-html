@@ -6,4 +6,7 @@ rules:
   quotes: [2, "double"]
 
 env:
-    node: true
+  node: true
+
+globals:
+  WeakMap: false

@@ -33,31 +33,38 @@ var xmlExtensions = [
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-var needle = path.join("lib", "eslint.js");
-var eslint;
-for (var key in require.cache) {
-  if (key.indexOf(needle, key.length - needle.length) >= 0) {
-    eslint = require(key);
-    if (typeof eslint.verify === "function") {
-      break;
+function findESLintModules() {
+  var modules = [];
+  var needle = path.join("lib", "eslint.js");
+  for (var key in require.cache) {
+    if (key.indexOf(needle, key.length - needle.length) >= 0) {
+      var eslint = require(key);
+      if (typeof eslint.verify === "function") {
+        modules.push(eslint);
+      }
     }
   }
-}
 
-if (!eslint) {
-  throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
-                  "If you think it is a bug, please file a report at " +
-                  "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues");
+  if (!modules.length) {
+    throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
+                    "If you think it is a bug, please file a report at " +
+                    "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues");
+  }
+
+  return modules;
 }
 
 function createProcessor(defaultXMLMode) {
-  var verify = eslint.verify;
+  var patchedModules = null;
+  var originalVerifyMethods = new WeakMap();
   var reportBadIndent;
 
   var currentInfos;
 
-  function patch() {
-    eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
+  function patchModule(module) {
+    var originalVerify = module.verify;
+
+    function patchedVerify(textOrSourceCode, config, filenameOrOptions, saveState) {
       var indentDescriptor = config.settings && config.settings["html/indent"];
       var xmlMode = config.settings && config.settings["html/xml-mode"];
       reportBadIndent = config.settings && config.settings["html/report-bad-indent"];
@@ -71,22 +78,34 @@ function createProcessor(defaultXMLMode) {
         reportBadIndent: Boolean(reportBadIndent),
         xmlMode: xmlMode,
       });
-      return verify.call(this, currentInfos.code, config, filenameOrOptions, saveState);
-    };
+
+      return originalVerify.call(this, currentInfos.code, config, filenameOrOptions, saveState);
+    }
+
+    originalVerifyMethods.set(module, originalVerify);
+
+    module.verify = patchedVerify;
   }
 
-  function unpatch() {
-    eslint.verify = verify;
+  function unpatchModule(module) {
+    var originalVerify = originalVerifyMethods.get(module);
+    if (originalVerify) {
+      module.verify = originalVerify;
+    }
   }
+
   return {
 
     preprocess: function (content) {
-      patch();
+      patchedModules = findESLintModules();
+      patchedModules.forEach(patchModule);
+
       return [content];
     },
 
     postprocess: function (messages) {
-      unpatch();
+      patchedModules.forEach(unpatchModule);
+      patchedModules = null;
 
       messages[0].forEach(function (message) {
         message.column += currentInfos.map[message.line] || 0;

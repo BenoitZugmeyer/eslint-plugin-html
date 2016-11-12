@@ -266,4 +266,16 @@ describe("plugin", function () {
     });
   });
 
+  describe("lines-around-comment and multiple scripts", () => {
+    it("should not warn with lines-around-comment if multiple scripts", () => {
+      var messages = execute("simple.html", {
+        "rules": {
+          "lines-around-comment": ["error", { "beforeLineComment": true }]
+        }
+      });
+
+      assert.equal(messages.length, 5);
+    });
+  });
+
 });

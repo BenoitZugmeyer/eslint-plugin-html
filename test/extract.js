@@ -5,7 +5,7 @@
 var assert = require("assert");
 var extract = require("../src/extract");
 
-var htmlLine = "//eslint-disable-line spaced-comment";
+var htmlLine = "//eslint-disable-line";
 
 function dedent(str) {
   if (str[0] === "\n") str = str.slice(1);

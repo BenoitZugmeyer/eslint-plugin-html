@@ -1,3 +1,6 @@
+2016-11-18 v1.7.0
+* Ignore all warnings for non-script lines #37
+
 2016-11-05 v1.6.0
 * Patch all loaded eslint packages #28
 

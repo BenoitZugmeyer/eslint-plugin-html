@@ -87,7 +87,7 @@ function extract(code, options) {
     var newLines = previousCode.match(/\r\n|\n|\r/g);
     if (newLines) {
       resultCode += newLines.map(function (newLine) {
-        return "//eslint-disable-line spaced-comment" + newLine
+        return "//eslint-disable-line" + newLine
       }).join("");
       lineNumber += newLines.length;
       map[lineNumber] = previousCode.match(/[^\n\r]*$/)[0].length;

@@ -58,6 +58,16 @@ describe("plugin", function () {
     assert.equal(messages[4].column, 13);
   });
 
+  it("ignores front matter", function () {
+    var messages = execute("frontmatter.html");
+
+    assert.equal(messages.length, 1);
+
+    assert.equal(messages[0].message, "Unexpected console statement.");
+    assert.equal(messages[0].line, 12);
+    assert.equal(messages[0].column, 1);
+  });
+
   it("should report correct line numbers with crlf newlines", function () {
     var messages = execute("crlf-newlines.html");
 

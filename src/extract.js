@@ -1,6 +1,7 @@
 "use strict";
 
 var htmlparser = require("htmlparser2");
+var grayMatter = require("gray-matter");
 
 function parseIndentDescriptor(indentDescriptor) {
   var match = /^(\+)?(tab|\d+)$/.exec(indentDescriptor);
@@ -74,7 +75,16 @@ function extract(code, options) {
   var xmlMode = options && options.xmlMode;
   var resultCode = "";
   var map = [];
+  var parsed = grayMatter(code);
+  var matter = code.substring(0, code.indexOf(parsed.content));
+  code = parsed.content;
+  var matterLines = matter.match(/\r\n|\n|\r/g);
   var lineNumber = 1;
+  if (matterLines && matterLines.length) {
+    resultCode += matterLines.map(function (newLine) {
+      return "//eslint-disable-line spaced-comment" + newLine
+    }).join("");
+  }
   var badIndentationLines = [];
 
   iterateScripts(code, {

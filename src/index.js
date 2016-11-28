@@ -59,7 +59,7 @@ function createProcessor(defaultXMLMode) {
   var originalVerifyMethods = new WeakMap();
   var reportBadIndent;
 
-  var currentInfos;
+  var currentInfos = {};
 
   function patchModule(module) {
     var originalVerify = module.verify;

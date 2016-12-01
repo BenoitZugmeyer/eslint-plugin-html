@@ -278,4 +278,16 @@ describe("plugin", function () {
     });
   });
 
+  describe.skip("fix ranges", () => {
+    it("should remap fix ranges", () => {
+      var messages = execute("remap-fix-range.html", {
+        "rules": {
+          "no-extra-semi": ["error"]
+        }
+      });
+
+      assert.equal(messages.length, 1);
+      assert.deepEqual(messages[0].fix.range, [ 72, 73 ]);
+    });
+  });
 });

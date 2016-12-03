@@ -15,6 +15,7 @@ rules:
   quotes: [error, double]
   semi: [error, never]
   strict: [error, global]
+  no-constant-condition: [error, { checkLoops: false }]
 
 env:
   node: true

@@ -1,12 +1,13 @@
 "use strict"
 
 const htmlparser = require("htmlparser2")
+const TransformableString = require("./TransformableString")
 
 function parseIndentDescriptor(indentDescriptor) {
   const match = /^(\+)?(tab|\d+)$/.exec(indentDescriptor)
 
   if (!match) {
-    return { relative: false, spaces: "auto" }
+    return { relative: false, auto: true }
   }
 
   return {
@@ -16,10 +17,39 @@ function parseIndentDescriptor(indentDescriptor) {
 
 }
 
-function iterateScripts(code, options, onScript) {
+function iterateScripts(code, options, onChunk) {
+  const xmlMode = options.xmlMode
   let index = 0
-  let currentScript = null
-  let cdataSize = 0
+  let inScript = false
+  let nextType = null
+  let nextEnd = null
+
+  function emitChunk(type, end, lastChunk) {
+    // Ignore empty chunks
+    if (index !== end) {
+      // Keep concatenating same type chunks
+      if (nextType !== null && nextType !== type) {
+        onChunk({
+          type: nextType,
+          start: index,
+          end: nextEnd,
+        })
+        index = nextEnd
+      }
+
+      nextType = type
+      nextEnd = end
+
+      if (lastChunk) {
+        onChunk({
+          type: nextType,
+          start: index,
+          end: nextEnd,
+        })
+      }
+    }
+
+  }
 
   const parser = new htmlparser.Parser({
 
@@ -33,119 +63,137 @@ function iterateScripts(code, options, onScript) {
         return
       }
 
-      currentScript = ""
+      inScript = true
+      emitChunk("html", parser.endIndex + 1)
     },
 
     oncdatastart () {
-      cdataSize += 12 // CDATA sections adds a 12 characters overhead (<![CDATA[]]>)
+      if (inScript) {
+        emitChunk("cdata start", parser.startIndex + 9)
+        emitChunk("script", parser.endIndex - 2)
+        emitChunk("cdata end", parser.endIndex + 1)
+      }
     },
 
     onclosetag (name) {
-      if (name !== "script" || currentScript === null) {
+      if (name !== "script" || !inScript) {
         return
       }
 
-      onScript(code.slice(index, parser.startIndex - currentScript.length - cdataSize), currentScript)
+      inScript = false
 
-      index = parser.startIndex
-      currentScript = null
+      const endSpaces = code.slice(index, parser.startIndex).match(/[ \t]*$/)[0].length
+      emitChunk("script", parser.startIndex - endSpaces)
     },
 
-    ontext (data) {
-      if (currentScript === null) {
+    ontext () {
+      if (!inScript) {
         return
       }
 
-      currentScript += data
+      emitChunk("script", parser.endIndex + 1)
     },
 
   }, {
-    xmlMode: options.xmlMode === true,
+    xmlMode: xmlMode === true,
   })
 
   parser.parseComplete(code)
+
+  emitChunk("html", parser.endIndex + 1, true)
 }
 
+function computeIndent(descriptor, previousHTML, slice) {
+  if (descriptor.auto) {
+    const indentMatch = /[\n\r]+([ \t]*)/.exec(slice)
+    return indentMatch ? indentMatch[1] : ""
+  }
 
-function extract(code, options) {
+  if (descriptor.relative) {
+    return previousHTML.match(/([^\n\r]*)<[^<]*$/)[1] + descriptor.spaces
+  }
 
-  const indentDescriptor = parseIndentDescriptor(options && options.indent)
-  const reportBadIndentation = options && options.reportBadIndent
-  const xmlMode = options && options.xmlMode
-  let resultCode = ""
-  const map = []
-  let lineNumber = 1
-  const badIndentationLines = []
+  return descriptor.spaces
+}
 
-  iterateScripts(code, {
-    xmlMode,
-  }, (previousCode, scriptCode) => {
+function* dedent(indent, slice) {
+  let hadNonEmptyLine = false
+  const re = /(\r\n|\n|\r)([ \t]*)(.*)/g
 
-    // Mark that we're inside a <script> a tag and push all new lines
-    // in between the last </script> tag and this <script> tag to preserve
-    // location information.
-    const newLines = previousCode.match(/\r\n|\n|\r/g)
-    if (newLines) {
-      resultCode += newLines.map((newLine) => {
-        return `//eslint-disable-line${newLine}`
-      }).join("")
-      lineNumber += newLines.length
-      map[lineNumber] = previousCode.match(/[^\n\r]*$/)[0].length
+  while (true) {
+    const match = re.exec(slice)
+    if (!match) break
+
+    const newLine = match[1]
+    const lineIndent = match[2]
+    const lineText = match[3]
+
+    const isEmptyLine = !lineText
+    const isFirstNonEmptyLine = !isEmptyLine && !hadNonEmptyLine
+
+    const badIndentation =
+      // Be stricter on the first line
+      isFirstNonEmptyLine ?
+        indent !== lineIndent :
+        lineIndent.indexOf(indent) !== 0
+
+    if (!badIndentation) {
+      yield {
+        type: "dedent",
+        from: match.index + newLine.length,
+        to: match.index + newLine.length + indent.length,
+      }
     }
-
-    const currentScriptIndent = previousCode.match(/([^\n\r]*)<[^<]*$/)[1]
-
-    let indent
-    if (indentDescriptor.spaces === "auto") {
-      const indentMatch = /[\n\r]+([ \t]*)/.exec(scriptCode)
-      indent = indentMatch ? indentMatch[1] : ""
+    else if (isEmptyLine) {
+      yield {
+        type: "empty",
+      }
     }
     else {
-      indent = indentDescriptor.spaces
-      if (indentDescriptor.relative) {
-        indent = currentScriptIndent + indent
+      yield {
+        type: "bad-indent",
       }
     }
 
-    let hadNonEmptyLine = false
-    resultCode += scriptCode
-      .replace(/(\r\n|\n|\r)([ \t]*)(.*)/g, (_, newLineChar, lineIndent, lineText) => {
+    if (!isEmptyLine) {
+      hadNonEmptyLine = true
+    }
+  }
+}
+
+function extract(code, options) {
+  const indentDescriptor = parseIndentDescriptor(options && options.indent)
+  const xmlMode = options && options.xmlMode
+  const badIndentationLines = []
+  const transformedCode = new TransformableString(code)
+  let lineNumber = 1
+  let previousHTML = ""
+  let placeholderCount = 0
+
+  iterateScripts(code, { xmlMode }, (chunk) => {
+    const slice = code.slice(chunk.start, chunk.end)
+
+    if (chunk.type === "html" || chunk.type === "cdata start" || chunk.type === "cdata end") {
+      transformedCode.replace(chunk.start, chunk.end, `/* HTML BLOCK ${placeholderCount} */`)
+      placeholderCount += 1
+      const newLines = slice.match(/\r\n|\n|\r/g)
+      lineNumber += newLines ? newLines.length : 0
+      if (chunk.type === "html") previousHTML = slice
+    }
+    else if (chunk.type === "script") {
+      for (const action of dedent(computeIndent(indentDescriptor, previousHTML, slice), slice)) {
         lineNumber += 1
-
-        const isNonEmptyLine = Boolean(lineText)
-        const isFirstNonEmptyLine = isNonEmptyLine && !hadNonEmptyLine
-
-        const badIndentation =
-          // Be stricter on the first line
-          isFirstNonEmptyLine ?
-            indent !== lineIndent :
-            lineIndent.indexOf(indent) !== 0
-
-        if (badIndentation) {
-          // Don't report line if the line is empty
-          if (reportBadIndentation && isNonEmptyLine) {
-            badIndentationLines.push(lineNumber)
-          }
-          map[lineNumber] = 0
+        if (action.type === "dedent") {
+          transformedCode.replace(chunk.start + action.from, chunk.start + action.to, "")
+        } else if (action.type === "bad-indent") {
+          badIndentationLines.push(lineNumber)
         }
-        else {
-          // Dedent code
-          lineIndent = lineIndent.slice(indent.length)
-          map[lineNumber] = indent.length
-        }
-
-        if (isNonEmptyLine) {
-          hadNonEmptyLine = true
-        }
-
-        return newLineChar + lineIndent + lineText
-      })
-      .replace(/[ \t]*$/, "")  // Remove spaces on the last line
+      }
+    }
   })
 
   return {
-    map,
-    code: resultCode,
+    code: transformedCode,
     badIndentationLines,
   }
 }

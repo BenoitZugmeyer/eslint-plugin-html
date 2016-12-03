@@ -81,11 +81,16 @@ function createProcessor(defaultXMLMode) {
 
       currentInfos = extract(textOrSourceCode, {
         indent: indentDescriptor,
-        reportBadIndent: Boolean(reportBadIndent),
         xmlMode,
       })
 
-      return originalVerify.call(this, currentInfos.code, config, filenameOrOptions, saveState)
+      return originalVerify.call(
+        this,
+        currentInfos.code.toString(),
+        config,
+        filenameOrOptions,
+        saveState
+      )
     }
 
     originalVerifyMethods.set(module, originalVerify)
@@ -113,25 +118,56 @@ function createProcessor(defaultXMLMode) {
       patchedModules.forEach(unpatchModule)
       patchedModules = null
 
-      messages[0].forEach((message) => {
-        message.column += currentInfos.map[message.line] || 0
-      })
+      const newMessages = []
 
-      currentInfos.badIndentationLines.forEach((line) => {
-        messages[0].push({
-          message: "Bad line indentation.",
-          line,
-          column: 1,
-          ruleId: "(html plugin)",
-          severity: reportBadIndent === true ? 2 : reportBadIndent,
+      for (const message of messages[0]) {
+        const location = currentInfos.code.originalLocation(message)
+
+        // Ignore messages if they were in transformed code
+        if (location) {
+          Object.assign(message, location)
+
+          // Map fix range
+          if (message.fix && message.fix.range) {
+            message.fix.range = [
+              currentInfos.code.originalIndex(message.fix.range[0]),
+              currentInfos.code.originalIndex(message.fix.range[1]),
+            ]
+          }
+
+          // Map end location
+          if (message.endLine && message.endColumn) {
+            const endLocation = currentInfos.code.originalLocation({
+              line: message.endLine,
+              column: message.endColumn,
+            })
+            if (endLocation) {
+              message.endLine = endLocation.line
+              message.endColumn = endLocation.column
+            }
+          }
+
+          newMessages.push(message)
+        }
+      }
+
+      if (reportBadIndent) {
+        currentInfos.badIndentationLines.forEach((line) => {
+          newMessages.push({
+            message: "Bad line indentation.",
+            line,
+            column: 1,
+            ruleId: "(html plugin)",
+            severity: reportBadIndent === true ? 2 : reportBadIndent,
+          })
         })
-      })
+      }
 
-      messages[0].sort((ma, mb) => {
+      newMessages.sort((ma, mb) => {
         return ma.line - mb.line || ma.column - mb.column
       })
 
-      return messages[0]
+      return newMessages
     },
 
   }

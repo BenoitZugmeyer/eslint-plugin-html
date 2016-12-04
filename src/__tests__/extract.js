@@ -23,11 +23,7 @@ function placeholder(n) {
 }
 
 function test(params) {
-  const infos = extract(dedent(params.input), {
-    indent: params.indent,
-    reportBadIndent: true,
-    xmlMode: params.xmlMode,
-  })
+  const infos = extract(dedent(params.input), params.indent, params.xmlMode)
   expect(infos.code.toString()).toBe(dedent(params.output))
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
@@ -218,7 +214,9 @@ describe("indent option", () => {
           </script>
         </head>
       `,
-      indent: "2",
+      indent: {
+        spaces: "  ",
+      },
       output: `
         ${placeholder(0)}
             a;
@@ -241,7 +239,10 @@ describe("indent option", () => {
           </script>
         </head>
       `,
-      indent: "+2",
+      indent: {
+        spaces: "  ",
+        relative: true,
+      },
       output: `
         ${placeholder(0)}
         a;
@@ -264,7 +265,9 @@ describe("indent option", () => {
         \t</script>
         </head>
       `,
-      indent: "tab",
+      indent: {
+        spaces: "\t",
+      },
       output: `
         ${placeholder(0)}
         \t\ta;
@@ -287,7 +290,10 @@ describe("indent option", () => {
         \t</script>
         </head>
       `,
-      indent: "+tab",
+      indent: {
+        spaces: "\t",
+        relative: true,
+      },
       output: `
         ${placeholder(0)}
         a;

@@ -61,6 +61,38 @@ function iterateESLintModules(fn) {
   }
 }
 
+function getPluginSettings(settings) {
+  const xmlMode = settings["html/xml-mode"]
+
+  let reportBadIndent
+  switch (settings["html/report-bad-indent"]) {
+    case undefined: case false: case 0: case "off":
+      reportBadIndent = 0
+      break
+    case true: case 1: case "warn":
+      reportBadIndent = 1
+      break
+    case 2: case "error":
+      reportBadIndent = 2
+      break
+    default:
+      throw new Error("Invalid value for html/report-bad-indent, " +
+        "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\"")
+  }
+
+  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(settings["html/indent"])
+  const indent = parsedIndent && {
+    relative: parsedIndent[1] === "+",
+    spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
+  }
+
+  return {
+    indent,
+    reportBadIndent,
+    xmlMode,
+  }
+}
+
 function patch(eslint) {
   const verify = eslint.verify
 
@@ -77,16 +109,17 @@ function patch(eslint) {
     const isXML = !isHTML && xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
-      const settings = config.settings || {}
-      const currentInfos = extract(textOrSourceCode, {
-        indent: settings["html/indent"],
-        xmlMode: typeof settings["html/xml-mode"] === "boolean" ? settings["html/xml-mode"] : isXML,
-      })
+      const pluginSettings = getPluginSettings(config.settings || {})
+      const currentInfos = extract(
+        textOrSourceCode,
+        pluginSettings.indent,
+        typeof pluginSettings.xmlMode === "boolean" ? pluginSettings.xmlMode : isXML
+      )
 
       messages = remapMessages(
         localVerify(String(currentInfos.code)),
         currentInfos.code,
-        settings["html/report-bad-indent"],
+        pluginSettings.reportBadIndent,
         currentInfos.badIndentationLines
       )
     }

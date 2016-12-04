@@ -3,20 +3,6 @@
 const htmlparser = require("htmlparser2")
 const TransformableString = require("./TransformableString")
 
-function parseIndentDescriptor(indentDescriptor) {
-  const match = /^(\+)?(tab|\d+)$/.exec(indentDescriptor)
-
-  if (!match) {
-    return { relative: false, auto: true }
-  }
-
-  return {
-    relative: match[1] === "+",
-    spaces: match[2] === "tab" ? "\t" : Array(Number(match[2]) + 1).join(" "),
-  }
-
-}
-
 function iterateScripts(code, options, onChunk) {
   const xmlMode = options.xmlMode
   let index = 0
@@ -104,7 +90,7 @@ function iterateScripts(code, options, onChunk) {
 }
 
 function computeIndent(descriptor, previousHTML, slice) {
-  if (descriptor.auto) {
+  if (!descriptor) {
     const indentMatch = /[\n\r]+([ \t]*)/.exec(slice)
     return indentMatch ? indentMatch[1] : ""
   }
@@ -161,9 +147,7 @@ function* dedent(indent, slice) {
   }
 }
 
-function extract(code, options) {
-  const indentDescriptor = parseIndentDescriptor(options && options.indent)
-  const xmlMode = options && options.xmlMode
+function extract(code, indentDescriptor, xmlMode) {
   const badIndentationLines = []
   const transformedCode = new TransformableString(code)
   let lineNumber = 1

@@ -74,13 +74,14 @@ value with a `+` to be relative to the `<script>` tag indentation. Example:
 
 By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
 indented). If you want to make sure the indentation is correct, use the `html/report-bad-indent` in
-conjunction with the `indent` rule. Pass `1` to display warnings, or `2` to display errors. Example:
+conjunction with the `indent` rule. Pass `"warn"` or `1` to display warnings, `"error"` or `2` to
+display errors. Example:
 
 ```javascript
 {
     "plugins": [ "html" ],
     "settings": {
-        "html/report-bad-indent": 2,
+        "html/report-bad-indent": "error",
     }
 }
 ```

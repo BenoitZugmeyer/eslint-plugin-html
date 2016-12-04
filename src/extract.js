@@ -153,14 +153,12 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   const transformedCode = new TransformableString(code)
   let lineNumber = 1
   let previousHTML = ""
-  let placeholderCount = 0
 
   iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
 
     if (chunk.type === "html" || chunk.type === "cdata start" || chunk.type === "cdata end") {
-      transformedCode.replace(chunk.start, chunk.end, `/* HTML BLOCK ${placeholderCount} */`)
-      placeholderCount += 1
+      transformedCode.replace(chunk.start, chunk.end, "/* HTML */")
       const newLines = slice.match(/\r\n|\n|\r/g)
       lineNumber += newLines ? newLines.length : 0
       if (chunk.type === "html") previousHTML = slice

@@ -17,10 +17,11 @@ function execute(file, baseConfig) {
     },
     ignore: false,
     useEslintrc: false,
+    fix: baseConfig.fix,
   })
   cli.addPlugin("html", plugin)
-  const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results
-  return results[0] && results[0].messages
+  const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results[0]
+  return baseConfig.fix ? results : results && results.messages
 }
 
 it("should extract and remap messages", () => {
@@ -291,16 +292,52 @@ describe("lines-around-comment and multiple scripts", () => {
   })
 })
 
-describe("fix ranges", () => {
+describe("fix", () => {
   it("should remap fix ranges", () => {
-    const messages = execute("remap-fix-range.html", {
+    const messages = execute("fix.html", {
       "rules": {
         "no-extra-semi": ["error"],
       },
     })
 
     expect(messages.length).toBe(1)
-    expect(messages[0].fix.range).toEqual([ 74, 75 ])
+    expect(messages[0].fix.range).toEqual([ 54, 55 ])
+  })
+
+  it("should fix errors", () => {
+    const { output, messages } = execute("fix.html", {
+      rules: {
+        "no-extra-semi": ["error"],
+      },
+      fix: true,
+    })
+
+    expect(output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+    expect(messages.length).toBe(0)
+  })
+
+  it("should fix errors in files with BOM", () => {
+    const { output, messages } = execute("fix-bom.html", {
+      rules: {
+        "no-extra-semi": ["error"],
+      },
+      fix: true,
+    })
+
+    expect(output).toBe(`\uFEFF<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+    expect(messages.length).toBe(0)
   })
 })
 

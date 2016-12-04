@@ -38,17 +38,24 @@ iterateESLintModules(patch)
 function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    return fn(require("eslint/lib/eslint"))
+    return fn({
+      eslint: require("eslint/lib/eslint"),
+      SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
+    })
   }
 
   let found = false
   const needle = path.join("lib", "eslint.js")
   for (const key in require.cache) {
     if (key.endsWith(needle)) {
-      const eslint = require.cache[key].exports
+      const sourceCodeFixerKey = path.join(key, "..", "util", "source-code-fixer.js")
 
-      if (eslint && typeof eslint.verify === "function") {
-        fn(eslint)
+      const eslint = require.cache[key]
+      const SourceCodeFixer = require.cache[sourceCodeFixerKey]
+
+      if (eslint.exports && typeof eslint.exports.verify === "function" &&
+        SourceCodeFixer && SourceCodeFixer.exports) {
+        fn({ eslint: eslint.exports, SourceCodeFixer: SourceCodeFixer.exports })
         found = true
       }
     }
@@ -126,9 +133,13 @@ function getPluginSettings(settings) {
   }
 }
 
-function patch(eslint) {
-  const verify = eslint.verify
+function patch(modules) {
+  const eslint = modules.eslint
+  const SourceCodeFixer = modules.SourceCodeFixer
 
+  const sourceCodeForMessages = new WeakMap()
+
+  const verify = eslint.verify
   eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
     const localVerify = (code) => verify.call(this, code, config, filenameOrOptions, saveState)
 
@@ -156,12 +167,24 @@ function patch(eslint) {
         pluginSettings.reportBadIndent,
         currentInfos.badIndentationLines
       )
+      sourceCodeForMessages.set(messages, textOrSourceCode)
     }
     else {
       messages = localVerify(textOrSourceCode)
     }
 
     return messages
+  }
+
+  const applyFixes = SourceCodeFixer.applyFixes
+  SourceCodeFixer.applyFixes = function (sourceCode, messages) {
+    const originalSourceCode = sourceCodeForMessages.get(messages)
+    // The BOM is always included in the HTML, which is removed by the extract process
+    return applyFixes.call(
+      this,
+      originalSourceCode === undefined ? sourceCode : { text: originalSourceCode, hasBOM: false },
+      messages
+    )
   }
 
 }

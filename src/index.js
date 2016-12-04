@@ -33,158 +33,121 @@ const xmlExtensions = [
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-function findESLintModules() {
+iterateESLintModules(patch)
 
+function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    return [require("eslint/lib/eslint")]
+    return fn(require("eslint/lib/eslint"))
   }
 
-  const modules = []
+  let found = false
   const needle = path.join("lib", "eslint.js")
   for (const key in require.cache) {
-    if (key.indexOf(needle, key.length - needle.length) >= 0) {
-      const eslint = require(key)
-      if (typeof eslint.verify === "function") {
-        modules.push(eslint)
+    if (key.endsWith(needle)) {
+      const eslint = require.cache[key].exports
+
+      if (eslint && typeof eslint.verify === "function") {
+        fn(eslint)
+        found = true
       }
     }
   }
 
-  if (!modules.length) {
+  if (!found) {
     throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
                     "If you think it is a bug, please file a report at " +
                     "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues")
   }
-
-  return modules
 }
 
-function createProcessor(defaultXMLMode) {
-  let patchedModules = null
-  const originalVerifyMethods = new WeakMap()
-  let reportBadIndent
+function patch(eslint) {
+  const verify = eslint.verify
 
-  let currentInfos
+  eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
+    const localVerify = (code) => verify.call(this, code, config, filenameOrOptions, saveState)
 
-  function patchModule(module) {
-    const originalVerify = module.verify
+    let messages
+    const filename = typeof filenameOrOptions === "object" ?
+      filenameOrOptions.filename :
+      filenameOrOptions
+    const extension = path.extname(filename)
 
-    function patchedVerify(textOrSourceCode, config, filenameOrOptions, saveState) {
-      const indentDescriptor = config.settings && config.settings["html/indent"]
-      let xmlMode = config.settings && config.settings["html/xml-mode"]
-      reportBadIndent = config.settings && config.settings["html/report-bad-indent"]
+    const isHTML = htmlExtensions.indexOf(extension) >= 0
+    const isXML = !isHTML && xmlExtensions.indexOf(extension) >= 0
 
-      if (typeof xmlMode !== "boolean") {
-        xmlMode = defaultXMLMode
-      }
-
-      currentInfos = extract(textOrSourceCode, {
-        indent: indentDescriptor,
-        xmlMode,
+    if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
+      const settings = config.settings || {}
+      const currentInfos = extract(textOrSourceCode, {
+        indent: settings["html/indent"],
+        xmlMode: typeof settings["html/xml-mode"] === "boolean" ? settings["html/xml-mode"] : isXML,
       })
 
-      return originalVerify.call(
-        this,
-        currentInfos.code.toString(),
-        config,
-        filenameOrOptions,
-        saveState
+      messages = remapMessages(
+        localVerify(String(currentInfos.code)),
+        currentInfos.code,
+        settings["html/report-bad-indent"],
+        currentInfos.badIndentationLines
       )
     }
-
-    originalVerifyMethods.set(module, originalVerify)
-
-    module.verify = patchedVerify
-  }
-
-  function unpatchModule(module) {
-    const originalVerify = originalVerifyMethods.get(module)
-    if (originalVerify) {
-      module.verify = originalVerify
+    else {
+      messages = localVerify(textOrSourceCode)
     }
+
+    return messages
   }
 
-  return {
+}
 
-    preprocess (content) {
-      patchedModules = findESLintModules()
-      patchedModules.forEach(patchModule)
+function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
+  const newMessages = []
 
-      return [content]
-    },
+  for (const message of messages) {
+    const location = code.originalLocation(message)
 
-    postprocess (messages) {
-      patchedModules.forEach(unpatchModule)
-      patchedModules = null
+    // Ignore messages if they were in transformed code
+    if (location) {
+      Object.assign(message, location)
 
-      const newMessages = []
+      // Map fix range
+      if (message.fix && message.fix.range) {
+        message.fix.range = [
+          code.originalIndex(message.fix.range[0]),
+          code.originalIndex(message.fix.range[1]),
+        ]
+      }
 
-      for (const message of messages[0]) {
-        const location = currentInfos.code.originalLocation(message)
-
-        // Ignore messages if they were in transformed code
-        if (location) {
-          Object.assign(message, location)
-
-          // Map fix range
-          if (message.fix && message.fix.range) {
-            message.fix.range = [
-              currentInfos.code.originalIndex(message.fix.range[0]),
-              currentInfos.code.originalIndex(message.fix.range[1]),
-            ]
-          }
-
-          // Map end location
-          if (message.endLine && message.endColumn) {
-            const endLocation = currentInfos.code.originalLocation({
-              line: message.endLine,
-              column: message.endColumn,
-            })
-            if (endLocation) {
-              message.endLine = endLocation.line
-              message.endColumn = endLocation.column
-            }
-          }
-
-          newMessages.push(message)
+      // Map end location
+      if (message.endLine && message.endColumn) {
+        const endLocation = code.originalLocation({
+          line: message.endLine,
+          column: message.endColumn,
+        })
+        if (endLocation) {
+          message.endLine = endLocation.line
+          message.endColumn = endLocation.column
         }
       }
 
-      if (reportBadIndent) {
-        currentInfos.badIndentationLines.forEach((line) => {
-          newMessages.push({
-            message: "Bad line indentation.",
-            line,
-            column: 1,
-            ruleId: "(html plugin)",
-            severity: reportBadIndent === true ? 2 : reportBadIndent,
-          })
-        })
-      }
-
-      newMessages.sort((ma, mb) => {
-        return ma.line - mb.line || ma.column - mb.column
-      })
-
-      return newMessages
-    },
-
+      newMessages.push(message)
+    }
   }
 
+  if (reportBadIndent) {
+    badIndentationLines.forEach((line) => {
+      newMessages.push({
+        message: "Bad line indentation.",
+        line,
+        column: 1,
+        ruleId: "(html plugin)",
+        severity: reportBadIndent === true ? 2 : reportBadIndent,
+      })
+    })
+  }
+
+  newMessages.sort((ma, mb) => {
+    return ma.line - mb.line || ma.column - mb.column
+  })
+
+  return newMessages
 }
-
-const htmlProcessor = createProcessor(false)
-const xmlProcessor = createProcessor(true)
-
-const processors = {}
-
-htmlExtensions.forEach((ext) => {
-  processors[ext] = htmlProcessor
-})
-
-xmlExtensions.forEach((ext) => {
-  processors[ext] = xmlProcessor
-})
-
-exports.processors = processors

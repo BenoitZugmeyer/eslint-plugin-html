@@ -3,7 +3,7 @@
 const path = require("path")
 const extract = require("./extract")
 
-const htmlExtensions = [
+const defaultHTMLExtensions = [
   ".erb",
   ".handlebars",
   ".hbs",
@@ -18,7 +18,7 @@ const htmlExtensions = [
   ".we",
 ]
 
-const xmlExtensions = [
+const defaultXMLExtensions = [
   ".xhtml",
   ".xml",
 ]
@@ -61,7 +61,19 @@ function iterateESLintModules(fn) {
   }
 }
 
+function filterOut(array, excludeArray) {
+  if (!excludeArray) return array
+  return array.filter((item) => excludeArray.indexOf(item) < 0)
+}
+
 function getPluginSettings(settings) {
+
+  const htmlExtensions = settings["html/html-extensions"] ||
+      filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
+
+  const xmlExtensions = settings["html/xml-extensions"] ||
+      filterOut(defaultXMLExtensions, settings["html/html-extensions"])
+
   const xmlMode = settings["html/xml-mode"]
 
   let reportBadIndent
@@ -87,6 +99,8 @@ function getPluginSettings(settings) {
   }
 
   return {
+    htmlExtensions,
+    xmlExtensions,
     indent,
     reportBadIndent,
     xmlMode,
@@ -105,11 +119,11 @@ function patch(eslint) {
       filenameOrOptions
     const extension = path.extname(filename)
 
-    const isHTML = htmlExtensions.indexOf(extension) >= 0
-    const isXML = !isHTML && xmlExtensions.indexOf(extension) >= 0
+    const pluginSettings = getPluginSettings(config.settings || {})
+    const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0
+    const isXML = !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
-      const pluginSettings = getPluginSettings(config.settings || {})
       const currentInfos = extract(
         textOrSourceCode,
         pluginSettings.indent,

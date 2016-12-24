@@ -29,7 +29,7 @@ function iterateScripts(code, options, onScript) {
         return
       }
 
-      if (attrs.type && !/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i.test(attrs.type)) {
+      if (attrs.type && !/^(application|text)\/(x-)?(javascript|babel|ecmascript-6|buble)$/i.test(attrs.type)) {
         return
       }
 

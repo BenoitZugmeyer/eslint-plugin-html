@@ -180,7 +180,7 @@ const prefixes = ["text/",
                 "application/",
                 "application/x-"]
 
-const types = ["javascript", "babel"]
+const types = ["javascript", "babel", "buble"]
 
 for (const prefix of prefixes) {
   for (const type of types) {

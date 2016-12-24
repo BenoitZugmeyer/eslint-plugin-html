@@ -26,7 +26,7 @@ Supported XHTML extensions:
 * .xml
 
 Only script tags with no type attribute or a type attribute containing a MIME type known to
-represent JavaScript such as `text/javascript` or `application/javascript`, or `text/babel` will be
+represent JavaScript such as `text/javascript` or `application/javascript`, or `text/babel` or `text/buble` will be
 linted.
 
 

@@ -47,7 +47,7 @@ describe("originalIndex", () => {
   it("should throw if the index is invalid", () => {
     const ts = new TransformableString("abcde")
     expect(() => ts.originalIndex(-1)).toThrow()
-    expect(() => ts.originalIndex(5)).toThrow()
+    expect(() => ts.originalIndex(6)).toThrow()
   })
 
   it("should return the original index of a string with removed parts", () => {
@@ -58,7 +58,8 @@ describe("originalIndex", () => {
     expect(ts.originalIndex(0)).toBe(0) // a
     expect(ts.originalIndex(1)).toBe(2) // c
     expect(ts.originalIndex(2)).toBe(4) // e
-    expect(() => ts.originalIndex(3)).toThrow()
+    expect(ts.originalIndex(3)).toBe(5) // index directly after the end is allowed
+    expect(() => ts.originalIndex(4)).toThrow()
   })
 
   it("should return the original index of a string with added parts", () => {
@@ -71,7 +72,8 @@ describe("originalIndex", () => {
     expect(ts.originalIndex(2)).toBe(1) // c
     expect(ts.originalIndex(3)).toBe(undefined)
     expect(ts.originalIndex(4)).toBe(2) // e
-    expect(() => ts.originalIndex(5)).toThrow()
+    expect(ts.originalIndex(5)).toBe(3) // index directly after the end is allowed
+    expect(() => ts.originalIndex(6)).toThrow()
   })
 
   it("should return the original index of a string with added parts (2)", () => {

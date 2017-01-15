@@ -88,7 +88,7 @@ module.exports = class TransformableString {
         index += block.to - block.from - block.str.length
       }
     }
-    if (index < 0 || index >= this._original.length) throw new Error("Invalid index")
+    if (index < 0 || index > this._original.length) throw new Error("Invalid index")
     return index
   }
 

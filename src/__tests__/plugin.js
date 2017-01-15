@@ -305,39 +305,39 @@ describe("fix", () => {
   })
 
   it("should fix errors", () => {
-    const { output, messages } = execute("fix.html", {
+    const result = execute("fix.html", {
       rules: {
         "no-extra-semi": ["error"],
       },
       fix: true,
     })
 
-    expect(output).toBe(`<!DOCTYPE html>
+    expect(result.output).toBe(`<!DOCTYPE html>
 <html lang="en">
   <script>
     foo();
   </script>
 </html>
 `)
-    expect(messages.length).toBe(0)
+    expect(result.messages.length).toBe(0)
   })
 
   it("should fix errors in files with BOM", () => {
-    const { output, messages } = execute("fix-bom.html", {
+    const result = execute("fix-bom.html", {
       rules: {
         "no-extra-semi": ["error"],
       },
       fix: true,
     })
 
-    expect(output).toBe(`\uFEFF<!DOCTYPE html>
+    expect(result.output).toBe(`\uFEFF<!DOCTYPE html>
 <html lang="en">
   <script>
     foo();
   </script>
 </html>
 `)
-    expect(messages.length).toBe(0)
+    expect(result.messages.length).toBe(0)
   })
 })
 

@@ -2,7 +2,7 @@
 
 function lineStarts(str) {
   const result = [0]
-  const re = /\r\n|\r|\n/g
+  const re = /\r?\n/g
   while (true) {
     const match = re.exec(str)
     if (!match) break

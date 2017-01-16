@@ -4,6 +4,8 @@ const path = require("path")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
 
+const isESLint2 = require("eslint/package.json").version.startsWith("2.")
+
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
 
@@ -361,6 +363,8 @@ describe("fix", () => {
     })
 
     it("should work with eol-last never", () => {
+      // ESLint 2 did not remove the last new line if any
+      if (isESLint2) return
       const result = execute("fix.html", {
         rules: {
           "eol-last": ["error", "never"],

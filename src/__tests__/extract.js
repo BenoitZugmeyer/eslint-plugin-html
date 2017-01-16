@@ -10,10 +10,12 @@ function dedent(str) {
   const indent = str.match(/([\t ]*)\S/)
   if (indent) {
     str = str.replace(new RegExp(`^${indent[1]}`, "mg"), "")
-  }
 
-  // Remove the last empty line
-  str = str.replace(/(\r\n|\r|\n)[\t ]*$/, "")
+    if (indent[1].endsWith("  ")) {
+      // Remove the last line indentation (under-indented by 2 spaces)
+      str = str.replace(new RegExp(`${indent[1].slice(0, -2)}$`), "")
+    }
+  }
 
   return str
 }
@@ -155,7 +157,9 @@ it("extract empty script tag (#7)", () => {
     input: `
       <script></script>
     `,
-    output: `${html}${html}`,
+    output: `
+      ${html}${html}
+    `,
   })
 })
 
@@ -312,7 +316,7 @@ describe("indent option", () => {
 it("works with crlf new lines", () => {
   test({
     input: "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
-    output: `${html}\r\nfoo;\r\nbar;\r\n  baz;\r\n${html}`,
+    output: `${html}\r\nfoo;\r\nbar;\r\n  baz;\r\n${html}\r\n`,
     badIndentationLines: [ 5 ],
   })
 })
@@ -335,8 +339,7 @@ it("works with CDATA", () => {
       b;
       ${html}
       c;
-      ${html}
-    `,
+      ${html}`,
   })
 })
 
@@ -365,3 +368,22 @@ it("handles the isJavaScriptMIMEType option", () => {
     `,
   })
 })
+
+it("keeps empty lines after the last html tags", () => {
+  test({
+    input: `
+    <script>
+      a
+    </script>
+
+
+    `,
+    output: `
+    ${html}
+    a
+    ${html}
+
+
+    `,
+  })
+});

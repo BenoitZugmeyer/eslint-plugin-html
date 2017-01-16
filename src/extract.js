@@ -158,9 +158,15 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
     const slice = code.slice(chunk.start, chunk.end)
 
     if (chunk.type === "html" || chunk.type === "cdata start" || chunk.type === "cdata end") {
-      transformedCode.replace(chunk.start, chunk.end, "/* HTML */")
-      const newLines = slice.match(/\r\n|\n|\r/g)
-      lineNumber += newLines ? newLines.length : 0
+      const newLinesRe = /(?:\r\n|\n|\r)([^\r\n])?/g
+      let lastEmptyLinesLength = 0
+      while (true) {
+        const match = newLinesRe.exec(slice)
+        if (!match) break
+        lineNumber += 1
+        lastEmptyLinesLength = !match[1] ? lastEmptyLinesLength + match[0].length : 0
+      }
+      transformedCode.replace(chunk.start, chunk.end - lastEmptyLinesLength, "/* HTML */")
       if (chunk.type === "html") previousHTML = slice
     }
     else if (chunk.type === "script") {

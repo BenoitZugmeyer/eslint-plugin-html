@@ -339,6 +339,44 @@ describe("fix", () => {
 `)
     expect(result.messages.length).toBe(0)
   })
+
+  describe("eol-last rule", () => {
+    it("should work with eol-last always", () => {
+      const result = execute("fix.html", {
+        rules: {
+          "eol-last": ["error"],
+          "no-extra-semi": ["error"],
+        },
+        fix: true,
+      })
+
+      expect(result.output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+      expect(result.messages.length).toBe(0)
+    })
+
+    it("should work with eol-last never", () => {
+      const result = execute("fix.html", {
+        rules: {
+          "eol-last": ["error", "never"],
+        },
+        fix: true,
+      })
+
+      expect(result.output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();;
+  </script>
+</html>`)
+      expect(result.messages.length).toBe(0)
+    })
+  })
 })
 
 describe("html/javascript-mime-types", () => {

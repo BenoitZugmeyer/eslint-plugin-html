@@ -3,7 +3,7 @@
 const path = require("path")
 const extract = require("./extract")
 
-const htmlExtensions = [
+const defaultHTMLExtensions = [
   ".erb",
   ".handlebars",
   ".hbs",
@@ -18,7 +18,7 @@ const htmlExtensions = [
   ".we",
 ]
 
-const xmlExtensions = [
+const defaultXMLExtensions = [
   ".xhtml",
   ".xml",
 ]
@@ -33,122 +33,211 @@ const xmlExtensions = [
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-function findESLintModules() {
+iterateESLintModules(patch)
 
+function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    return [require("eslint/lib/eslint")]
+    return fn({
+      eslint: require("eslint/lib/eslint"),
+      SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
+    })
   }
 
-  const modules = []
+  let found = false
   const needle = path.join("lib", "eslint.js")
   for (const key in require.cache) {
-    if (key.indexOf(needle, key.length - needle.length) >= 0) {
-      const eslint = require(key)
-      if (typeof eslint.verify === "function") {
-        modules.push(eslint)
+    if (key.endsWith(needle)) {
+      const sourceCodeFixerKey = path.join(key, "..", "util", "source-code-fixer.js")
+
+      const eslint = require.cache[key]
+      const SourceCodeFixer = require.cache[sourceCodeFixerKey]
+
+      if (eslint.exports && typeof eslint.exports.verify === "function" &&
+        SourceCodeFixer && SourceCodeFixer.exports) {
+        fn({ eslint: eslint.exports, SourceCodeFixer: SourceCodeFixer.exports })
+        found = true
       }
     }
   }
 
-  if (!modules.length) {
+  if (!found) {
     throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
                     "If you think it is a bug, please file a report at " +
                     "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues")
   }
-
-  return modules
 }
 
-function createProcessor(defaultXMLMode) {
-  let patchedModules = null
-  const originalVerifyMethods = new WeakMap()
+function filterOut(array, excludeArray) {
+  if (!excludeArray) return array
+  return array.filter((item) => excludeArray.indexOf(item) < 0)
+}
+
+function compileRegExp(re) {
+  const tokens = re.split("/")
+  if (tokens.shift()) { // Ignore first token
+    throw new Error(`Invalid regexp: ${re}`)
+  }
+  const flags = tokens.pop()
+  return new RegExp(tokens.join("/"), flags)
+}
+
+function getPluginSettings(settings) {
+
+  const htmlExtensions = settings["html/html-extensions"] ||
+      filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
+
+  const xmlExtensions = settings["html/xml-extensions"] ||
+      filterOut(defaultXMLExtensions, settings["html/html-extensions"])
+
   let reportBadIndent
-
-  let currentInfos
-
-  function patchModule(module) {
-    const originalVerify = module.verify
-
-    function patchedVerify(textOrSourceCode, config, filenameOrOptions, saveState) {
-      const indentDescriptor = config.settings && config.settings["html/indent"]
-      let xmlMode = config.settings && config.settings["html/xml-mode"]
-      reportBadIndent = config.settings && config.settings["html/report-bad-indent"]
-
-      if (typeof xmlMode !== "boolean") {
-        xmlMode = defaultXMLMode
-      }
-
-      currentInfos = extract(textOrSourceCode, {
-        indent: indentDescriptor,
-        reportBadIndent: Boolean(reportBadIndent),
-        xmlMode,
-      })
-
-      return originalVerify.call(this, currentInfos.code, config, filenameOrOptions, saveState)
-    }
-
-    originalVerifyMethods.set(module, originalVerify)
-
-    module.verify = patchedVerify
+  switch (settings["html/report-bad-indent"]) {
+    case undefined: case false: case 0: case "off":
+      reportBadIndent = 0
+      break
+    case true: case 1: case "warn":
+      reportBadIndent = 1
+      break
+    case 2: case "error":
+      reportBadIndent = 2
+      break
+    default:
+      throw new Error("Invalid value for html/report-bad-indent, " +
+        "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\"")
   }
 
-  function unpatchModule(module) {
-    const originalVerify = originalVerifyMethods.get(module)
-    if (originalVerify) {
-      module.verify = originalVerify
-    }
+  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(settings["html/indent"])
+  const indent = parsedIndent && {
+    relative: parsedIndent[1] === "+",
+    spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
+  }
+
+  const javaScriptMIMETypes = settings["html/javascript-mime-types"] ?
+    (
+      Array.isArray(settings["html/javascript-mime-types"]) ?
+        settings["html/javascript-mime-types"] :
+        [settings["html/javascript-mime-types"]]
+    ).map((s) => s.startsWith("/") ? compileRegExp(s) : s) :
+    [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
+
+  function isJavaScriptMIMEType(type) {
+    return javaScriptMIMETypes.some((o) => typeof o === "string" ? type === o : o.test(type))
   }
 
   return {
+    htmlExtensions,
+    xmlExtensions,
+    indent,
+    reportBadIndent,
+    isJavaScriptMIMEType,
+  }
+}
 
-    preprocess (content) {
-      patchedModules = findESLintModules()
-      patchedModules.forEach(patchModule)
+function patch(modules) {
+  const eslint = modules.eslint
+  const SourceCodeFixer = modules.SourceCodeFixer
 
-      return [content]
-    },
+  const sourceCodeForMessages = new WeakMap()
 
-    postprocess (messages) {
-      patchedModules.forEach(unpatchModule)
-      patchedModules = null
+  const verify = eslint.verify
+  eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
+    const localVerify = (code) => verify.call(this, code, config, filenameOrOptions, saveState)
 
-      messages[0].forEach((message) => {
-        message.column += currentInfos.map[message.line] || 0
-      })
+    let messages
+    const filename = typeof filenameOrOptions === "object" ?
+      filenameOrOptions.filename :
+      filenameOrOptions
+    const extension = path.extname(filename)
 
-      currentInfos.badIndentationLines.forEach((line) => {
-        messages[0].push({
-          message: "Bad line indentation.",
-          line,
-          column: 1,
-          ruleId: "(html plugin)",
-          severity: reportBadIndent === true ? 2 : reportBadIndent,
-        })
-      })
+    const pluginSettings = getPluginSettings(config.settings || {})
+    const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0
+    const isXML = !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
-      messages[0].sort((ma, mb) => {
-        return ma.line - mb.line || ma.column - mb.column
-      })
+    if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
+      const currentInfos = extract(
+        textOrSourceCode,
+        pluginSettings.indent,
+        isXML,
+        pluginSettings.isJavaScriptMIMEType
+      )
 
-      return messages[0]
-    },
+      messages = remapMessages(
+        localVerify(String(currentInfos.code)),
+        currentInfos.code,
+        pluginSettings.reportBadIndent,
+        currentInfos.badIndentationLines
+      )
+      sourceCodeForMessages.set(messages, textOrSourceCode)
+    }
+    else {
+      messages = localVerify(textOrSourceCode)
+    }
 
+    return messages
+  }
+
+  const applyFixes = SourceCodeFixer.applyFixes
+  SourceCodeFixer.applyFixes = function (sourceCode, messages) {
+    const originalSourceCode = sourceCodeForMessages.get(messages)
+    // The BOM is always included in the HTML, which is removed by the extract process
+    return applyFixes.call(
+      this,
+      originalSourceCode === undefined ? sourceCode : { text: originalSourceCode, hasBOM: false },
+      messages
+    )
   }
 
 }
 
-const htmlProcessor = createProcessor(false)
-const xmlProcessor = createProcessor(true)
+function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
+  const newMessages = []
 
-const processors = {}
+  for (const message of messages) {
+    const location = code.originalLocation(message)
 
-htmlExtensions.forEach((ext) => {
-  processors[ext] = htmlProcessor
-})
+    // Ignore messages if they were in transformed code
+    if (location) {
+      Object.assign(message, location)
 
-xmlExtensions.forEach((ext) => {
-  processors[ext] = xmlProcessor
-})
+      // Map fix range
+      if (message.fix && message.fix.range) {
+        message.fix.range = [
+          code.originalIndex(message.fix.range[0]),
+          code.originalIndex(message.fix.range[1]),
+        ]
+      }
 
-exports.processors = processors
+      // Map end location
+      if (message.endLine && message.endColumn) {
+        const endLocation = code.originalLocation({
+          line: message.endLine,
+          column: message.endColumn,
+        })
+        if (endLocation) {
+          message.endLine = endLocation.line
+          message.endColumn = endLocation.column
+        }
+      }
+
+      newMessages.push(message)
+    }
+  }
+
+  if (reportBadIndent) {
+    badIndentationLines.forEach((line) => {
+      newMessages.push({
+        message: "Bad line indentation.",
+        line,
+        column: 1,
+        ruleId: "(html plugin)",
+        severity: reportBadIndent === true ? 2 : reportBadIndent,
+      })
+    })
+  }
+
+  newMessages.sort((ma, mb) => {
+    return ma.line - mb.line || ma.column - mb.column
+  })
+
+  return newMessages
+}

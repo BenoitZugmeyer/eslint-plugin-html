@@ -1,3 +1,11 @@
+UNRELEASED v2.0.0
+* **Drop `html/xml-mode` setting**
+* `eslint --fix` support #23
+* Allow configuring HTML and XML extensions via ESLint config
+* Allow configuring JS MIME types via ESLint config
+* Report correct end locations of error messages
+* Report correct fix ranges of error messages
+
 2016-11-18 v1.7.0
 * Ignore all warnings for non-script lines #37
 

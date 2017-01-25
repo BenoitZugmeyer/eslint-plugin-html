@@ -4,30 +4,32 @@
 "use strict"
 const extract = require("../extract")
 
-const htmlLine = "//eslint-disable-line"
-
 function dedent(str) {
   if (str[0] === "\n") str = str.slice(1)
 
   const indent = str.match(/([\t ]*)\S/)
   if (indent) {
     str = str.replace(new RegExp(`^${indent[1]}`, "mg"), "")
-  }
 
-  // Remove the last empty line
-  str = str.replace(/(\r\n|\r|\n)[\t ]*$/, "")
+    if (indent[1].endsWith("  ")) {
+      // Remove the last line indentation (under-indented by 2 spaces)
+      str = str.replace(new RegExp(`${indent[1].slice(0, -2)}$`), "")
+    }
+  }
 
   return str
 }
 
+const html = "/* HTML */"
+
 function test(params) {
-  const infos = extract(dedent(params.input), {
-    indent: params.indent,
-    reportBadIndent: true,
-    xmlMode: params.xmlMode,
-  })
-  expect(infos.code).toBe(dedent(params.output))
-  expect(infos.map).toEqual(params.map)
+  const infos = extract(
+    dedent(params.input),
+    params.indent,
+    params.xmlMode,
+    params.isJavaScriptMIMEType
+  )
+  expect(infos.code.toString()).toBe(dedent(params.output))
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
 
@@ -39,10 +41,8 @@ it("extract simple javascript", () => {
       other
     `,
     output: `
-      ${htmlLine}
-      var foo = 1;
+      ${html}var foo = 1;${html}
     `,
-    map: [ , , 8 ],
   })
 })
 
@@ -56,12 +56,10 @@ it("extract indented javascript", () => {
       other
     `,
     output: `
-      ${htmlLine}
-
+      ${html}
       var foo = 1;
-
+      ${html}
     `,
-    map: [ , , 8, 2, 0 ],
   })
 })
 
@@ -75,12 +73,10 @@ it("extract javascript with first line next to the script tag", () => {
       other
     `,
     output: `
-      ${htmlLine}
-      var foo = 1;
+      ${html}var foo = 1;
       var baz = 1;
-
+      ${html}
     `,
-    map: [ , , 8, 2, 0 ],
   })
 })
 
@@ -94,12 +90,10 @@ it("extract javascript with last line next to the script tag", () => {
       other
     `,
     output: `
-      ${htmlLine}
-
+      ${html}
       var foo = 1;
-      var baz = 1;
+      var baz = 1;${html}
     `,
-    map: [ , , 8, 2, 2 ],
   })
 })
 
@@ -116,16 +110,12 @@ it("extract multiple script tags", () => {
       </script>
     `,
     output: `
-      ${htmlLine}
-
+      ${html}
       var foo = 1;
-      ${htmlLine}
-      ${htmlLine}
-
+      ${html}
       var bar = 1;
-
+      ${html}
     `,
-    map: [ , , 8, 2, 0, , 8, 2, 0 ],
   })
 })
 
@@ -139,12 +129,10 @@ it("trim last line spaces", () => {
       other
     `,
     output: `
-      ${htmlLine}
-
+      ${html}
       var foo = 1;
-
+      ${html}
     `,
-    map: [ , , 10, 4, 0 ],
   })
 })
 
@@ -156,11 +144,10 @@ it("extract script containing 'lower than' characters correctly (#1)", () => {
       </script>
     `,
     output: `
-
+      ${html}
       if (a < b) { doit(); }
-
+      ${html}
     `,
-    map: [ , , 2, 0 ],
   })
 })
 
@@ -170,8 +157,9 @@ it("extract empty script tag (#7)", () => {
     input: `
       <script></script>
     `,
-    output: "",
-    map: [ ],
+    output: `
+      ${html}${html}
+    `,
   })
 })
 
@@ -185,7 +173,6 @@ const types = ["javascript", "babel"]
 for (const prefix of prefixes) {
   for (const type of types) {
     const tag = `${prefix}${type}`
-    const column = 16 + tag.length
 
     it(`extracts a script tag with type=${tag}`, () => {
       test({
@@ -195,10 +182,8 @@ for (const prefix of prefixes) {
           other
         `,
         output: `
-          ${htmlLine}
-          var foo = 1;
+          ${html}var foo = 1;${html}
         `,
-        map: [ , , column ],
       })
     })
   }
@@ -214,13 +199,12 @@ it("collects bad indentations", () => {
       </script>
     `,
     output: `
-
+      ${html}
       a;
       a;
        a;
-
+      ${html}
     `,
-    map: [ , , 2, 0, 0, 0 ],
     badIndentationLines: [ 3, 4 ],
   })
 })
@@ -237,16 +221,16 @@ describe("indent option", () => {
           </script>
         </head>
       `,
-      indent: "2",
+      indent: {
+        spaces: "  ",
+      },
       output: `
-        ${htmlLine}
-
+        ${html}
             a;
         a;
         a;
-
+        ${html}
       `,
-      map: [ , , 10, 0, 2, 0, 2 ],
       badIndentationLines: [ 3, 5 ],
     })
   })
@@ -262,16 +246,17 @@ describe("indent option", () => {
           </script>
         </head>
       `,
-      indent: "+2",
+      indent: {
+        spaces: "  ",
+        relative: true,
+      },
       output: `
-        ${htmlLine}
-
+        ${html}
         a;
           a;
         a;
-
+        ${html}
       `,
-      map: [ , , 10, 4, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
     })
   })
@@ -287,16 +272,16 @@ describe("indent option", () => {
         \t</script>
         </head>
       `,
-      indent: "tab",
+      indent: {
+        spaces: "\t",
+      },
       output: `
-        ${htmlLine}
-
+        ${html}
         \t\ta;
         a;
         a;
-
+        ${html}
       `,
-      map: [ , , 9, 0, 1, 0, 1 ],
       badIndentationLines: [ 3, 5 ],
     })
   })
@@ -312,16 +297,17 @@ describe("indent option", () => {
         \t</script>
         </head>
       `,
-      indent: "+tab",
+      indent: {
+        spaces: "\t",
+        relative: true,
+      },
       output: `
-        ${htmlLine}
-
+        ${html}
         a;
         \ta;
         a;
-
+        ${html}
       `,
-      map: [ , , 9, 2, 0, 0, 0 ],
       badIndentationLines: [ 4, 5 ],
     })
   })
@@ -330,8 +316,7 @@ describe("indent option", () => {
 it("works with crlf new lines", () => {
   test({
     input: "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
-    output: `${htmlLine}\r\n${htmlLine}\r\n\r\nfoo;\r\nbar;\r\n  baz;\r\n\r\n`,
-    map: [ , , , 8, 2, 0, 2, 0 ],
+    output: `${html}\r\nfoo;\r\nbar;\r\n  baz;\r\n${html}\r\n`,
     badIndentationLines: [ 5 ],
   })
 })
@@ -348,14 +333,57 @@ it("works with CDATA", () => {
     </script>`,
     xmlMode: true,
     output: `
-
+      ${html}
       a;
-
+      ${html}
       b;
-
+      ${html}
       c;
+      ${html}`,
+  })
+})
+
+it("handles the isJavaScriptMIMEType option", () => {
+  test({
+    input: `
+    <script>
+      a
+    </script>
+
+    <script type="foo/bar">
+      b
+    </script>
+
+    <script type="foo/baz">
+      c
+    </script>
+    `,
+    isJavaScriptMIMEType(type) { return type === "foo/bar" },
+    output: `
+    ${html}
+    a
+    ${html}
+    b
+    ${html}
+    `,
+  })
+})
+
+it("keeps empty lines after the last html tags", () => {
+  test({
+    input: `
+    <script>
+      a
+    </script>
+
 
     `,
-    map: [ , , 2, 2, 2, 2, 2, 0 ],
+    output: `
+    ${html}
+    a
+    ${html}
+
+
+    `,
   })
 })

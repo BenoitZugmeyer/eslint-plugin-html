@@ -4,6 +4,8 @@ const path = require("path")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
 
+const isESLint2 = require("eslint/package.json").version.startsWith("2.")
+
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
 
@@ -17,10 +19,11 @@ function execute(file, baseConfig) {
     },
     ignore: false,
     useEslintrc: false,
+    fix: baseConfig.fix,
   })
   cli.addPlugin("html", plugin)
-  const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results
-  return results[0] && results[0].messages
+  const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)]).results[0]
+  return baseConfig.fix ? results : results && results.messages
 }
 
 it("should extract and remap messages", () => {
@@ -28,25 +31,47 @@ it("should extract and remap messages", () => {
 
   expect(messages.length, 5)
 
+  const hasEndPosition = messages[0].endLine !== undefined
+
   expect(messages[0].message).toBe("Unexpected console statement.")
   expect(messages[0].line).toBe(8)
   expect(messages[0].column).toBe(7)
+  if (hasEndPosition) {
+    expect(messages[0].endLine).toBe(8)
+    expect(messages[0].endColumn).toBe(18)
+  }
 
   expect(messages[1].message).toBe("Unexpected console statement.")
   expect(messages[1].line).toBe(14)
   expect(messages[1].column).toBe(7)
+  if (hasEndPosition) {
+    expect(messages[1].endLine).toBe(14)
+    expect(messages[1].endColumn).toBe(18)
+  }
 
   expect(messages[2].message).toBe("Unexpected console statement.")
   expect(messages[2].line).toBe(20)
   expect(messages[2].column).toBe(3)
+  if (hasEndPosition) {
+    expect(messages[2].endLine).toBe(20)
+    expect(messages[2].endColumn).toBe(14)
+  }
 
   expect(messages[3].message).toBe("Unexpected console statement.")
   expect(messages[3].line).toBe(25)
   expect(messages[3].column).toBe(11)
+  if (hasEndPosition) {
+    expect(messages[3].endLine).toBe(25)
+    expect(messages[3].endColumn).toBe(22)
+  }
 
   expect(messages[4].message).toBe("Unexpected console statement.")
   expect(messages[4].line).toBe(28)
   expect(messages[4].column).toBe(13)
+  if (hasEndPosition) {
+    expect(messages[4].endLine).toBe(28)
+    expect(messages[4].endColumn).toBe(24)
+  }
 })
 
 it("should report correct line numbers with crlf newlines", () => {
@@ -220,7 +245,7 @@ describe("xml support", () => {
   it("can be forced to consider .html files as XML", () => {
     const messages = execute("cdata.html", {
       settings: {
-        "html/xml-mode": true,
+        "html/xml-extensions": [".html"],
       },
     })
 
@@ -244,7 +269,7 @@ describe("xml support", () => {
   it("can be forced to consider .xhtml files as HTML", () => {
     const messages = execute("cdata.xhtml", {
       settings: {
-        "html/xml-mode": false,
+        "html/html-extensions": [".xhtml"],
       },
     })
 
@@ -269,15 +294,140 @@ describe("lines-around-comment and multiple scripts", () => {
   })
 })
 
-describe("fix ranges", () => {
-  xit("should remap fix ranges", () => {
-    const messages = execute("remap-fix-range.html", {
+describe("fix", () => {
+  it("should remap fix ranges", () => {
+    const messages = execute("fix.html", {
       "rules": {
         "no-extra-semi": ["error"],
       },
     })
 
     expect(messages.length).toBe(1)
-    expect(messages[0].fix.range).toEqual([ 72, 73 ])
+    expect(messages[0].fix.range).toEqual([ 54, 55 ])
+  })
+
+  it("should fix errors", () => {
+    const result = execute("fix.html", {
+      rules: {
+        "no-extra-semi": ["error"],
+      },
+      fix: true,
+    })
+
+    expect(result.output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+    expect(result.messages.length).toBe(0)
+  })
+
+  it("should fix errors in files with BOM", () => {
+    const result = execute("fix-bom.html", {
+      rules: {
+        "no-extra-semi": ["error"],
+      },
+      fix: true,
+    })
+
+    expect(result.output).toBe(`\uFEFF<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+    expect(result.messages.length).toBe(0)
+  })
+
+  describe("eol-last rule", () => {
+    it("should work with eol-last always", () => {
+      const result = execute("fix.html", {
+        rules: {
+          "eol-last": ["error"],
+          "no-extra-semi": ["error"],
+        },
+        fix: true,
+      })
+
+      expect(result.output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();
+  </script>
+</html>
+`)
+      expect(result.messages.length).toBe(0)
+    })
+
+    it("should work with eol-last never", () => {
+      // ESLint 2 did not remove the last new line if any
+      if (isESLint2) return
+      const result = execute("fix.html", {
+        rules: {
+          "eol-last": ["error", "never"],
+        },
+        fix: true,
+      })
+
+      expect(result.output).toBe(`<!DOCTYPE html>
+<html lang="en">
+  <script>
+    foo();;
+  </script>
+</html>`)
+      expect(result.messages.length).toBe(0)
+    })
+  })
+})
+
+describe("html/javascript-mime-types", () => {
+  it("ignores unknown mime types by default", () => {
+    const messages = execute("javascript-mime-types.html")
+
+    expect(messages.length).toBe(2)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(12)
+  })
+
+  it("specifies a list of valid mime types", () => {
+    const messages = execute("javascript-mime-types.html", {
+      settings: {
+        "html/javascript-mime-types": ["text/foo"],
+      },
+    })
+
+    expect(messages.length, 2)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(16)
+  })
+
+  it("specifies a regexp of valid mime types", () => {
+    const messages = execute("javascript-mime-types.html", {
+      settings: {
+        "html/javascript-mime-types": "/^(application|text)\/foo$/",
+      },
+    })
+
+    expect(messages.length).toBe(3)
+
+    expect(messages[0].ruleId).toBe("no-console")
+    expect(messages[0].line).toBe(8)
+
+    expect(messages[1].ruleId).toBe("no-console")
+    expect(messages[1].line).toBe(16)
+
+    expect(messages[2].ruleId).toBe("no-console")
+    expect(messages[2].line).toBe(20)
   })
 })

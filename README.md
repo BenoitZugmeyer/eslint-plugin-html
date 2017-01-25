@@ -13,7 +13,7 @@ linted.
 Usage
 -----
 
-Simply install via npm `npm install eslint-plugin-html --save` add the plugin to your ESLint
+Simply install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
 configuration. See
 [ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
 

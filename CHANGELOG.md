@@ -1,4 +1,4 @@
-UNRELEASED v2.0.0
+2017-01-25 v2.0.0
 * **Drop `html/xml-mode` setting**
 * `eslint --fix` support #23
 * Allow configuring HTML and XML extensions via ESLint config

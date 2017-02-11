@@ -27,6 +27,11 @@ Example:
 }
 ```
 
+Note: by default, when executing the `eslint` command on a directory, only `.js` files will be
+linted. You will have to specify extra extensions with the `--ext` option. Example: `eslint --ext
+.html,.js src` will lint both `.html` and `.js` files in the `src` directory. See [ESLint
+documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
+
 XML support
 -----------
 

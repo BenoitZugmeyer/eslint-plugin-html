@@ -4,6 +4,8 @@ const htmlparser = require("htmlparser2")
 const TransformableString = require("./TransformableString")
 
 function iterateScripts(code, options, onChunk) {
+  if (!code) return
+
   const xmlMode = options.xmlMode
   const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
   let index = 0

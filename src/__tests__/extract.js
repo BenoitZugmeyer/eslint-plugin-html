@@ -387,3 +387,10 @@ it("keeps empty lines after the last html tags", () => {
     `,
   })
 })
+
+it("handles empty input", () => {
+  test({
+    input: "",
+    output: "",
+  })
+})

@@ -147,7 +147,7 @@ function patch(modules) {
     const filename = typeof filenameOrOptions === "object" ?
       filenameOrOptions.filename :
       filenameOrOptions
-    const extension = path.extname(filename)
+    const extension = path.extname(filename || '')
 
     const pluginSettings = getPluginSettings(config.settings || {})
     const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0

@@ -1,3 +1,7 @@
+2017-02-16 v2.0.1
+* Support for empty filenames #48
+* Support for empty files #46
+
 2017-01-25 v2.0.0
 * **Drop `html/xml-mode` setting**
 * `eslint --fix` support #23

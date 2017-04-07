@@ -1,10 +1,15 @@
 "use strict"
 
 const path = require("path")
+const semver = require("semver")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
 
-const isESLint2 = require("eslint/package.json").version.startsWith("2.")
+const eslintVersion = require("eslint/package.json").version
+
+function isESLintVersion(descriptor) {
+  return semver.satisfies(eslintVersion, descriptor)
+}
 
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
@@ -302,8 +307,14 @@ describe("fix", () => {
       },
     })
 
-    expect(messages.length).toBe(1)
-    expect(messages[0].fix.range).toEqual([ 54, 55 ])
+    if (isESLintVersion(">= 3.17.0")) {
+      // Since v3.17.0, no-extra-semi replaces all semicolons by a single semi colon instead of
+      // removing extra semi colons. See https://github.com/eslint/eslint/pull/8067 .
+      expect(messages[0].fix.range).toEqual([ 53, 55 ])
+    }
+    else {
+      expect(messages[0].fix.range).toEqual([ 54, 55 ])
+    }
   })
 
   it("should fix errors", () => {
@@ -364,7 +375,7 @@ describe("fix", () => {
 
     it("should work with eol-last never", () => {
       // ESLint 2 did not remove the last new line if any
-      if (isESLint2) return
+      if (isESLintVersion("2")) return
       const result = execute("fix.html", {
         rules: {
           "eol-last": ["error", "never"],

@@ -350,6 +350,14 @@ describe("xml support", () => {
     expect(messages[0].line).toBe(12)
     expect(messages[0].column).toBe(7)
   })
+
+  it("should support self closing script tags", () => {
+    let messages
+    expect(() => {
+      messages = execute("self-closing-tags.xhtml")
+    }).not.toThrow()
+    expect(messages.length).toBe(0)
+  })
 })
 
 describe("lines-around-comment and multiple scripts", () => {

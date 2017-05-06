@@ -394,3 +394,11 @@ it("handles empty input", () => {
     output: "",
   })
 })
+
+it("handles self closing script tags in xhtml mode", () => {
+  test({
+    input: "a <script /> b",
+    xmlMode: true,
+    output: `${html}`,
+  })
+})

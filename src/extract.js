@@ -71,6 +71,12 @@ function iterateScripts(code, options, onChunk) {
 
       inScript = false
 
+      if (parser.startIndex < nextEnd) {
+        // The parser didn't move its index after the previous chunk emited. It occurs on
+        // self-closing tags (xml mode). Just ignore this script.
+        return
+      }
+
       const endSpaces = code.slice(index, parser.startIndex).match(/[ \t]*$/)[0].length
       emitChunk("script", parser.startIndex - endSpaces)
     },

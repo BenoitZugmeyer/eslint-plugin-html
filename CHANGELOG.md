@@ -1,3 +1,7 @@
+2017-05-06 v2.0.2
+* Support self-closing script tags in XHTML #52
+* Fix tests for ESLint 4.0.0-alpha.{0-2}
+
 2017-02-16 v2.0.1
 * Support for empty filenames #48
 * Support for empty files #46

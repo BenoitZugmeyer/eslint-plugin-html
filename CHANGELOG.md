@@ -1,3 +1,6 @@
+2017-05-06 v2.0.3
+* No change, new version to work around a publish issue
+
 2017-05-06 v2.0.2
 * Support self-closing script tags in XHTML #52
 * Fix tests for ESLint 4.0.0-alpha.{0-2}

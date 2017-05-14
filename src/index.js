@@ -18,10 +18,7 @@ const defaultHTMLExtensions = [
   ".we",
 ]
 
-const defaultXMLExtensions = [
-  ".xhtml",
-  ".xml",
-]
+const defaultXMLExtensions = [".xhtml", ".xml"]
 
 // Disclaimer:
 //
@@ -48,13 +45,22 @@ function iterateESLintModules(fn) {
   const needle = path.join("lib", "eslint.js")
   for (const key in require.cache) {
     if (key.endsWith(needle)) {
-      const sourceCodeFixerKey = path.join(key, "..", "util", "source-code-fixer.js")
+      const sourceCodeFixerKey = path.join(
+        key,
+        "..",
+        "util",
+        "source-code-fixer.js"
+      )
 
       const eslint = require.cache[key]
       const SourceCodeFixer = require.cache[sourceCodeFixerKey]
 
-      if (eslint.exports && typeof eslint.exports.verify === "function" &&
-        SourceCodeFixer && SourceCodeFixer.exports) {
+      if (
+        eslint.exports &&
+        typeof eslint.exports.verify === "function" &&
+        SourceCodeFixer &&
+        SourceCodeFixer.exports
+      ) {
         fn({ eslint: eslint.exports, SourceCodeFixer: SourceCodeFixer.exports })
         found = true
       }
@@ -62,9 +68,11 @@ function iterateESLintModules(fn) {
   }
 
   if (!found) {
-    throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
-                    "If you think it is a bug, please file a report at " +
-                    "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues")
+    throw new Error(
+      "eslint-plugin-html error: It seems that eslint is not loaded. " +
+        "If you think it is a bug, please file a report at " +
+        "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues"
+    )
   }
 }
 
@@ -75,7 +83,8 @@ function filterOut(array, excludeArray) {
 
 function compileRegExp(re) {
   const tokens = re.split("/")
-  if (tokens.shift()) { // Ignore first token
+  if (tokens.shift()) {
+    // Ignore first token
     throw new Error(`Invalid regexp: ${re}`)
   }
   const flags = tokens.pop()
@@ -83,27 +92,36 @@ function compileRegExp(re) {
 }
 
 function getPluginSettings(settings) {
+  const htmlExtensions =
+    settings["html/html-extensions"] ||
+    filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
 
-  const htmlExtensions = settings["html/html-extensions"] ||
-      filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
-
-  const xmlExtensions = settings["html/xml-extensions"] ||
-      filterOut(defaultXMLExtensions, settings["html/html-extensions"])
+  const xmlExtensions =
+    settings["html/xml-extensions"] ||
+    filterOut(defaultXMLExtensions, settings["html/html-extensions"])
 
   let reportBadIndent
   switch (settings["html/report-bad-indent"]) {
-    case undefined: case false: case 0: case "off":
-      reportBadIndent = 0
-      break
-    case true: case 1: case "warn":
-      reportBadIndent = 1
-      break
-    case 2: case "error":
-      reportBadIndent = 2
-      break
-    default:
-      throw new Error("Invalid value for html/report-bad-indent, " +
-        "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\"")
+  case undefined:
+  case false:
+  case 0:
+  case "off":
+    reportBadIndent = 0
+    break
+  case true:
+  case 1:
+  case "warn":
+    reportBadIndent = 1
+    break
+  case 2:
+  case "error":
+    reportBadIndent = 2
+    break
+  default:
+    throw new Error(
+        "Invalid value for html/report-bad-indent, " +
+          "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\""
+      )
   }
 
   const parsedIndent = /^(\+)?(tab|\d+)$/.exec(settings["html/indent"])
@@ -112,16 +130,18 @@ function getPluginSettings(settings) {
     spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
   }
 
-  const javaScriptMIMETypes = settings["html/javascript-mime-types"] ?
-    (
-      Array.isArray(settings["html/javascript-mime-types"]) ?
-        settings["html/javascript-mime-types"] :
-        [settings["html/javascript-mime-types"]]
-    ).map((s) => s.startsWith("/") ? compileRegExp(s) : s) :
-    [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
+  const javaScriptMIMETypes = settings["html/javascript-mime-types"]
+    ? (Array.isArray(settings["html/javascript-mime-types"])
+        ? settings["html/javascript-mime-types"]
+        : [settings["html/javascript-mime-types"]]).map(
+        (s) => (s.startsWith("/") ? compileRegExp(s) : s)
+      )
+    : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
 
   function isJavaScriptMIMEType(type) {
-    return javaScriptMIMETypes.some((o) => typeof o === "string" ? type === o : o.test(type))
+    return javaScriptMIMETypes.some(
+      (o) => (typeof o === "string" ? type === o : o.test(type))
+    )
   }
 
   return {
@@ -140,18 +160,25 @@ function patch(modules) {
   const sourceCodeForMessages = new WeakMap()
 
   const verify = eslint.verify
-  eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
-    const localVerify = (code) => verify.call(this, code, config, filenameOrOptions, saveState)
+  eslint.verify = function(
+    textOrSourceCode,
+    config,
+    filenameOrOptions,
+    saveState
+  ) {
+    const localVerify = (code) =>
+      verify.call(this, code, config, filenameOrOptions, saveState)
 
     let messages
-    const filename = typeof filenameOrOptions === "object" ?
-      filenameOrOptions.filename :
-      filenameOrOptions
+    const filename = typeof filenameOrOptions === "object"
+      ? filenameOrOptions.filename
+      : filenameOrOptions
     const extension = path.extname(filename || "")
 
     const pluginSettings = getPluginSettings(config.settings || {})
     const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0
-    const isXML = !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
+    const isXML =
+      !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
       const currentInfos = extract(
@@ -177,16 +204,17 @@ function patch(modules) {
   }
 
   const applyFixes = SourceCodeFixer.applyFixes
-  SourceCodeFixer.applyFixes = function (sourceCode, messages) {
+  SourceCodeFixer.applyFixes = function(sourceCode, messages) {
     const originalSourceCode = sourceCodeForMessages.get(messages)
     // The BOM is always included in the HTML, which is removed by the extract process
     return applyFixes.call(
       this,
-      originalSourceCode === undefined ? sourceCode : { text: originalSourceCode, hasBOM: false },
+      originalSourceCode === undefined
+        ? sourceCode
+        : { text: originalSourceCode, hasBOM: false },
       messages
     )
   }
-
 }
 
 function remapMessages(messages, code, reportBadIndent, badIndentationLines) {

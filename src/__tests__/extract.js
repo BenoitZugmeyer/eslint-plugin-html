@@ -151,7 +151,6 @@ it("extract script containing 'lower than' characters correctly (#1)", () => {
   })
 })
 
-
 it("extract empty script tag (#7)", () => {
   test({
     input: `
@@ -163,10 +162,7 @@ it("extract empty script tag (#7)", () => {
   })
 })
 
-const prefixes = ["text/",
-                "text/x-",
-                "application/",
-                "application/x-"]
+const prefixes = ["text/", "text/x-", "application/", "application/x-"]
 
 const types = ["javascript", "babel"]
 
@@ -205,7 +201,7 @@ it("collects bad indentations", () => {
        a;
       ${html}
     `,
-    badIndentationLines: [ 3, 4 ],
+    badIndentationLines: [3, 4],
   })
 })
 
@@ -231,7 +227,7 @@ describe("indent option", () => {
         a;
         ${html}
       `,
-      badIndentationLines: [ 3, 5 ],
+      badIndentationLines: [3, 5],
     })
   })
 
@@ -257,7 +253,7 @@ describe("indent option", () => {
         a;
         ${html}
       `,
-      badIndentationLines: [ 4, 5 ],
+      badIndentationLines: [4, 5],
     })
   })
 
@@ -282,7 +278,7 @@ describe("indent option", () => {
         a;
         ${html}
       `,
-      badIndentationLines: [ 3, 5 ],
+      badIndentationLines: [3, 5],
     })
   })
 
@@ -308,7 +304,7 @@ describe("indent option", () => {
         a;
         ${html}
       `,
-      badIndentationLines: [ 4, 5 ],
+      badIndentationLines: [4, 5],
     })
   })
 })
@@ -317,7 +313,7 @@ it("works with crlf new lines", () => {
   test({
     input: "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
     output: `${html}\r\nfoo;\r\nbar;\r\n  baz;\r\n${html}\r\n`,
-    badIndentationLines: [ 5 ],
+    badIndentationLines: [5],
   })
 })
 
@@ -358,7 +354,9 @@ it("handles the isJavaScriptMIMEType option", () => {
       c
     </script>
     `,
-    isJavaScriptMIMEType(type) { return type === "foo/bar" },
+    isJavaScriptMIMEType(type) {
+      return type === "foo/bar"
+    },
     output: `
     ${html}
     a

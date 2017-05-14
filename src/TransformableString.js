@@ -12,7 +12,12 @@ function lineStarts(str) {
 }
 
 function locationToIndex(location, lineStarts) {
-  if (!location.line || location.line < 0 || !location.column || location.column < 0) {
+  if (
+    !location.line ||
+    location.line < 0 ||
+    !location.column ||
+    location.column < 0
+  ) {
     throw new Error("Invalid location")
   }
   return lineStarts[location.line - 1] + location.column - 1
@@ -67,7 +72,10 @@ module.exports = class TransformableString {
       throw new Error("Invalid slice indexes")
     }
     const newBlock = { from, to, str }
-    if (!this._blocks.length || this._blocks[this._blocks.length - 1].to <= from) {
+    if (
+      !this._blocks.length ||
+      this._blocks[this._blocks.length - 1].to <= from
+    ) {
       this._blocks.push(newBlock)
     }
     else {
@@ -88,7 +96,9 @@ module.exports = class TransformableString {
         index += block.to - block.from - block.str.length
       }
     }
-    if (index < 0 || index > this._original.length) throw new Error("Invalid index")
+    if (index < 0 || index > this._original.length) {
+      throw new Error("Invalid index")
+    }
     return index
   }
 

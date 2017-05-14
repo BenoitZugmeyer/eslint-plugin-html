@@ -20,8 +20,6 @@ function dedent(str) {
   return str
 }
 
-const html = "/* HTML */"
-
 function test(params) {
   const infos = extract(
     dedent(params.input),
@@ -29,7 +27,7 @@ function test(params) {
     params.xmlMode,
     params.isJavaScriptMIMEType
   )
-  expect(infos.code.toString()).toBe(dedent(params.output))
+  expect(infos.code.toString()).toMatchSnapshot()
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
 
@@ -39,9 +37,6 @@ it("extract simple javascript", () => {
       some html
       <script>var foo = 1;</script>
       other
-    `,
-    output: `
-      ${html}var foo = 1;${html}
     `,
   })
 })
@@ -55,11 +50,6 @@ it("extract indented javascript", () => {
       </script>
       other
     `,
-    output: `
-      ${html}
-      var foo = 1;
-      ${html}
-    `,
   })
 })
 
@@ -72,11 +62,6 @@ it("extract javascript with first line next to the script tag", () => {
       </script>
       other
     `,
-    output: `
-      ${html}var foo = 1;
-      var baz = 1;
-      ${html}
-    `,
   })
 })
 
@@ -88,11 +73,6 @@ it("extract javascript with last line next to the script tag", () => {
         var foo = 1;
         var baz = 1;</script>
       other
-    `,
-    output: `
-      ${html}
-      var foo = 1;
-      var baz = 1;${html}
     `,
   })
 })
@@ -109,13 +89,6 @@ it("extract multiple script tags", () => {
         var bar = 1;
       </script>
     `,
-    output: `
-      ${html}
-      var foo = 1;
-      ${html}
-      var bar = 1;
-      ${html}
-    `,
   })
 })
 
@@ -128,11 +101,6 @@ it("trim last line spaces", () => {
         </script>
       other
     `,
-    output: `
-      ${html}
-      var foo = 1;
-      ${html}
-    `,
   })
 })
 
@@ -143,11 +111,6 @@ it("extract script containing 'lower than' characters correctly (#1)", () => {
         if (a < b) { doit(); }
       </script>
     `,
-    output: `
-      ${html}
-      if (a < b) { doit(); }
-      ${html}
-    `,
   })
 })
 
@@ -155,9 +118,6 @@ it("extract empty script tag (#7)", () => {
   test({
     input: `
       <script></script>
-    `,
-    output: `
-      ${html}${html}
     `,
   })
 })
@@ -177,9 +137,6 @@ for (const prefix of prefixes) {
           <script type="${tag}">var foo = 1;</script>
           other
         `,
-        output: `
-          ${html}var foo = 1;${html}
-        `,
       })
     })
   }
@@ -193,13 +150,6 @@ it("collects bad indentations", () => {
       a;
        a;
       </script>
-    `,
-    output: `
-      ${html}
-      a;
-      a;
-       a;
-      ${html}
     `,
     badIndentationLines: [3, 4],
   })
@@ -220,13 +170,6 @@ describe("indent option", () => {
       indent: {
         spaces: "  ",
       },
-      output: `
-        ${html}
-            a;
-        a;
-        a;
-        ${html}
-      `,
       badIndentationLines: [3, 5],
     })
   })
@@ -246,13 +189,6 @@ describe("indent option", () => {
         spaces: "  ",
         relative: true,
       },
-      output: `
-        ${html}
-        a;
-          a;
-        a;
-        ${html}
-      `,
       badIndentationLines: [4, 5],
     })
   })
@@ -271,13 +207,6 @@ describe("indent option", () => {
       indent: {
         spaces: "\t",
       },
-      output: `
-        ${html}
-        \t\ta;
-        a;
-        a;
-        ${html}
-      `,
       badIndentationLines: [3, 5],
     })
   })
@@ -297,13 +226,6 @@ describe("indent option", () => {
         spaces: "\t",
         relative: true,
       },
-      output: `
-        ${html}
-        a;
-        \ta;
-        a;
-        ${html}
-      `,
       badIndentationLines: [4, 5],
     })
   })
@@ -312,7 +234,6 @@ describe("indent option", () => {
 it("works with crlf new lines", () => {
   test({
     input: "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
-    output: `${html}\r\nfoo;\r\nbar;\r\n  baz;\r\n${html}\r\n`,
     badIndentationLines: [5],
   })
 })
@@ -328,14 +249,6 @@ it("works with CDATA", () => {
       c;
     </script>`,
     xmlMode: true,
-    output: `
-      ${html}
-      a;
-      ${html}
-      b;
-      ${html}
-      c;
-      ${html}`,
   })
 })
 
@@ -357,13 +270,6 @@ it("handles the isJavaScriptMIMEType option", () => {
     isJavaScriptMIMEType(type) {
       return type === "foo/bar"
     },
-    output: `
-    ${html}
-    a
-    ${html}
-    b
-    ${html}
-    `,
   })
 })
 
@@ -376,20 +282,12 @@ it("keeps empty lines after the last html tags", () => {
 
 
     `,
-    output: `
-    ${html}
-    a
-    ${html}
-
-
-    `,
   })
 })
 
 it("handles empty input", () => {
   test({
     input: "",
-    output: "",
   })
 })
 
@@ -397,6 +295,5 @@ it("handles self closing script tags in xhtml mode", () => {
   test({
     input: "a <script /> b",
     xmlMode: true,
-    output: `${html}`,
   })
 })

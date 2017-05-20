@@ -259,6 +259,26 @@ describe("html/indent setting", () => {
       expect(messages[3].line).toBe(30)
     }
   })
+
+  it.skip("should report messages at the beginning of the file", () => {
+    // FIXME(v3)
+    const messages = execute("error-at-the-beginning.html", {
+      rules: {
+        "max-lines": [2, { max: 1 }],
+        "max-len": [ 2, { code: 35 }],
+        "no-console": 0,
+      },
+    })
+
+    expect(messages.length).toBe(2)
+    expect(messages[0].message).toBe("Line 1 exceeds the maximum line length of 35.")
+    expect(messages[0].line).toBe(1)
+    expect(messages[0].column).toBe(9)
+
+    expect(messages[1].message).toBe("File must be at most 1 lines long. It's 8 lines long.")
+    expect(messages[1].line).toBe(1)
+    expect(messages[1].column).toBe(9)
+  })
 })
 
 describe("html/report-bad-indent setting", () => {

@@ -160,7 +160,7 @@ function* dedent(indent, slice) {
 
 function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   const badIndentationLines = []
-  const transformedCode = new TransformableString(code)
+  const codeParts = []
   let lineNumber = 1
   let previousHTML = ""
 
@@ -172,24 +172,14 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
       chunk.type === "cdata start" ||
       chunk.type === "cdata end"
     ) {
-      const newLinesRe = /(?:\r\n|\n|\r)([^\r\n])?/g
-      let lastEmptyLinesLength = 0
-      while (true) {
-        const match = newLinesRe.exec(slice)
-        if (!match) break
-        lineNumber += 1
-        lastEmptyLinesLength = !match[1]
-          ? lastEmptyLinesLength + match[0].length
-          : 0
-      }
-      transformedCode.replace(
-        chunk.start,
-        chunk.end - lastEmptyLinesLength,
-        "/* HTML */"
-      )
+      const match = slice.match(/\r\n|\n|\r/g)
+      if (match) lineNumber += match.length
       if (chunk.type === "html") previousHTML = slice
     }
     else if (chunk.type === "script") {
+      const transformedCode = new TransformableString(code)
+      transformedCode.replace(0, chunk.start, "")
+      transformedCode.replace(chunk.end, code.length, "")
       for (const action of dedent(
         computeIndent(indentDescriptor, previousHTML, slice),
         slice
@@ -206,11 +196,12 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
           badIndentationLines.push(lineNumber)
         }
       }
+      codeParts.push(transformedCode)
     }
   })
 
   return {
-    code: transformedCode,
+    code: codeParts,
     badIndentationLines,
   }
 }

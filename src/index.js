@@ -121,12 +121,20 @@ function patch(modules) {
         pluginSettings.isJavaScriptMIMEType
       )
 
-      messages = remapMessages(
-        localVerify(String(currentInfos.code)),
-        currentInfos.code,
-        pluginSettings.reportBadIndent,
-        currentInfos.badIndentationLines
-      )
+      messages = []
+
+      currentInfos.code.forEach((code) => {
+        messages.push.apply(
+          messages,
+          remapMessages(
+            localVerify(String(code)),
+            code,
+            pluginSettings.reportBadIndent,
+            currentInfos.badIndentationLines
+          )
+        )
+      })
+
       sourceCodeForMessages.set(messages, textOrSourceCode)
     }
     else {
@@ -164,7 +172,9 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
       if (message.fix && message.fix.range) {
         message.fix.range = [
           code.originalIndex(message.fix.range[0]),
-          code.originalIndex(message.fix.range[1]),
+          // The range end is exclusive, meaning it should replace all characters  with indexes from
+          // start to end - 1. We have to get the original index of the last targeted character.
+          code.originalIndex(message.fix.range[1] - 1) + 1,
         ]
       }
 

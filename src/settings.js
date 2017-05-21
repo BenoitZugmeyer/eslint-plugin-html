@@ -34,17 +34,24 @@ function compileRegExp(re) {
   return new RegExp(tokens.join("/"), flags)
 }
 
+function getSetting(settings, name) {
+  if (typeof settings.html === "object" && name in settings.html) {
+    return settings.html[name]
+  }
+  return settings[`html/${name}`]
+}
+
 function getSettings(settings) {
   const htmlExtensions =
-    settings["html/html-extensions"] ||
-    filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
+    getSetting(settings, "html-extensions") ||
+    filterOut(defaultHTMLExtensions, getSetting(settings, "xml-extensions"))
 
   const xmlExtensions =
-    settings["html/xml-extensions"] ||
-    filterOut(defaultXMLExtensions, settings["html/html-extensions"])
+    getSetting(settings, "xml-extensions") ||
+    filterOut(defaultXMLExtensions, getSetting(settings, "html-extensions"))
 
   let reportBadIndent
-  switch (settings["html/report-bad-indent"]) {
+  switch (getSetting(settings, "report-bad-indent")) {
   case undefined:
   case false:
   case 0:
@@ -69,16 +76,17 @@ function getSettings(settings) {
       )
   }
 
-  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(settings["html/indent"])
+  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(getSetting(settings, "indent"))
   const indent = parsedIndent && {
     relative: parsedIndent[1] === "+",
     spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
   }
 
-  const javaScriptMIMETypes = settings["html/javascript-mime-types"]
-    ? (Array.isArray(settings["html/javascript-mime-types"])
-        ? settings["html/javascript-mime-types"]
-        : [settings["html/javascript-mime-types"]]).map(
+  const rawJavaScriptMIMETypes = getSetting(settings, "javascript-mime-types")
+  const javaScriptMIMETypes = rawJavaScriptMIMETypes
+    ? (Array.isArray(rawJavaScriptMIMETypes)
+        ? rawJavaScriptMIMETypes
+        : [rawJavaScriptMIMETypes]).map(
         (s) => (s.startsWith("/") ? compileRegExp(s) : s)
       )
     : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]

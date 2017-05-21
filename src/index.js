@@ -15,40 +15,63 @@ const getSettings = require("./settings").getSettings
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
+const needleV3 = path.join("lib", "eslint.js")
+const needleV4 = path.join("lib", "linter.js")
+
 iterateESLintModules(patch)
+
+function getModulesFromRequire() {
+  let eslint
+  try {
+    // V3-
+    eslint = require("eslint/lib/eslint")
+  }
+  catch (e) {
+    // V4+
+    eslint = require("eslint/lib/linter").prototype
+  }
+
+  return {
+    eslint,
+    SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
+  }
+}
+
+function getModulesFromCache(key) {
+  const isV3 = key.endsWith(needleV3)
+  const isV4 = key.endsWith(needleV4)
+  if (!isV3 && !isV4) return
+
+  const module = require.cache[key]
+  if (!module || !module.exports) return
+
+  const SourceCodeFixer =
+    require.cache[path.join(key, "..", "util", "source-code-fixer.js")]
+  if (!SourceCodeFixer || !SourceCodeFixer.exports) return
+
+  const eslint = isV3 ? module.exports : module.exports.prototype
+  if (typeof eslint.verify !== "function") return
+
+  return {
+    eslint,
+    SourceCodeFixer: SourceCodeFixer.exports,
+  }
+}
 
 function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    return fn({
-      eslint: require("eslint/lib/eslint"),
-      SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
-    })
+    fn(getModulesFromRequire())
+    return
   }
 
   let found = false
-  const needle = path.join("lib", "eslint.js")
+
   for (const key in require.cache) {
-    if (key.endsWith(needle)) {
-      const sourceCodeFixerKey = path.join(
-        key,
-        "..",
-        "util",
-        "source-code-fixer.js"
-      )
-
-      const eslint = require.cache[key]
-      const SourceCodeFixer = require.cache[sourceCodeFixerKey]
-
-      if (
-        eslint.exports &&
-        typeof eslint.exports.verify === "function" &&
-        SourceCodeFixer &&
-        SourceCodeFixer.exports
-      ) {
-        fn({ eslint: eslint.exports, SourceCodeFixer: SourceCodeFixer.exports })
-        found = true
-      }
+    const modules = getModulesFromCache(key)
+    if (modules) {
+      fn(modules)
+      found = true
     }
   }
 

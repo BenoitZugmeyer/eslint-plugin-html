@@ -69,11 +69,25 @@ function iterateESLintModules(fn) {
 
   if (!found) {
     throw new Error(
-      "eslint-plugin-html error: It seems that eslint is not loaded. " +
-        "If you think it is a bug, please file a report at " +
-        "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues"
+      oneLine`
+      eslint-plugin-html error: It seems that eslint is not loaded.
+      If you think it is a bug, please file a report at
+      https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+    `
     )
   }
+}
+
+function oneLine(parts) {
+  return parts
+    .map((part, index) => {
+      return index > 0 ? arguments[index - 1] + part : part
+    })
+    .join("")
+    .trim()
+    .split("\n")
+    .map((line) => line.trim())
+    .join(" ")
 }
 
 function filterOut(array, excludeArray) {
@@ -119,8 +133,10 @@ function getPluginSettings(settings) {
     break
   default:
     throw new Error(
-        "Invalid value for html/report-bad-indent, " +
-          "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\""
+        oneLine`
+        Invalid value for html/report-bad-indent,
+        expected one of 0, 1, 2, "off", "warn" or "error"
+      `
       )
   }
 

@@ -3,8 +3,8 @@ node_js:
   - stable
   - lts/*
 script:
+  - "npm run test"
+  - "npm run check-format"
   - "npm install eslint@2 && npm test"
   - "npm install eslint@3 && npm test"
   - "npm install eslint@4.0.0-beta.0 && npm test"
-  - "npm run test"
-  - "npm run check-format"

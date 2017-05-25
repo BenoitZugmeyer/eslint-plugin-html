@@ -46,6 +46,9 @@ sections:
 Settings
 --------
 
+> Note: all settings can be written either as `"html/key": value` or in a nested object `"html": {
+> "key": value }`
+
 ### `html/html-extensions`
 
 By default, this plugin will only consider files ending with those extensions as HTML: `.erb`,

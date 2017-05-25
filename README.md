@@ -5,11 +5,6 @@ eslint-plugin-html
 
 This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML files.
 
-Only script tags with no type attribute or a type attribute containing a MIME type known to
-represent JavaScript such as `text/javascript` or `application/javascript`, or `text/babel` will be
-linted.
-
-
 Usage
 -----
 

@@ -3,7 +3,8 @@ eslint-plugin-html
 
 [![Build Status](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html.svg?branch=master)](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html)
 
-This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML files.
+This [`ESLint`](http://eslint.org) plugin allows linting and fixing inline scripts contained in HTML
+files.
 
 Usage
 -----

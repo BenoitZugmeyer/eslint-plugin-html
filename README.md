@@ -6,6 +6,11 @@ eslint-plugin-html
 This [`ESLint`](http://eslint.org) plugin allows linting and fixing inline scripts contained in HTML
 files.
 
+Migration to v3
+---------------
+
+If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3.md).
+
 Usage
 -----
 

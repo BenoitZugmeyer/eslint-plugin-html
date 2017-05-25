@@ -744,6 +744,10 @@ escope@^3.6.0:
     esrecurse "^4.1.0"
     estraverse "^4.1.1"
 
+eslint-config-benoitz@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/eslint-config-benoitz/-/eslint-config-benoitz-1.0.0.tgz#1e3b20d7efff2932eaeeadc1b6d9554ed1df9413"
+
 eslint@3, eslint@^3.19.0:
   version "3.19.0"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-3.19.0.tgz#c8fc6201c7f40dd08941b87c085767386a679acc"

@@ -1,27 +1,8 @@
 
-extends: eslint:recommended
-
-rules:
-  arrow-parens: error
-  arrow-spacing: error
-  brace-style: [error, stroustrup]
-  comma-dangle: [error, always-multiline]
-  curly: [error, multi-line]
-  indent: [error, 2]
-  keyword-spacing: error
-  no-constant-condition: [error, { checkLoops: false }]
-  no-trailing-spaces: error
-  no-unexpected-multiline: error
-  no-unreachable: error
-  no-var: error
-  object-shorthand: error
-  prefer-arrow-callback: error
-  prefer-const: error
-  prefer-template: error
-  quotes: [error, double]
-  semi: [error, never]
-  strict: [error, global]
+extends: benoitz
 
 env:
   node: true
-  es6: true
+
+parserOptions:
+  sourceType: script

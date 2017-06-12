@@ -115,7 +115,7 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4.0.0-alpha.0")) {
+    if (isESLintVersion(">= 4")) {
       expect(messages.length).toBe(9)
 
       // Only the first script is correctly indented (aligned on the first column)
@@ -184,7 +184,7 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4.0.0-beta.0")) {
+    if (isESLintVersion(">= 4")) {
       expect(messages.length).toBe(7)
 
       // The first script is incorrect since the second line gets dedented
@@ -272,7 +272,7 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4.0.0-alpha.0")) {
+    if (isESLintVersion(">= 4")) {
       expect(messages.length).toBe(6)
 
       // The first script is correct since it can't be dedented, but follows the indent
@@ -344,7 +344,7 @@ describe("html/indent setting", () => {
     expect(messages[0].line).toBe(1)
     expect(messages[0].column).toBe(9)
 
-    if (isESLintVersion(">= 3 || >= 4.0.0-beta.0")) {
+    if (isESLintVersion(">= 3")) {
       expect(messages[1].message).toBe(
         "File must be at most 1 lines long. It's 7 lines long."
       )
@@ -476,7 +476,7 @@ describe("fix", () => {
       },
     })
 
-    if (isESLintVersion(">= 3.17.0 || >= 4.0.0-alpha.0")) {
+    if (isESLintVersion(">= 3.17.0")) {
       // Since v3.17.0, no-extra-semi replaces all semicolons by a single semi colon instead of
       // removing extra semi colons. See https://github.com/eslint/eslint/pull/8067 .
       expect(messages[0].fix.range).toEqual([53, 55])

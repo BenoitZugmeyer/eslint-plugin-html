@@ -1,3 +1,8 @@
+2017-06-12 v3.0.0 [migration guide](MIGRATION_TO_V3.md)
+* **Breaking: lint script tags separately** #49 #55 #56
+* ESLint 4 support #57
+* Support nested settings in a "html" object #58
+
 2017-05-06 v2.0.3
 * No change, new version to work around a publish issue
 
@@ -10,7 +15,7 @@
 * Support for empty files #46
 
 2017-01-25 v2.0.0
-* **Drop `html/xml-mode` setting**
+* **Breaking: drop `html/xml-mode` setting**
 * `eslint --fix` support #23
 * Allow configuring HTML and XML extensions via ESLint config
 * Allow configuring JS MIME types via ESLint config

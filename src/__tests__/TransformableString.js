@@ -90,27 +90,54 @@ describe("originalIndex", () => {
 describe("originalLocation", () => {
   it("should return the same location if nothing changed", () => {
     const ts = new TransformableString("aaaa\nbbbb\ncccc")
-    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({ line: 1, column: 1 })
-    expect(ts.originalLocation({ line: 1, column: 3 })).toEqual({ line: 1, column: 3 })
-    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({ line: 2, column: 1 })
+    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({
+      line: 1,
+      column: 1,
+    })
+    expect(ts.originalLocation({ line: 1, column: 3 })).toEqual({
+      line: 1,
+      column: 3,
+    })
+    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({
+      line: 2,
+      column: 1,
+    })
   })
 
   it("should return the original location of a string with removed parts", () => {
     const ts = new TransformableString("aaaa\nbbbb\ncccc")
     ts.replace(3, 6, "")
     expect(ts.toString()).toBe("aaabbb\ncccc")
-    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({ line: 1, column: 1 })
-    expect(ts.originalLocation({ line: 1, column: 4 })).toEqual({ line: 2, column: 2 })
-    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({ line: 3, column: 1 })
+    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({
+      line: 1,
+      column: 1,
+    })
+    expect(ts.originalLocation({ line: 1, column: 4 })).toEqual({
+      line: 2,
+      column: 2,
+    })
+    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({
+      line: 3,
+      column: 1,
+    })
   })
 
   it("should return the original location of a string with added parts", () => {
     const ts = new TransformableString("aaaa\nbbbbcccc")
     ts.replace(9, 9, "X\nX")
     expect(ts.toString()).toBe("aaaa\nbbbbX\nXcccc")
-    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({ line: 1, column: 1 })
-    expect(ts.originalLocation({ line: 1, column: 4 })).toEqual({ line: 1, column: 4 })
-    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({ line: 2, column: 1 })
+    expect(ts.originalLocation({ line: 1, column: 1 })).toEqual({
+      line: 1,
+      column: 1,
+    })
+    expect(ts.originalLocation({ line: 1, column: 4 })).toEqual({
+      line: 1,
+      column: 4,
+    })
+    expect(ts.originalLocation({ line: 2, column: 1 })).toEqual({
+      line: 2,
+      column: 1,
+    })
     expect(ts.originalLocation({ line: 2, column: 5 })).toEqual(undefined)
   })
 })

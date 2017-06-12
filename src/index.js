@@ -2,26 +2,8 @@
 
 const path = require("path")
 const extract = require("./extract")
-
-const defaultHTMLExtensions = [
-  ".erb",
-  ".handlebars",
-  ".hbs",
-  ".htm",
-  ".html",
-  ".mustache",
-  ".nunjucks",
-  ".php",
-  ".tag",
-  ".twig",
-  ".vue",
-  ".we",
-]
-
-const defaultXMLExtensions = [
-  ".xhtml",
-  ".xml",
-]
+const oneLine = require("./utils").oneLine
+const getSettings = require("./settings").getSettings
 
 // Disclaimer:
 //
@@ -33,103 +15,74 @@ const defaultXMLExtensions = [
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
+const needleV3 = path.join("lib", "eslint.js")
+const needleV4 = path.join("lib", "linter.js")
+
 iterateESLintModules(patch)
+
+function getModulesFromRequire() {
+  let eslint
+  try {
+    // V3-
+    eslint = require("eslint/lib/eslint")
+  }
+  catch (e) {
+    // V4+
+    eslint = require("eslint/lib/linter").prototype
+  }
+
+  return {
+    eslint,
+    SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
+  }
+}
+
+function getModulesFromCache(key) {
+  const isV3 = key.endsWith(needleV3)
+  const isV4 = key.endsWith(needleV4)
+  if (!isV3 && !isV4) return
+
+  const module = require.cache[key]
+  if (!module || !module.exports) return
+
+  const SourceCodeFixer =
+    require.cache[path.join(key, "..", "util", "source-code-fixer.js")]
+  if (!SourceCodeFixer || !SourceCodeFixer.exports) return
+
+  const eslint = isV3 ? module.exports : module.exports.prototype
+  if (typeof eslint.verify !== "function") return
+
+  return {
+    eslint,
+    SourceCodeFixer: SourceCodeFixer.exports,
+  }
+}
 
 function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    return fn({
-      eslint: require("eslint/lib/eslint"),
-      SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
-    })
+    fn(getModulesFromRequire())
+    return
   }
 
   let found = false
-  const needle = path.join("lib", "eslint.js")
+
   for (const key in require.cache) {
-    if (key.endsWith(needle)) {
-      const sourceCodeFixerKey = path.join(key, "..", "util", "source-code-fixer.js")
-
-      const eslint = require.cache[key]
-      const SourceCodeFixer = require.cache[sourceCodeFixerKey]
-
-      if (eslint.exports && typeof eslint.exports.verify === "function" &&
-        SourceCodeFixer && SourceCodeFixer.exports) {
-        fn({ eslint: eslint.exports, SourceCodeFixer: SourceCodeFixer.exports })
-        found = true
-      }
+    const modules = getModulesFromCache(key)
+    if (modules) {
+      fn(modules)
+      found = true
     }
   }
 
   if (!found) {
-    throw new Error("eslint-plugin-html error: It seems that eslint is not loaded. " +
-                    "If you think it is a bug, please file a report at " +
-                    "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues")
-  }
-}
-
-function filterOut(array, excludeArray) {
-  if (!excludeArray) return array
-  return array.filter((item) => excludeArray.indexOf(item) < 0)
-}
-
-function compileRegExp(re) {
-  const tokens = re.split("/")
-  if (tokens.shift()) { // Ignore first token
-    throw new Error(`Invalid regexp: ${re}`)
-  }
-  const flags = tokens.pop()
-  return new RegExp(tokens.join("/"), flags)
-}
-
-function getPluginSettings(settings) {
-
-  const htmlExtensions = settings["html/html-extensions"] ||
-      filterOut(defaultHTMLExtensions, settings["html/xml-extensions"])
-
-  const xmlExtensions = settings["html/xml-extensions"] ||
-      filterOut(defaultXMLExtensions, settings["html/html-extensions"])
-
-  let reportBadIndent
-  switch (settings["html/report-bad-indent"]) {
-    case undefined: case false: case 0: case "off":
-      reportBadIndent = 0
-      break
-    case true: case 1: case "warn":
-      reportBadIndent = 1
-      break
-    case 2: case "error":
-      reportBadIndent = 2
-      break
-    default:
-      throw new Error("Invalid value for html/report-bad-indent, " +
-        "expected one of 0, 1, 2, \"off\", \"warn\" or \"error\"")
-  }
-
-  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(settings["html/indent"])
-  const indent = parsedIndent && {
-    relative: parsedIndent[1] === "+",
-    spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
-  }
-
-  const javaScriptMIMETypes = settings["html/javascript-mime-types"] ?
-    (
-      Array.isArray(settings["html/javascript-mime-types"]) ?
-        settings["html/javascript-mime-types"] :
-        [settings["html/javascript-mime-types"]]
-    ).map((s) => s.startsWith("/") ? compileRegExp(s) : s) :
-    [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
-
-  function isJavaScriptMIMEType(type) {
-    return javaScriptMIMETypes.some((o) => typeof o === "string" ? type === o : o.test(type))
-  }
-
-  return {
-    htmlExtensions,
-    xmlExtensions,
-    indent,
-    reportBadIndent,
-    isJavaScriptMIMEType,
+    throw new Error(
+      oneLine`
+      eslint-plugin-html error: It seems that eslint is not loaded.
+      If you think it is a bug, please file a report at
+      https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+    `
+    )
   }
 }
 
@@ -140,18 +93,25 @@ function patch(modules) {
   const sourceCodeForMessages = new WeakMap()
 
   const verify = eslint.verify
-  eslint.verify = function (textOrSourceCode, config, filenameOrOptions, saveState) {
-    const localVerify = (code) => verify.call(this, code, config, filenameOrOptions, saveState)
+  eslint.verify = function(
+    textOrSourceCode,
+    config,
+    filenameOrOptions,
+    saveState
+  ) {
+    const localVerify = (code) =>
+      verify.call(this, code, config, filenameOrOptions, saveState)
 
     let messages
-    const filename = typeof filenameOrOptions === "object" ?
-      filenameOrOptions.filename :
-      filenameOrOptions
+    const filename = typeof filenameOrOptions === "object"
+      ? filenameOrOptions.filename
+      : filenameOrOptions
     const extension = path.extname(filename || "")
 
-    const pluginSettings = getPluginSettings(config.settings || {})
+    const pluginSettings = getSettings(config.settings || {})
     const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0
-    const isXML = !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
+    const isXML =
+      !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
       const currentInfos = extract(
@@ -161,12 +121,20 @@ function patch(modules) {
         pluginSettings.isJavaScriptMIMEType
       )
 
-      messages = remapMessages(
-        localVerify(String(currentInfos.code)),
-        currentInfos.code,
-        pluginSettings.reportBadIndent,
-        currentInfos.badIndentationLines
-      )
+      messages = []
+
+      currentInfos.code.forEach((code) => {
+        messages.push.apply(
+          messages,
+          remapMessages(
+            localVerify(String(code)),
+            code,
+            pluginSettings.reportBadIndent,
+            currentInfos.badIndentationLines
+          )
+        )
+      })
+
       sourceCodeForMessages.set(messages, textOrSourceCode)
     }
     else {
@@ -177,16 +145,17 @@ function patch(modules) {
   }
 
   const applyFixes = SourceCodeFixer.applyFixes
-  SourceCodeFixer.applyFixes = function (sourceCode, messages) {
+  SourceCodeFixer.applyFixes = function(sourceCode, messages) {
     const originalSourceCode = sourceCodeForMessages.get(messages)
     // The BOM is always included in the HTML, which is removed by the extract process
     return applyFixes.call(
       this,
-      originalSourceCode === undefined ? sourceCode : { text: originalSourceCode, hasBOM: false },
+      originalSourceCode === undefined
+        ? sourceCode
+        : { text: originalSourceCode, hasBOM: false },
       messages
     )
   }
-
 }
 
 function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
@@ -203,7 +172,9 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
       if (message.fix && message.fix.range) {
         message.fix.range = [
           code.originalIndex(message.fix.range[0]),
-          code.originalIndex(message.fix.range[1]),
+          // The range end is exclusive, meaning it should replace all characters  with indexes from
+          // start to end - 1. We have to get the original index of the last targeted character.
+          code.originalIndex(message.fix.range[1] - 1) + 1,
         ]
       }
 

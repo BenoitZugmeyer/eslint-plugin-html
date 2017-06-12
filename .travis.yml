@@ -3,6 +3,8 @@ node_js:
   - stable
   - lts/*
 script:
-  - "npm install eslint@2 && npm test"
-  - "npm install eslint@3 && npm test"
-  - "npm run lint"
+  - "yarn run lint"
+  - "yarn run check-format"
+  - "yarn upgrade eslint@2 && yarn test"
+  - "yarn upgrade eslint@3 && yarn test"
+  - "yarn upgrade eslint@4 && yarn test"

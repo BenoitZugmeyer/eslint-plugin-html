@@ -37,61 +37,63 @@ function iterateScripts(code, options, onChunk) {
         })
       }
     }
-
   }
 
-  const parser = new htmlparser.Parser({
+  const parser = new htmlparser.Parser(
+    {
+      onopentag(name, attrs) {
+        // Test if current tag is a valid <script> tag.
+        if (name !== "script") {
+          return
+        }
 
-    onopentag (name, attrs) {
-      // Test if current tag is a valid <script> tag.
-      if (name !== "script") {
-        return
-      }
+        if (attrs.type && !isJavaScriptMIMEType(attrs.type)) {
+          return
+        }
 
-      if (attrs.type && !isJavaScriptMIMEType(attrs.type)) {
-        return
-      }
+        inScript = true
+        emitChunk("html", parser.endIndex + 1)
+      },
 
-      inScript = true
-      emitChunk("html", parser.endIndex + 1)
+      oncdatastart() {
+        if (inScript) {
+          emitChunk("cdata start", parser.startIndex + 9)
+          emitChunk("script", parser.endIndex - 2)
+          emitChunk("cdata end", parser.endIndex + 1)
+        }
+      },
+
+      onclosetag(name) {
+        if (name !== "script" || !inScript) {
+          return
+        }
+
+        inScript = false
+
+        if (parser.startIndex < nextEnd) {
+          // The parser didn't move its index after the previous chunk emited. It occurs on
+          // self-closing tags (xml mode). Just ignore this script.
+          return
+        }
+
+        const endSpaces = code
+          .slice(index, parser.startIndex)
+          .match(/[ \t]*$/)[0].length
+        emitChunk("script", parser.startIndex - endSpaces)
+      },
+
+      ontext() {
+        if (!inScript) {
+          return
+        }
+
+        emitChunk("script", parser.endIndex + 1)
+      },
     },
-
-    oncdatastart () {
-      if (inScript) {
-        emitChunk("cdata start", parser.startIndex + 9)
-        emitChunk("script", parser.endIndex - 2)
-        emitChunk("cdata end", parser.endIndex + 1)
-      }
-    },
-
-    onclosetag (name) {
-      if (name !== "script" || !inScript) {
-        return
-      }
-
-      inScript = false
-
-      if (parser.startIndex < nextEnd) {
-        // The parser didn't move its index after the previous chunk emited. It occurs on
-        // self-closing tags (xml mode). Just ignore this script.
-        return
-      }
-
-      const endSpaces = code.slice(index, parser.startIndex).match(/[ \t]*$/)[0].length
-      emitChunk("script", parser.startIndex - endSpaces)
-    },
-
-    ontext () {
-      if (!inScript) {
-        return
-      }
-
-      emitChunk("script", parser.endIndex + 1)
-    },
-
-  }, {
-    xmlMode: xmlMode === true,
-  })
+    {
+      xmlMode: xmlMode === true,
+    }
+  )
 
   parser.parseComplete(code)
 
@@ -128,9 +130,9 @@ function* dedent(indent, slice) {
 
     const badIndentation =
       // Be stricter on the first line
-      isFirstNonEmptyLine ?
-        indent !== lineIndent :
-        lineIndent.indexOf(indent) !== 0
+      isFirstNonEmptyLine
+        ? indent !== lineIndent
+        : lineIndent.indexOf(indent) !== 0
 
     if (!badIndentation) {
       yield {
@@ -158,39 +160,48 @@ function* dedent(indent, slice) {
 
 function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   const badIndentationLines = []
-  const transformedCode = new TransformableString(code)
+  const codeParts = []
   let lineNumber = 1
   let previousHTML = ""
 
   iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
 
-    if (chunk.type === "html" || chunk.type === "cdata start" || chunk.type === "cdata end") {
-      const newLinesRe = /(?:\r\n|\n|\r)([^\r\n])?/g
-      let lastEmptyLinesLength = 0
-      while (true) {
-        const match = newLinesRe.exec(slice)
-        if (!match) break
-        lineNumber += 1
-        lastEmptyLinesLength = !match[1] ? lastEmptyLinesLength + match[0].length : 0
-      }
-      transformedCode.replace(chunk.start, chunk.end - lastEmptyLinesLength, "/* HTML */")
+    if (
+      chunk.type === "html" ||
+      chunk.type === "cdata start" ||
+      chunk.type === "cdata end"
+    ) {
+      const match = slice.match(/\r\n|\n|\r/g)
+      if (match) lineNumber += match.length
       if (chunk.type === "html") previousHTML = slice
     }
     else if (chunk.type === "script") {
-      for (const action of dedent(computeIndent(indentDescriptor, previousHTML, slice), slice)) {
+      const transformedCode = new TransformableString(code)
+      transformedCode.replace(0, chunk.start, "")
+      transformedCode.replace(chunk.end, code.length, "")
+      for (const action of dedent(
+        computeIndent(indentDescriptor, previousHTML, slice),
+        slice
+      )) {
         lineNumber += 1
         if (action.type === "dedent") {
-          transformedCode.replace(chunk.start + action.from, chunk.start + action.to, "")
-        } else if (action.type === "bad-indent") {
+          transformedCode.replace(
+            chunk.start + action.from,
+            chunk.start + action.to,
+            ""
+          )
+        }
+        else if (action.type === "bad-indent") {
           badIndentationLines.push(lineNumber)
         }
       }
+      codeParts.push(transformedCode)
     }
   })
 
   return {
-    code: transformedCode,
+    code: codeParts,
     badIndentationLines,
   }
 }

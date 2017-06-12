@@ -1,7 +1,7 @@
 {
   "name": "eslint-plugin-html",
-  "version": "2.0.3",
-  "description": "An ESLint plugin to extract and lint scripts from HTML files.",
+  "version": "3.0.0",
+  "description": "A ESLint plugin to lint and fix inline scripts contained in HTML files.",
   "license": "ISC",
   "repository": {
     "type": "git",
@@ -20,12 +20,18 @@
     "htmlparser2": "^3.8.2"
   },
   "devDependencies": {
-    "eslint": "3",
-    "jest": "^20.0.0",
+    "eslint": "^4.0.0",
+    "eslint-config-benoitz": "^1.0.0",
+    "jest": "^20.0.3",
+    "prettier-eslint-cli": "^4.1.0",
     "semver": "^5.3.0"
   },
   "scripts": {
+    "prettier": "git ls-files -- '*.js' | xargs prettier-eslint",
+    "validate": "npm run lint && npm run check-format && npm run test",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check-format": "[ -z $(npm run -s prettier -- --list-different) ]",
+    "format": "npm run -s prettier -- --write"
   }
 }

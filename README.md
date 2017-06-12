@@ -3,12 +3,13 @@ eslint-plugin-html
 
 [![Build Status](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html.svg?branch=master)](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html)
 
-This [`ESLint`](http://eslint.org) plugin extracts and lints scripts from HTML files.
+This [`ESLint`](http://eslint.org) plugin allows linting and fixing inline scripts contained in HTML
+files.
 
-Only script tags with no type attribute or a type attribute containing a MIME type known to
-represent JavaScript such as `text/javascript` or `application/javascript`, or `text/babel` will be
-linted.
+Migration to v3
+---------------
 
+If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3.md).
 
 Usage
 -----
@@ -45,6 +46,9 @@ sections:
 
 Settings
 --------
+
+> Note: all settings can be written either as `"html/key": value` or in a nested object `"html": {
+> "key": value }`
 
 ### `html/html-extensions`
 

@@ -1,4 +1,4 @@
-UNRELEASED v3.0.0
+2017-06-12 v3.0.0 [migration guide](MIGRATION_TO_V3.md)
 * **Breaking: lint script tags separately** #49 #55 #56
 * ESLint 4 support #57
 * Support nested settings in a "html" object #58

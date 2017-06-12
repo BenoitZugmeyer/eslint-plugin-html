@@ -595,7 +595,7 @@ describe("html/javascript-mime-types", () => {
   it("specifies a regexp of valid mime types", () => {
     const messages = execute("javascript-mime-types.html", {
       settings: {
-        "html/javascript-mime-types": "/^(application|text)\/foo$/",
+        "html/javascript-mime-types": "/^(application|text)/foo$/",
       },
     })
 

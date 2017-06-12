@@ -69,11 +69,11 @@ function getSettings(settings) {
     break
   default:
     throw new Error(
-        oneLine`
+      oneLine`
         Invalid value for html/report-bad-indent,
         expected one of 0, 1, 2, "off", "warn" or "error"
       `
-      )
+    )
   }
 
   const parsedIndent = /^(\+)?(tab|\d+)$/.exec(getSetting(settings, "indent"))
@@ -85,10 +85,10 @@ function getSettings(settings) {
   const rawJavaScriptMIMETypes = getSetting(settings, "javascript-mime-types")
   const javaScriptMIMETypes = rawJavaScriptMIMETypes
     ? (Array.isArray(rawJavaScriptMIMETypes)
-        ? rawJavaScriptMIMETypes
-        : [rawJavaScriptMIMETypes]).map(
-        (s) => (s.startsWith("/") ? compileRegExp(s) : s)
-      )
+      ? rawJavaScriptMIMETypes
+      : [rawJavaScriptMIMETypes]).map(
+      (s) => (s.startsWith("/") ? compileRegExp(s) : s)
+    )
     : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
 
   function isJavaScriptMIMEType(type) {

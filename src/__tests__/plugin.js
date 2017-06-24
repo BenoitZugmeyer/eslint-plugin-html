@@ -623,5 +623,10 @@ it("should report correct eol-last message position", () => {
 
   expect(messages[0].ruleId).toBe("eol-last")
   expect(messages[0].line).toBe(6)
-  expect(messages[0].column).toBe(42)
+  if (isESLintVersion("> 2")) {
+    expect(messages[0].column).toBe(42)
+  }
+  else {
+    expect(messages[0].column).toBe(12)
+  }
 })

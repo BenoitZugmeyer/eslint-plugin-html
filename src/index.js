@@ -162,7 +162,10 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
   const newMessages = []
 
   for (const message of messages) {
-    const location = code.originalLocation(message)
+    const location = code.originalLocation({
+      line: message.line,
+      column: message.column,
+    })
 
     // Ignore messages if they were in transformed code
     if (location) {

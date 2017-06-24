@@ -85,6 +85,16 @@ describe("originalIndex", () => {
     expect(ts.originalIndex(2)).toBe(undefined)
     expect(ts.originalIndex(3)).toBe(1) // b
   })
+
+  it("should return the last index of the last block if the index is after the end", () => {
+    const ts = new TransformableString("abcd")
+    ts.replace(2, 4, "X")
+    expect(ts.toString()).toBe("abX")
+    expect(ts.originalIndex(0)).toBe(0) // a
+    expect(ts.originalIndex(1)).toBe(1) // b
+    expect(ts.originalIndex(2)).toBe(undefined)
+    expect(ts.originalIndex(3)).toBe(3) // c
+  })
 })
 
 describe("originalLocation", () => {

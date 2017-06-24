@@ -611,3 +611,17 @@ describe("html/javascript-mime-types", () => {
     expect(messages[2].line).toBe(20)
   })
 })
+
+it("should report correct eol-last message position", () => {
+  const messages = execute("eol-last.html", {
+    rules: {
+      "eol-last": "error",
+    },
+  })
+
+  expect(messages.length).toBe(1)
+
+  expect(messages[0].ruleId).toBe("eol-last")
+  expect(messages[0].line).toBe(6)
+  expect(messages[0].column).toBe(42)
+})

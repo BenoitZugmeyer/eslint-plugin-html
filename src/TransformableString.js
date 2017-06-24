@@ -101,7 +101,9 @@ module.exports = class TransformableString {
       throw new Error("Invalid index")
     }
     if (index == this._original.length) {
-      if (block.to && block.to === this._original.length) return block.from + block.str.length
+      if (block.to && block.to === this._original.length) {
+        return block.from + block.str.length
+      }
       return this._original.length
     }
     return index
@@ -110,6 +112,8 @@ module.exports = class TransformableString {
   originalLocation(location) {
     const index = locationToIndex(location, this._compute().lineStarts)
     const originalIndex = this.originalIndex(index)
-    if (originalIndex !== undefined) return indexToLocation(originalIndex, this._lineStarts)
+    if (originalIndex !== undefined) {
+      return indexToLocation(originalIndex, this._lineStarts)
+    }
   }
 }

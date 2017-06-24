@@ -447,6 +447,18 @@ describe("xml support", () => {
     expect(messages[0].column).toBe(7)
   })
 
+  it("removes white space at the end of scripts ending with CDATA", () => {
+    const messages = execute("cdata.xhtml", {
+      rules: {
+        "no-console": "off",
+        "no-trailing-spaces": "error",
+        "eol-last": "error",
+      },
+    })
+
+    expect(messages.length).toBe(0)
+  })
+
   it("should support self closing script tags", () => {
     let messages
     expect(() => {

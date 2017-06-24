@@ -104,6 +104,19 @@ it("trim last line spaces", () => {
   })
 })
 
+it("trim last line spaces ignoring CDATA", () => {
+  test({
+    input: `
+      some html
+        <script><![CDATA[
+          var foo = 1;
+        ]]></script>
+      other
+    `,
+    xmlMode: true,
+  })
+})
+
 it("extract script containing 'lower than' characters correctly (#1)", () => {
   test({
     input: `

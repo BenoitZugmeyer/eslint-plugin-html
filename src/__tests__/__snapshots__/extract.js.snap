@@ -184,15 +184,21 @@ var foo = 1;
 ]
 `;
 
+exports[`trim last line spaces ignoring CDATA 1`] = `
+Array [
+  "
+var foo = 1;
+",
+]
+`;
+
 exports[`works with CDATA 1`] = `
 Array [
   "
 a;
-",
-  "
+
 b;
-",
-  "
+
 c;
 ",
 ]

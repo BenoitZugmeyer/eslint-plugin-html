@@ -10,33 +10,13 @@ function iterateScripts(code, options, onChunk) {
   const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
   let index = 0
   let inScript = false
-  let nextType = null
-  let nextEnd = null
+  let cdata = []
 
-  function emitChunk(type, end, lastChunk) {
-    // Ignore empty chunks
-    if (index !== end) {
-      // Keep concatenating same type chunks
-      if (nextType !== null && nextType !== type) {
-        onChunk({
-          type: nextType,
-          start: index,
-          end: nextEnd,
-        })
-        index = nextEnd
-      }
-
-      nextType = type
-      nextEnd = end
-
-      if (lastChunk) {
-        onChunk({
-          type: nextType,
-          start: index,
-          end: nextEnd,
-        })
-      }
-    }
+  const chunks = []
+  function pushChunk(type, end) {
+    chunks.push({ type, start: index, end, cdata })
+    cdata = []
+    index = end
   }
 
   const parser = new htmlparser.Parser(
@@ -52,15 +32,20 @@ function iterateScripts(code, options, onChunk) {
         }
 
         inScript = true
-        emitChunk("html", parser.endIndex + 1)
+        pushChunk("html", parser.endIndex + 1)
       },
 
       oncdatastart() {
-        if (inScript) {
-          emitChunk("cdata start", parser.startIndex + 9)
-          emitChunk("script", parser.endIndex - 2)
-          emitChunk("cdata end", parser.endIndex + 1)
-        }
+        cdata.push(
+          {
+            start: parser.startIndex,
+            end: parser.startIndex + 9,
+          },
+          {
+            start: parser.endIndex - 2,
+            end: parser.endIndex + 1,
+          }
+        )
       },
 
       onclosetag(name) {
@@ -70,16 +55,13 @@ function iterateScripts(code, options, onChunk) {
 
         inScript = false
 
-        if (parser.startIndex < nextEnd) {
+        if (parser.startIndex < chunks[chunks.length - 1].end) {
           // The parser didn't move its index after the previous chunk emited. It occurs on
           // self-closing tags (xml mode). Just ignore this script.
           return
         }
 
-        const endSpaces = code
-          .slice(index, parser.startIndex)
-          .match(/[ \t]*$/)[0].length
-        emitChunk("script", parser.startIndex - endSpaces)
+        pushChunk("script", parser.startIndex)
       },
 
       ontext() {
@@ -87,7 +69,7 @@ function iterateScripts(code, options, onChunk) {
           return
         }
 
-        emitChunk("script", parser.endIndex + 1)
+        pushChunk("script", parser.endIndex + 1)
       },
     },
     {
@@ -97,7 +79,31 @@ function iterateScripts(code, options, onChunk) {
 
   parser.parseComplete(code)
 
-  emitChunk("html", parser.endIndex + 1, true)
+  pushChunk("html", parser.endIndex + 1)
+
+  {
+    const emitChunk = () => {
+      const cdata = []
+      for (let i = startChunkIndex; i < index; i += 1) {
+        cdata.push(...chunks[i].cdata)
+      }
+      onChunk({
+        type: chunks[startChunkIndex].type,
+        start: chunks[startChunkIndex].start,
+        end: chunks[index - 1].end,
+        cdata,
+      })
+    }
+    let startChunkIndex = 0
+    let index
+    for (index = 1; index < chunks.length; index += 1) {
+      if (chunks[startChunkIndex].type === chunks[index].type) continue
+      emitChunk()
+      startChunkIndex = index
+    }
+
+    emitChunk()
+  }
 }
 
 function computeIndent(descriptor, previousHTML, slice) {
@@ -116,6 +122,7 @@ function computeIndent(descriptor, previousHTML, slice) {
 function* dedent(indent, slice) {
   let hadNonEmptyLine = false
   const re = /(\r\n|\n|\r)([ \t]*)(.*)/g
+  let lastIndex = 0
 
   while (true) {
     const match = re.exec(slice)
@@ -135,10 +142,11 @@ function* dedent(indent, slice) {
         : lineIndent.indexOf(indent) !== 0
 
     if (!badIndentation) {
+      lastIndex = match.index + newLine.length + indent.length
       yield {
         type: "dedent",
         from: match.index + newLine.length,
-        to: match.index + newLine.length + indent.length,
+        to: lastIndex,
       }
     }
     else if (isEmptyLine) {
@@ -156,6 +164,15 @@ function* dedent(indent, slice) {
       hadNonEmptyLine = true
     }
   }
+
+  const endSpaces = slice.slice(lastIndex).match(/[ \t]*$/)[0].length
+  if (endSpaces) {
+    yield {
+      type: "dedent",
+      from: slice.length - endSpaces,
+      to: slice.length,
+    }
+  }
 }
 
 function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
@@ -166,23 +183,25 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
 
   iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
-
-    if (
-      chunk.type === "html" ||
-      chunk.type === "cdata start" ||
-      chunk.type === "cdata end"
-    ) {
+    if (chunk.type === "html") {
       const match = slice.match(/\r\n|\n|\r/g)
       if (match) lineNumber += match.length
-      if (chunk.type === "html") previousHTML = slice
+      previousHTML = slice
     }
     else if (chunk.type === "script") {
       const transformedCode = new TransformableString(code)
+      let indentSlice = slice
+      for (const cdata of chunk.cdata) {
+        transformedCode.replace(cdata.start, cdata.end, "")
+        if (cdata.end === chunk.end) {
+          indentSlice = code.slice(chunk.start, cdata.start)
+        }
+      }
       transformedCode.replace(0, chunk.start, "")
       transformedCode.replace(chunk.end, code.length, "")
       for (const action of dedent(
-        computeIndent(indentDescriptor, previousHTML, slice),
-        slice
+        computeIndent(indentDescriptor, previousHTML, indentSlice),
+        indentSlice
       )) {
         lineNumber += 1
         if (action.type === "dedent") {

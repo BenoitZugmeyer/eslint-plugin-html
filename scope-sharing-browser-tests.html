@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Scope sharing tests</title>
+  </head>
+  <body>
+    <script>
+      function expect(fn) {
+        try {
+          if (fn() === false) console.error(`${fn} returned false`)
+          console.log(`${fn} succeeded`)
+        }
+        catch (e) {
+          console.error(`${fn} threw ${e}`)
+        }
+      }
+
+      function expectThrows(fn, expectedException) {
+        try {
+          fn()
+          console.error(`${fn} didn't threw ${expectedException.name}`)
+        }
+        catch (e) {
+          if (e instanceof expectedException) {
+            console.log(`${fn} expectedly threw ${expectedException.name}`)
+          }
+          else {
+            console.log(`${fn} threw ${e} instead of ${expectedException.name}`)
+          }
+        }
+      }
+    </script>
+
+    <script>
+      var varGloballyDeclared = 1
+      let letGloballyDeclared = 1
+      function functionGloballyDeclared() {}
+      class ClassGloballyDeclared {}
+
+      console.group("Declarations are not hoisted to previous scripts")
+      expectThrows(() => varNotYetGloballyDeclared, ReferenceError)
+      expectThrows(() => letNotYetGloballyDeclared, ReferenceError)
+      expectThrows(() => functionNotYetGloballyDeclared, ReferenceError)
+      expectThrows(() => ClassNotYetGloballyDeclared, ReferenceError)
+      console.groupEnd()
+    </script>
+
+    <script>
+      var varNotYetGloballyDeclared = 2
+      let letNotYetGloballyDeclared = 2
+      function functionNotYetGloballyDeclared() {}
+      class ClassNotYetGloballyDeclared {}
+
+      console.group("Standard scripts are using the global scope")
+      expect(() => varGloballyDeclared === 1)
+      expect(() => letGloballyDeclared === 1)
+      expect(() => Boolean(functionGloballyDeclared))
+      expect(() => Boolean(ClassGloballyDeclared))
+      console.groupEnd()
+    </script>
+
+    <script type="module">
+      var varModuleDeclared = 3
+
+      console.group("Modules are using the global scope")
+      expect(() => varGloballyDeclared === 1)
+      expect(() => Boolean(functionGloballyDeclared))
+      console.groupEnd()
+    </script>
+
+    <script type="module">
+      console.group("Modules are not sharing their scope")
+      expectThrows(() => varModuleDeclared, ReferenceError)
+      console.groupEnd()
+    </script>
+
+    <script>
+      console.group("Modules are not exporting declarations to the global scope")
+      expectThrows(() => varModuleDeclared, ReferenceError)
+      console.groupEnd()
+    </script>
+  </body>
+</html>

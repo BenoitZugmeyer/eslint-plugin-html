@@ -6,6 +6,7 @@ const oneLine = require("./utils").oneLine
 const getSettings = require("./settings").getSettings
 
 const BOM = "\uFEFF"
+const GET_SCOPE_RULE_NAME = "__eslint-plugin-html-get-scope"
 
 // Disclaimer:
 //
@@ -89,6 +90,15 @@ function patch(Linter) {
       !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
+      messages = []
+
+      const pushMessages = (localMessages, code) => {
+        messages.push.apply(
+          messages,
+          remapMessages(localMessages, textOrSourceCode.startsWith(BOM), code)
+        )
+      }
+
       const currentInfos = extract(
         textOrSourceCode,
         pluginSettings.indent,
@@ -96,19 +106,37 @@ function patch(Linter) {
         pluginSettings.isJavaScriptMIMEType
       )
 
-      messages = []
+      if (pluginSettings.reportBadIndent) {
+        currentInfos.badIndentationLines.forEach(line => {
+          messages.push({
+            message: "Bad line indentation.",
+            line,
+            column: 1,
+            ruleId: "(html plugin)",
+            severity: pluginSettings.reportBadIndent,
+          })
+        })
+      }
 
-      currentInfos.code.forEach(code => {
-        messages.push.apply(
-          messages,
-          remapMessages(
-            localVerify(String(code)),
-            textOrSourceCode.startsWith(BOM),
-            code,
-            pluginSettings.reportBadIndent,
-            currentInfos.badIndentationLines
-          )
+      if (
+        config.parserOptions &&
+        config.parserOptions.sourceType === "module"
+      ) {
+        for (const code of currentInfos.code) {
+          pushMessages(localVerify(String(code)), code)
+        }
+      } else {
+        verifyWithSharedScopes.call(
+          this,
+          localVerify,
+          config,
+          currentInfos,
+          pushMessages
         )
+      }
+
+      messages.sort((ma, mb) => {
+        return ma.line - mb.line || ma.column - mb.column
       })
     } else {
       messages = localVerify(textOrSourceCode)
@@ -118,13 +146,89 @@ function patch(Linter) {
   }
 }
 
-function remapMessages(
-  messages,
-  hasBOM,
-  code,
-  reportBadIndent,
-  badIndentationLines
+function verifyWithSharedScopes(
+  localVerify,
+  config,
+  currentInfos,
+  pushMessages
 ) {
+  // First pass: collect needed globals and declared globals for each script tags.
+  const firstPassValues = []
+  const originalRules = config.rules
+  config.rules = { [GET_SCOPE_RULE_NAME]: "error" }
+
+  for (const code of currentInfos.code) {
+    this.rules.define(GET_SCOPE_RULE_NAME, context => {
+      return {
+        Program() {
+          firstPassValues.push({
+            code,
+            sourceCode: context.getSourceCode(),
+            neededGlobals: context
+              .getScope()
+              .through.map(node => node.identifier.name),
+            declaredGlobals: context
+              .getScope()
+              .variables.map(variable => variable.name),
+          })
+        },
+      }
+    })
+
+    pushMessages(localVerify(String(code)), code)
+  }
+
+  config.rules = originalRules
+
+  // Second pass: for each script tags, add "globals" and "exported" comments then run eslint
+  for (let i = 0; i < firstPassValues.length; i += 1) {
+    const values = firstPassValues[i]
+
+    declareVariables(
+      values.sourceCode,
+      "globals",
+      firstPassValues
+        .slice(0, i)
+        .map(previousValues =>
+          previousValues.declaredGlobals.filter(
+            name => values.neededGlobals.indexOf(name) >= 0
+          )
+        )
+    )
+
+    declareVariables(
+      values.sourceCode,
+      "exported",
+      firstPassValues
+        .slice(i + 1)
+        .map(nextValues =>
+          nextValues.neededGlobals.filter(
+            name => values.declaredGlobals.indexOf(name) >= 0
+          )
+        )
+    )
+
+    pushMessages(localVerify(values.sourceCode), values.code)
+  }
+}
+
+function declareVariables(sourceCode, type, vars) {
+  const uniqVars = new Set(vars.reduce((splat, vars) => splat.concat(vars), []))
+  if (!uniqVars.size) return
+
+  const joined = Array.from(uniqVars)
+    .map(name => `${name}: true`)
+    .join(", ")
+
+  sourceCode.ast.comments.push({
+    value: `${type} ${joined}`,
+    loc: { start: 0, end: 0 },
+    range: [0, 0],
+    type: "Block",
+  })
+}
+
+function remapMessages(messages, hasBOM, code) {
   const newMessages = []
   const bomOffset = hasBOM ? -1 : 0
 
@@ -167,22 +271,6 @@ function remapMessages(
       newMessages.push(message)
     }
   }
-
-  if (reportBadIndent) {
-    badIndentationLines.forEach(line => {
-      newMessages.push({
-        message: "Bad line indentation.",
-        line,
-        column: 1,
-        ruleId: "(html plugin)",
-        severity: reportBadIndent === true ? 2 : reportBadIndent,
-      })
-    })
-  }
-
-  newMessages.sort((ma, mb) => {
-    return ma.line - mb.line || ma.column - mb.column
-  })
 
   return newMessages
 }

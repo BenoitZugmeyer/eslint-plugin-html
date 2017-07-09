@@ -17,6 +17,9 @@ function execute(file, baseConfig) {
         },
         baseConfig.rules
       ),
+      globals: baseConfig.globals,
+      env: baseConfig.env,
+      parserOptions: baseConfig.parserOptions,
     },
     ignore: false,
     useEslintrc: false,
@@ -556,4 +559,146 @@ it("should report correct eol-last message position", () => {
   expect(messages[0].ruleId).toBe("eol-last")
   expect(messages[0].line).toBe(6)
   expect(messages[0].column).toBe(42)
+})
+
+describe("scope sharing", () => {
+  it("should share the global scope between script tags", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-undef": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+    })
+
+    expect(messages.length).toBe(4)
+    expect(messages[0].line).toBe(13)
+    expect(messages[0].message).toBe(
+      "'varNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[1].line).toBe(14)
+    expect(messages[1].message).toBe(
+      "'letNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[2].line).toBe(15)
+    expect(messages[2].message).toBe(
+      "'functionNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[3].line).toBe(16)
+    expect(messages[3].message).toBe(
+      "'ClassNotYetGloballyDeclared' is not defined."
+    )
+  })
+
+  it("should share the global scope between script tags", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-unused-vars": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+    })
+
+    expect(messages.length).toBe(4)
+    expect(messages[0].line).toBe(20)
+    expect(messages[0].message).toBe(
+      "'varNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[1].line).toBe(21)
+    expect(messages[1].message).toBe(
+      "'letNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[2].line).toBe(22)
+    expect(messages[2].message).toBe(
+      "'functionNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[3].line).toBe(23)
+    expect(messages[3].message).toBe(
+      "'ClassNotYetGloballyDeclared' is defined but never used."
+    )
+  })
+
+  it("should not share the global scope if sourceType is 'module'", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+      parserOptions: {
+        sourceType: "module",
+      },
+    })
+
+    expect(messages.length).toBe(16)
+    expect(messages[0].line).toBe(8)
+    expect(messages[0].message).toBe(
+      "'varGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[1].line).toBe(9)
+    expect(messages[1].message).toBe(
+      "'letGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[2].line).toBe(10)
+    expect(messages[2].message).toBe(
+      "'functionGloballyDeclared' is defined but never used."
+    )
+    expect(messages[3].line).toBe(11)
+    expect(messages[3].message).toBe(
+      "'ClassGloballyDeclared' is defined but never used."
+    )
+    expect(messages[4].line).toBe(13)
+    expect(messages[4].message).toBe(
+      "'varNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[5].line).toBe(14)
+    expect(messages[5].message).toBe(
+      "'letNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[6].line).toBe(15)
+    expect(messages[6].message).toBe(
+      "'functionNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[7].line).toBe(16)
+    expect(messages[7].message).toBe(
+      "'ClassNotYetGloballyDeclared' is not defined."
+    )
+
+    expect(messages[8].line).toBe(20)
+    expect(messages[8].message).toBe(
+      "'varNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[9].line).toBe(21)
+    expect(messages[9].message).toBe(
+      "'letNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[10].line).toBe(22)
+    expect(messages[10].message).toBe(
+      "'functionNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[11].line).toBe(23)
+    expect(messages[11].message).toBe(
+      "'ClassNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[12].line).toBe(25)
+    expect(messages[12].message).toBe("'varGloballyDeclared' is not defined.")
+    expect(messages[13].line).toBe(26)
+    expect(messages[13].message).toBe("'letGloballyDeclared' is not defined.")
+    expect(messages[14].line).toBe(27)
+    expect(messages[14].message).toBe(
+      "'functionGloballyDeclared' is not defined."
+    )
+    expect(messages[15].line).toBe(28)
+    expect(messages[15].message).toBe("'ClassGloballyDeclared' is not defined.")
+  })
 })

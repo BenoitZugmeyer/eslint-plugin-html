@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-html",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "A ESLint plugin to lint and fix inline scripts contained in HTML files.",
   "license": "ISC",
   "repository": {

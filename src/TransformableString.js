@@ -1,12 +1,13 @@
 "use strict"
 
+const lineEndingsRe = /\r\n|\r|\n/g
 function lineStarts(str) {
   const result = [0]
-  const re = /\r\n|\r|\n/g
+  lineEndingsRe.lastIndex = 0
   while (true) {
-    const match = re.exec(str)
+    const match = lineEndingsRe.exec(str)
     if (!match) break
-    result.push(re.lastIndex)
+    result.push(lineEndingsRe.lastIndex)
   }
   return result
 }
@@ -60,6 +61,15 @@ module.exports = class TransformableString {
       }
     }
     return this._cache
+  }
+
+  getOriginalLine(n) {
+    if (n < 1 || n > this._lineStarts.length) {
+      throw new Error("Invalid line number")
+    }
+    return this._original
+      .slice(this._lineStarts[n - 1], this._lineStarts[n])
+      .replace(lineEndingsRe, "")
   }
 
   toString() {

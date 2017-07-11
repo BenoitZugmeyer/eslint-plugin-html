@@ -170,6 +170,7 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
     // Ignore messages if they were in transformed code
     if (location) {
       Object.assign(message, location)
+      message.source = code.getOriginalLine(location.line)
 
       // Map fix range
       if (message.fix && message.fix.range) {

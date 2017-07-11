@@ -151,3 +151,14 @@ describe("originalLocation", () => {
     expect(ts.originalLocation({ line: 2, column: 5 })).toEqual(undefined)
   })
 })
+
+describe("getOriginalLine", () => {
+  it("returns original lines", () => {
+    const ts = new TransformableString("aa\nbb\r\ncc")
+    expect(() => ts.getOriginalLine(0)).toThrow()
+    expect(ts.getOriginalLine(1)).toEqual("aa")
+    expect(ts.getOriginalLine(2)).toEqual("bb")
+    expect(ts.getOriginalLine(3)).toEqual("cc")
+    expect(() => ts.getOriginalLine(4)).toThrow()
+  })
+})

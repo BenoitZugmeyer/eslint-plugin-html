@@ -85,7 +85,7 @@ function iterateScripts(code, options, onChunk) {
     const emitChunk = () => {
       const cdata = []
       for (let i = startChunkIndex; i < index; i += 1) {
-        cdata.push(...chunks[i].cdata)
+        cdata.push.apply(cdata, chunks[i].cdata)
       }
       onChunk({
         type: chunks[startChunkIndex].type,

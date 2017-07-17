@@ -1,10 +1,11 @@
 language: node_js
 node_js:
-  - stable
-  - lts/*
+  - 4
+  - 6
+  - 8
 script:
-  - "yarn run lint"
-  - "yarn run check-format"
-  - "yarn upgrade eslint@2 && yarn test"
-  - "yarn upgrade eslint@3 && yarn test"
-  - "yarn upgrade eslint@4 && yarn test"
+  - yarn run lint
+  - yarn run check-format
+  - yarn upgrade eslint@2 && yarn test
+  - yarn upgrade eslint@3 && yarn test
+  - yarn upgrade eslint@4 && yarn test

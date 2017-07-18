@@ -1,3 +1,6 @@
+2017-07-18 v3.1.1
+* Fix node 4 support #71 #72
+
 2017-07-11 v3.1.0
 * Remap messages "source" property to fix custom formatters support #69
 

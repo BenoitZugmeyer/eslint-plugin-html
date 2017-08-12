@@ -134,3 +134,32 @@ with a `/`, it will be considered as a regular expression. Example:
     }
 }
 ```
+
+Troubleshooting
+---------------
+
+### Linting templates (or PHP)
+
+`eslint-plugin-html` won't evaluate or remove your template markup.  If you have template markup in
+your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
+it.
+
+One possible hacky workaround to make sure the code is valid JavaScript is to put your template
+markup inside a comment.  When the template is rendered, the generated JS code must start with a new
+line, so it will be written below the comment.  PHP example:
+
+```html
+<script>
+var mydata;
+// <?= "\n mydata = " . json_encode($var) . ";" ?>
+console.log(mydata);
+</script>
+```
+
+
+### Linting VUE files
+
+Initially, [`eslint-plugin-vue`](https://github.com/vuejs/eslint-plugin-vue) was using
+`eslint-plugin-html` to lint code inside script tags.  Since v3, `eslint-plugin-vue` is using its
+own parser, so it is *incompatible* with `eslint-plugin-html`.  You should remove
+`eslint-plugin-html` from your dependencies if you still have this.

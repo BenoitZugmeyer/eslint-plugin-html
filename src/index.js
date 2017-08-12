@@ -165,7 +165,10 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
   for (const message of messages) {
     const location = code.originalLocation({
       line: message.line,
-      column: message.column,
+      // eslint-plugin-eslint-comments is raising message with column=0 to bypass ESLint ignore
+      // comments. Since messages are already ignored at this time, just reset the column to a valid
+      // number. See https://github.com/BenoitZugmeyer/eslint-plugin-html/issues/70
+      column: message.column || 1,
     })
 
     // Ignore messages if they were in transformed code

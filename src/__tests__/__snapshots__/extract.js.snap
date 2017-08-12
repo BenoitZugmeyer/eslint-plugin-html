@@ -2,8 +2,7 @@
 
 exports[`collects bad indentations 1`] = `
 Array [
-  "
-a;
+  "a;
 a;
  a;
 ",
@@ -18,8 +17,7 @@ Array [
 
 exports[`extract indented javascript 1`] = `
 Array [
-  "
-var foo = 1;
+  "var foo = 1;
 ",
 ]
 `;
@@ -34,27 +32,23 @@ var baz = 1;
 
 exports[`extract javascript with last line next to the script tag 1`] = `
 Array [
-  "
-var foo = 1;
+  "var foo = 1;
 var baz = 1;",
 ]
 `;
 
 exports[`extract multiple script tags 1`] = `
 Array [
-  "
-var foo = 1;
+  "var foo = 1;
 ",
-  "
-var bar = 1;
+  "var bar = 1;
 ",
 ]
 `;
 
 exports[`extract script containing 'lower than' characters correctly (#1) 1`] = `
 Array [
-  "
-if (a < b) { doit(); }
+  "if (a < b) { doit(); }
 ",
 ]
 `;
@@ -119,11 +113,9 @@ exports[`handles self closing script tags in xhtml mode 1`] = `Array []`;
 
 exports[`handles the isJavaScriptMIMEType option 1`] = `
 Array [
-  "
-a
+  "a
 ",
-  "
-b
+  "b
 ",
 ]
 `;
@@ -150,8 +142,7 @@ a;
 
 exports[`indent option relative indent with spaces 1`] = `
 Array [
-  "
-a;
+  "a;
   a;
 a;
 ",
@@ -160,8 +151,7 @@ a;
 
 exports[`indent option relative indent with tabs 1`] = `
 Array [
-  "
-a;
+  "a;
 	a;
 a;
 ",
@@ -170,16 +160,14 @@ a;
 
 exports[`keeps empty lines after the last html tags 1`] = `
 Array [
-  "
-a
+  "a
 ",
 ]
 `;
 
 exports[`trim last line spaces 1`] = `
 Array [
-  "
-var foo = 1;
+  "var foo = 1;
 ",
 ]
 `;
@@ -194,8 +182,7 @@ var foo = 1;
 
 exports[`works with CDATA 1`] = `
 Array [
-  "
-a;
+  "a;
 
 b;
 
@@ -206,8 +193,7 @@ c;
 
 exports[`works with crlf new lines 1`] = `
 Array [
-  "
-foo;
+  "foo;
 bar;
   baz;
 ",

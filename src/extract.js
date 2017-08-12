@@ -143,9 +143,11 @@ function* dedent(indent, slice) {
 
     if (!badIndentation) {
       lastIndex = match.index + newLine.length + indent.length
+      // Remove the first line if it is empty
+      const fromIndex = match.index === 0 ? 0 : match.index + newLine.length
       yield {
         type: "dedent",
-        from: match.index + newLine.length,
+        from: fromIndex,
         to: lastIndex,
       }
     }

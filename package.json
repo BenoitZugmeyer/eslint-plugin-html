@@ -31,7 +31,7 @@
     "validate": "npm run lint && npm run check-format && npm run test",
     "test": "jest",
     "lint": "eslint .",
-    "check-format": "[ -z $(npm run -s prettier -- --list-different) ]",
+    "check-format": "test -z \"$(npm run -s prettier -- --list-different)\"",
     "format": "npm run -s prettier -- --write"
   }
 }

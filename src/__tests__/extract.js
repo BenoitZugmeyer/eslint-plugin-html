@@ -246,7 +246,8 @@ describe("indent option", () => {
 
 it("works with crlf new lines", () => {
   test({
-    input: "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
+    input:
+      "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
     badIndentationLines: [5],
   })
 })

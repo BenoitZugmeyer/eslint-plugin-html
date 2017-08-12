@@ -103,9 +103,10 @@ function patch(modules) {
       verify.call(this, code, config, filenameOrOptions, saveState)
 
     let messages
-    const filename = typeof filenameOrOptions === "object"
-      ? filenameOrOptions.filename
-      : filenameOrOptions
+    const filename =
+      typeof filenameOrOptions === "object"
+        ? filenameOrOptions.filename
+        : filenameOrOptions
     const extension = path.extname(filename || "")
 
     const pluginSettings = getSettings(config.settings || {})

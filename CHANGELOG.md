@@ -1,3 +1,8 @@
+2017-08-12 v3.2.0
+* improve compatibility with the `prettier` plugin by ignoring the first empty script line #76
+* fix compatibility with the `eslint-comments` plugin #70
+* add some *Troubleshooting* documentation about linting template markup and Vue files
+
 2017-07-18 v3.1.1
 * Fix node 4 support #71 #72
 

@@ -1,9 +1,12 @@
 "use strict"
 
 const path = require("path")
+const semver = require("semver")
 const extract = require("./extract")
 const oneLine = require("./utils").oneLine
 const getSettings = require("./settings").getSettings
+
+const BOM = "\uFEFF"
 
 // Disclaimer:
 //
@@ -21,38 +24,39 @@ const needleV4 = path.join("lib", "linter.js")
 iterateESLintModules(patch)
 
 function getModulesFromRequire() {
-  let eslint
-  try {
-    // V3-
-    eslint = require("eslint/lib/eslint")
-  }
-  catch (e) {
-    // V4+
-    eslint = require("eslint/lib/linter").prototype
-  }
+  const version = require("eslint/package.json").version
+
+  const eslint = semver.satisfies(version, ">= 4")
+    ? require("eslint/lib/linter").prototype
+    : require("eslint/lib/eslint")
 
   return {
+    version,
     eslint,
     SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
   }
 }
 
 function getModulesFromCache(key) {
-  const isV3 = key.endsWith(needleV3)
-  const isV4 = key.endsWith(needleV4)
-  if (!isV3 && !isV4) return
+  if (!key.endsWith(needleV3) && !key.endsWith(needleV4)) return
 
   const module = require.cache[key]
   if (!module || !module.exports) return
 
+  const version = require(path.join(key, "..", "..", "package.json")).version
+
   const SourceCodeFixer =
     require.cache[path.join(key, "..", "util", "source-code-fixer.js")]
+
   if (!SourceCodeFixer || !SourceCodeFixer.exports) return
 
-  const eslint = isV3 ? module.exports : module.exports.prototype
+  const eslint = semver.satisfies(version, ">= 4")
+    ? module.exports.prototype
+    : module.exports
   if (typeof eslint.verify !== "function") return
 
   return {
+    version,
     eslint,
     SourceCodeFixer: SourceCodeFixer.exports,
   }
@@ -129,6 +133,7 @@ function patch(modules) {
           messages,
           remapMessages(
             localVerify(String(code)),
+            textOrSourceCode.startsWith(BOM),
             code,
             pluginSettings.reportBadIndent,
             currentInfos.badIndentationLines
@@ -148,19 +153,28 @@ function patch(modules) {
   const applyFixes = SourceCodeFixer.applyFixes
   SourceCodeFixer.applyFixes = function(sourceCode, messages) {
     const originalSourceCode = sourceCodeForMessages.get(messages)
-    // The BOM is always included in the HTML, which is removed by the extract process
-    return applyFixes.call(
-      this,
-      originalSourceCode === undefined
-        ? sourceCode
-        : { text: originalSourceCode, hasBOM: false },
-      messages
-    )
+    if (originalSourceCode) {
+      const hasBOM = originalSourceCode.startsWith(BOM)
+      sourceCode = semver.satisfies(modules.version, ">= 4.6.0")
+        ? originalSourceCode
+        : {
+          text: hasBOM ? originalSourceCode.slice(1) : originalSourceCode,
+          hasBOM,
+        }
+    }
+    return applyFixes.call(this, sourceCode, messages)
   }
 }
 
-function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
+function remapMessages(
+  messages,
+  hasBOM,
+  code,
+  reportBadIndent,
+  badIndentationLines
+) {
   const newMessages = []
+  const bomOffset = hasBOM ? -1 : 0
 
   for (const message of messages) {
     const location = code.originalLocation({
@@ -179,10 +193,10 @@ function remapMessages(messages, code, reportBadIndent, badIndentationLines) {
       // Map fix range
       if (message.fix && message.fix.range) {
         message.fix.range = [
-          code.originalIndex(message.fix.range[0]),
+          code.originalIndex(message.fix.range[0]) + bomOffset,
           // The range end is exclusive, meaning it should replace all characters  with indexes from
           // start to end - 1. We have to get the original index of the last targeted character.
-          code.originalIndex(message.fix.range[1] - 1) + 1,
+          code.originalIndex(message.fix.range[1] - 1) + 1 + bomOffset,
         ]
       }
 

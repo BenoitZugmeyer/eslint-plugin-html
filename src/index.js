@@ -33,7 +33,6 @@ function getModulesFromRequire() {
   return {
     version,
     eslint,
-    SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
   }
 }
 
@@ -45,11 +44,6 @@ function getModulesFromCache(key) {
 
   const version = require(path.join(key, "..", "..", "package.json")).version
 
-  const SourceCodeFixer =
-    require.cache[path.join(key, "..", "util", "source-code-fixer.js")]
-
-  if (!SourceCodeFixer || !SourceCodeFixer.exports) return
-
   const eslint = semver.satisfies(version, ">= 4")
     ? module.exports.prototype
     : module.exports
@@ -58,7 +52,6 @@ function getModulesFromCache(key) {
   return {
     version,
     eslint,
-    SourceCodeFixer: SourceCodeFixer.exports,
   }
 }
 
@@ -92,9 +85,6 @@ function iterateESLintModules(fn) {
 
 function patch(modules) {
   const eslint = modules.eslint
-  const SourceCodeFixer = modules.SourceCodeFixer
-
-  const sourceCodeForMessages = new WeakMap()
 
   const verify = eslint.verify
   eslint.verify = function(
@@ -140,28 +130,11 @@ function patch(modules) {
           )
         )
       })
-
-      sourceCodeForMessages.set(messages, textOrSourceCode)
     } else {
       messages = localVerify(textOrSourceCode)
     }
 
     return messages
-  }
-
-  const applyFixes = SourceCodeFixer.applyFixes
-  SourceCodeFixer.applyFixes = function(sourceCode, messages, shouldFix) {
-    const originalSourceCode = sourceCodeForMessages.get(messages)
-    if (originalSourceCode) {
-      const hasBOM = originalSourceCode.startsWith(BOM)
-      sourceCode = semver.satisfies(modules.version, ">= 4.6.0")
-        ? originalSourceCode
-        : {
-            text: hasBOM ? originalSourceCode.slice(1) : originalSourceCode,
-            hasBOM,
-          }
-    }
-    return applyFixes.call(this, sourceCode, messages, shouldFix)
   }
 }
 

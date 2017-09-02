@@ -1,3 +1,6 @@
+2017-09-03 v3.2.1
+* Fix ESLint 4.6 support #77
+
 2017-08-12 v3.2.0
 * improve compatibility with the `prettier` plugin by ignoring the first empty script line #76
 * fix compatibility with the `eslint-comments` plugin #70

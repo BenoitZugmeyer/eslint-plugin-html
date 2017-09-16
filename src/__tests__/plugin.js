@@ -38,7 +38,7 @@ function execute(file, baseConfig) {
 it("should extract and remap messages", () => {
   const messages = execute("simple.html")
 
-  expect(messages.length, 5)
+  expect(messages.length).toBe(5)
 
   const hasEndPosition = messages[0].endLine !== undefined
 
@@ -595,7 +595,7 @@ describe("html/javascript-mime-types", () => {
       },
     })
 
-    expect(messages.length, 2)
+    expect(messages.length).toBe(2)
 
     expect(messages[0].ruleId).toBe("no-console")
     expect(messages[0].line).toBe(8)

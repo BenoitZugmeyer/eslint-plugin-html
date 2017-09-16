@@ -86,9 +86,8 @@ function getSettings(settings) {
   const javaScriptMIMETypes = rawJavaScriptMIMETypes
     ? (Array.isArray(rawJavaScriptMIMETypes)
       ? rawJavaScriptMIMETypes
-      : [rawJavaScriptMIMETypes]).map(
-      (s) => (s.startsWith("/") ? compileRegExp(s) : s)
-    )
+      : [rawJavaScriptMIMETypes]
+    ).map((s) => (s.startsWith("/") ? compileRegExp(s) : s))
     : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
 
   function isJavaScriptMIMEType(type) {

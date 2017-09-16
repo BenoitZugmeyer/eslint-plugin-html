@@ -1,3 +1,6 @@
+2017-09-16 v3.2.2
+* Fix ESLint 4.7 support
+
 2017-09-03 v3.2.1
 * Fix ESLint 4.6 support #77
 

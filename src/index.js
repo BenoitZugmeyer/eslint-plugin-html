@@ -151,7 +151,7 @@ function patch(modules) {
   }
 
   const applyFixes = SourceCodeFixer.applyFixes
-  SourceCodeFixer.applyFixes = function(sourceCode, messages) {
+  SourceCodeFixer.applyFixes = function(sourceCode, messages, shouldFix) {
     const originalSourceCode = sourceCodeForMessages.get(messages)
     if (originalSourceCode) {
       const hasBOM = originalSourceCode.startsWith(BOM)
@@ -162,7 +162,7 @@ function patch(modules) {
           hasBOM,
         }
     }
-    return applyFixes.call(this, sourceCode, messages)
+    return applyFixes.call(this, sourceCode, messages, shouldFix)
   }
 }
 

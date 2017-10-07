@@ -5,8 +5,5 @@ node_js:
   - 8
 script:
   - if node --version | grep -q v8; then npm run lint; fi
-
-  # eslint-config-prettier requires eslint 3+ as peer dependency, so uninstall it first
-  - npm unlink eslint-config-prettier && npm install eslint@2 && npm test
-  - npm install eslint@3 && npm test
-  - npm install eslint@4 && npm test
+  - npm install eslint@4.7 && npm test
+  - npm install eslint@latest && npm test

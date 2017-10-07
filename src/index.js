@@ -1,7 +1,6 @@
 "use strict"
 
 const path = require("path")
-const semver = require("semver")
 const extract = require("./extract")
 const oneLine = require("./utils").oneLine
 const getSettings = require("./settings").getSettings
@@ -18,56 +17,39 @@ const BOM = "\uFEFF"
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-const needleV3 = path.join("lib", "eslint.js")
-const needleV4 = path.join("lib", "linter.js")
+const needle = path.join("lib", "linter.js")
 
 iterateESLintModules(patch)
 
-function getModulesFromRequire() {
-  const version = require("eslint/package.json").version
-
-  const eslint = semver.satisfies(version, ">= 4")
-    ? require("eslint/lib/linter").prototype
-    : require("eslint/lib/eslint")
-
-  return {
-    version,
-    eslint,
-  }
+function getModuleFromRequire() {
+  return require("eslint/lib/linter")
 }
 
-function getModulesFromCache(key) {
-  if (!key.endsWith(needleV3) && !key.endsWith(needleV4)) return
+function getModuleFromCache(key) {
+  if (!key.endsWith(needle)) return
 
   const module = require.cache[key]
   if (!module || !module.exports) return
 
-  const version = require(path.join(key, "..", "..", "package.json")).version
+  const Linter = module.exports
+  if (typeof Linter.prototype.verify !== "function") return
 
-  const eslint = semver.satisfies(version, ">= 4")
-    ? module.exports.prototype
-    : module.exports
-  if (typeof eslint.verify !== "function") return
-
-  return {
-    version,
-    eslint,
-  }
+  return Linter
 }
 
 function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    fn(getModulesFromRequire())
+    fn(getModuleFromRequire())
     return
   }
 
   let found = false
 
   for (const key in require.cache) {
-    const modules = getModulesFromCache(key)
-    if (modules) {
-      fn(modules)
+    const Linter = getModuleFromCache(key)
+    if (Linter) {
+      fn(Linter)
       found = true
     }
   }
@@ -75,19 +57,17 @@ function iterateESLintModules(fn) {
   if (!found) {
     throw new Error(
       oneLine`
-      eslint-plugin-html error: It seems that eslint is not loaded.
-      If you think it is a bug, please file a report at
-      https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
-    `
+        eslint-plugin-html error: It seems that eslint is not loaded.
+        If you think it is a bug, please file a report at
+        https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+      `
     )
   }
 }
 
-function patch(modules) {
-  const eslint = modules.eslint
-
-  const verify = eslint.verify
-  eslint.verify = function(
+function patch(Linter) {
+  const verify = Linter.prototype.verify
+  Linter.prototype.verify = function(
     textOrSourceCode,
     config,
     filenameOrOptions,

@@ -1,15 +1,8 @@
 "use strict"
 
 const path = require("path")
-const semver = require("semver")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
-
-const eslintVersion = require("eslint/package.json").version
-
-function isESLintVersion(descriptor) {
-  return semver.satisfies(eslintVersion, descriptor)
-}
 
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
@@ -115,61 +108,54 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(9)
+    expect(messages.length).toBe(9)
 
-      // Only the first script is correctly indented (aligned on the first column)
+    // Only the first script is correctly indented (aligned on the first column)
 
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[0].line).toBe(16)
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[0].line).toBe(16)
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[1].line).toBe(17)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[1].line).toBe(17)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[2].line).toBe(18)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[2].line).toBe(18)
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[3].line).toBe(22)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[3].line).toBe(22)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 2 .* but found 8\./
-      )
-      expect(messages[4].line).toBe(23)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 2 .* but found 8\./
+    )
+    expect(messages[4].line).toBe(23)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[5].line).toBe(24)
+    expect(messages[5].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[5].line).toBe(24)
 
-      expect(messages[6].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[6].line).toBe(28)
+    expect(messages[6].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[6].line).toBe(28)
 
-      expect(messages[7].message).toMatch(
-        /Expected indentation of 2 .* but found 12\./
-      )
-      expect(messages[7].line).toBe(29)
+    expect(messages[7].message).toMatch(
+      /Expected indentation of 2 .* but found 12\./
+    )
+    expect(messages[7].line).toBe(29)
 
-      expect(messages[8].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[8].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since every line
-      // is correctly indented relatively to the previous one, there is no error.
-
-      expect(messages.length).toBe(0)
-    }
+    expect(messages[8].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[8].line).toBe(30)
   })
 
   it("should work with a non-zero absolute indentation descriptor", () => {
@@ -183,80 +169,45 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(7)
+    expect(messages.length).toBe(7)
 
-      // The first script is incorrect since the second line gets dedented
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 2 .* but found 0\./
-      )
-      expect(messages[0].line).toBe(11)
+    // The first script is incorrect since the second line gets dedented
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 2 .* but found 0\./
+    )
+    expect(messages[0].line).toBe(11)
 
-      // The second script is correct.
+    // The second script is correct.
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[1].line).toBe(22)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[1].line).toBe(22)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of .* but found 6\./
-      )
-      expect(messages[2].line).toBe(23)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of .* but found 6\./
+    )
+    expect(messages[2].line).toBe(23)
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of .* but found 4\./
-      )
-      expect(messages[3].line).toBe(24)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of .* but found 4\./
+    )
+    expect(messages[3].line).toBe(24)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[4].line).toBe(28)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[4].line).toBe(28)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of .* but found 10\./
-      )
-      expect(messages[5].line).toBe(29)
+    expect(messages[5].message).toMatch(
+      /Expected indentation of .* but found 10\./
+    )
+    expect(messages[5].line).toBe(29)
 
-      expect(messages[6].message).toMatch(
-        /Expected indentation of .* but found 8\./
-      )
-      expect(messages[6].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
-      // are correctly indented relatively to the previous one, there is less errors.
-
-      expect(messages.length).toBe(5)
-
-      // The first script is incorrect since the second line gets dedented
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 2 .* but found 0\./
-      )
-      expect(messages[0].line).toBe(11)
-
-      // The second script is correct.
-
-      expect(messages[1].message).toMatch(
-        /Expected indentation of .* but found 6\./
-      )
-      expect(messages[1].line).toBe(23)
-
-      expect(messages[2].message).toMatch(
-        /Expected indentation of .* but found 4\./
-      )
-      expect(messages[2].line).toBe(24)
-
-      expect(messages[3].message).toMatch(
-        /Expected indentation of .* but found 10\./
-      )
-      expect(messages[3].line).toBe(29)
-
-      expect(messages[4].message).toMatch(
-        /Expected indentation of .* but found 8\./
-      )
-      expect(messages[4].line).toBe(30)
-    }
+    expect(messages[6].message).toMatch(
+      /Expected indentation of .* but found 8\./
+    )
+    expect(messages[6].line).toBe(30)
   })
 
   it("should work with relative indentation descriptor", () => {
@@ -270,59 +221,42 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(6)
+    expect(messages.length).toBe(6)
 
-      // The first script is correct since it can't be dedented, but follows the indent
-      // rule anyway.
+    // The first script is correct since it can't be dedented, but follows the indent
+    // rule anyway.
 
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[0].line).toBe(16)
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[0].line).toBe(16)
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[1].line).toBe(17)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[1].line).toBe(17)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[2].line).toBe(18)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[2].line).toBe(18)
 
-      // The third script is correct.
+    // The third script is correct.
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[3].line).toBe(28)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[3].line).toBe(28)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[4].line).toBe(29)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[4].line).toBe(29)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[5].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
-      // are correctly indented relatively to the previous one, there is less errors.
-
-      expect(messages.length).toBe(2)
-
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 12 .* but found 4\./
-      )
-      expect(messages[0].line).toBe(29)
-
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 10 .* but found 2\./
-      )
-      expect(messages[1].line).toBe(30)
-    }
+    expect(messages[5].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[5].line).toBe(30)
   })
 
   it("should report messages at the beginning of the file", () => {
@@ -341,13 +275,9 @@ describe("html/indent setting", () => {
     expect(messages[0].line).toBe(1)
     expect(messages[0].column).toBe(9)
 
-    if (isESLintVersion(">= 3")) {
-      expect(messages[1].message).toBe(
-        "File must be at most 1 lines long. It's 7 lines long."
-      )
-    } else {
-      expect(messages[1].message).toBe("File must be at most 1 lines long")
-    }
+    expect(messages[1].message).toBe(
+      "File must be at most 1 lines long. It's 7 lines long."
+    )
     expect(messages[1].line).toBe(1)
     expect(messages[1].column).toBe(9)
   })
@@ -484,13 +414,7 @@ describe("fix", () => {
       },
     })
 
-    if (isESLintVersion(">= 3.17.0")) {
-      // Since v3.17.0, no-extra-semi replaces all semicolons by a single semi colon instead of
-      // removing extra semi colons. See https://github.com/eslint/eslint/pull/8067 .
-      expect(messages[0].fix.range).toEqual([53, 55])
-    } else {
-      expect(messages[0].fix.range).toEqual([54, 55])
-    }
+    expect(messages[0].fix.range).toEqual([53, 55])
   })
 
   it("should fix errors", () => {
@@ -550,8 +474,6 @@ describe("fix", () => {
     })
 
     it("should work with eol-last never", () => {
-      // ESLint 2 did not remove the last new line if any
-      if (isESLintVersion("2")) return
       const result = execute("fix.html", {
         rules: {
           "eol-last": ["error", "never"],
@@ -633,9 +555,5 @@ it("should report correct eol-last message position", () => {
 
   expect(messages[0].ruleId).toBe("eol-last")
   expect(messages[0].line).toBe(6)
-  if (isESLintVersion("> 2")) {
-    expect(messages[0].column).toBe(42)
-  } else {
-    expect(messages[0].column).toBe(12)
-  }
+  expect(messages[0].column).toBe(42)
 })

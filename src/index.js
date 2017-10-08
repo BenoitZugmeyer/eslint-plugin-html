@@ -103,7 +103,7 @@ function patch(modules) {
     filenameOrOptions,
     saveState
   ) {
-    const localVerify = (code) =>
+    const localVerify = code =>
       verify.call(this, code, config, filenameOrOptions, saveState)
 
     let messages
@@ -128,7 +128,7 @@ function patch(modules) {
 
       messages = []
 
-      currentInfos.code.forEach((code) => {
+      currentInfos.code.forEach(code => {
         messages.push.apply(
           messages,
           remapMessages(
@@ -142,8 +142,7 @@ function patch(modules) {
       })
 
       sourceCodeForMessages.set(messages, textOrSourceCode)
-    }
-    else {
+    } else {
       messages = localVerify(textOrSourceCode)
     }
 
@@ -158,9 +157,9 @@ function patch(modules) {
       sourceCode = semver.satisfies(modules.version, ">= 4.6.0")
         ? originalSourceCode
         : {
-          text: hasBOM ? originalSourceCode.slice(1) : originalSourceCode,
-          hasBOM,
-        }
+            text: hasBOM ? originalSourceCode.slice(1) : originalSourceCode,
+            hasBOM,
+          }
     }
     return applyFixes.call(this, sourceCode, messages, shouldFix)
   }
@@ -217,7 +216,7 @@ function remapMessages(
   }
 
   if (reportBadIndent) {
-    badIndentationLines.forEach((line) => {
+    badIndentationLines.forEach(line => {
       newMessages.push({
         message: "Bad line indentation.",
         line,

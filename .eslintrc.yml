@@ -1,5 +1,9 @@
 
-extends: benoitz
+extends: benoitz-prettier
+
+rules:
+  # trailingComma: es5 for node 4 support
+  prettier/prettier: [ error, { trailingComma: es5, semi: false } ]
 
 env:
   node: true

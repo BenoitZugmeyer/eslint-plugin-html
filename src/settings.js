@@ -21,7 +21,7 @@ const defaultXMLExtensions = [".xhtml", ".xml"]
 
 function filterOut(array, excludeArray) {
   if (!excludeArray) return array
-  return array.filter((item) => excludeArray.indexOf(item) < 0)
+  return array.filter(item => excludeArray.indexOf(item) < 0)
 }
 
 function compileRegExp(re) {
@@ -52,28 +52,28 @@ function getSettings(settings) {
 
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {
-  case undefined:
-  case false:
-  case 0:
-  case "off":
-    reportBadIndent = 0
-    break
-  case true:
-  case 1:
-  case "warn":
-    reportBadIndent = 1
-    break
-  case 2:
-  case "error":
-    reportBadIndent = 2
-    break
-  default:
-    throw new Error(
-      oneLine`
+    case undefined:
+    case false:
+    case 0:
+    case "off":
+      reportBadIndent = 0
+      break
+    case true:
+    case 1:
+    case "warn":
+      reportBadIndent = 1
+      break
+    case 2:
+    case "error":
+      reportBadIndent = 2
+      break
+    default:
+      throw new Error(
+        oneLine`
         Invalid value for html/report-bad-indent,
         expected one of 0, 1, 2, "off", "warn" or "error"
       `
-    )
+      )
   }
 
   const parsedIndent = /^(\+)?(tab|\d+)$/.exec(getSetting(settings, "indent"))
@@ -85,14 +85,14 @@ function getSettings(settings) {
   const rawJavaScriptMIMETypes = getSetting(settings, "javascript-mime-types")
   const javaScriptMIMETypes = rawJavaScriptMIMETypes
     ? (Array.isArray(rawJavaScriptMIMETypes)
-      ? rawJavaScriptMIMETypes
-      : [rawJavaScriptMIMETypes]
-    ).map((s) => (s.startsWith("/") ? compileRegExp(s) : s))
+        ? rawJavaScriptMIMETypes
+        : [rawJavaScriptMIMETypes]
+      ).map(s => (s.startsWith("/") ? compileRegExp(s) : s))
     : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
 
   function isJavaScriptMIMEType(type) {
     return javaScriptMIMETypes.some(
-      (o) => (typeof o === "string" ? type === o : o.test(type))
+      o => (typeof o === "string" ? type === o : o.test(type))
     )
   }
 

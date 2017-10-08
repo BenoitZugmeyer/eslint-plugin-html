@@ -150,13 +150,11 @@ function* dedent(indent, slice) {
         from: fromIndex,
         to: lastIndex,
       }
-    }
-    else if (isEmptyLine) {
+    } else if (isEmptyLine) {
       yield {
         type: "empty",
       }
-    }
-    else {
+    } else {
       yield {
         type: "bad-indent",
       }
@@ -183,14 +181,13 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   let lineNumber = 1
   let previousHTML = ""
 
-  iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
+  iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, chunk => {
     const slice = code.slice(chunk.start, chunk.end)
     if (chunk.type === "html") {
       const match = slice.match(/\r\n|\n|\r/g)
       if (match) lineNumber += match.length
       previousHTML = slice
-    }
-    else if (chunk.type === "script") {
+    } else if (chunk.type === "script") {
       const transformedCode = new TransformableString(code)
       let indentSlice = slice
       for (const cdata of chunk.cdata) {
@@ -212,8 +209,7 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
             chunk.start + action.to,
             ""
           )
-        }
-        else if (action.type === "bad-indent") {
+        } else if (action.type === "bad-indent") {
           badIndentationLines.push(lineNumber)
         }
       }

@@ -22,16 +22,13 @@
   },
   "devDependencies": {
     "eslint": "^4.7.0",
-    "eslint-config-benoitz": "^1.0.0",
+    "eslint-config-benoitz-prettier": "^1.0.1",
     "jest": "^21.1.0",
-    "prettier-eslint-cli": "^4.3.2"
+    "prettier": "^1.7.4"
   },
   "scripts": {
-    "prettier": "git ls-files -- '*.js' | xargs prettier-eslint",
-    "validate": "npm run lint && npm run check-format && npm run test",
+    "validate": "npm run lint && npm run test",
     "test": "jest",
-    "lint": "eslint .",
-    "check-format": "test -z \"$(npm run -s prettier -- --list-different)\"",
-    "format": "npm run -s prettier -- --write"
+    "lint": "eslint ."
   }
 }

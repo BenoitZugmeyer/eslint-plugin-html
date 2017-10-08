@@ -164,8 +164,7 @@ describe("html/indent setting", () => {
         /Expected indentation of 0 .* but found 10\./
       )
       expect(messages[8].line).toBe(30)
-    }
-    else {
+    } else {
       // ESlint < 4 indentation was always checked relatively to the previous line. Since every line
       // is correctly indented relatively to the previous one, there is no error.
 
@@ -224,8 +223,7 @@ describe("html/indent setting", () => {
         /Expected indentation of .* but found 8\./
       )
       expect(messages[6].line).toBe(30)
-    }
-    else {
+    } else {
       // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
       // are correctly indented relatively to the previous one, there is less errors.
 
@@ -309,8 +307,7 @@ describe("html/indent setting", () => {
         /Expected indentation of 0 .* but found 2\./
       )
       expect(messages[5].line).toBe(30)
-    }
-    else {
+    } else {
       // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
       // are correctly indented relatively to the previous one, there is less errors.
 
@@ -348,8 +345,7 @@ describe("html/indent setting", () => {
       expect(messages[1].message).toBe(
         "File must be at most 1 lines long. It's 7 lines long."
       )
-    }
-    else {
+    } else {
       expect(messages[1].message).toBe("File must be at most 1 lines long")
     }
     expect(messages[1].line).toBe(1)
@@ -492,8 +488,7 @@ describe("fix", () => {
       // Since v3.17.0, no-extra-semi replaces all semicolons by a single semi colon instead of
       // removing extra semi colons. See https://github.com/eslint/eslint/pull/8067 .
       expect(messages[0].fix.range).toEqual([53, 55])
-    }
-    else {
+    } else {
       expect(messages[0].fix.range).toEqual([54, 55])
     }
   })
@@ -637,8 +632,7 @@ it("should report correct eol-last message position", () => {
   expect(messages[0].line).toBe(6)
   if (isESLintVersion("> 2")) {
     expect(messages[0].column).toBe(42)
-  }
-  else {
+  } else {
     expect(messages[0].column).toBe(12)
   }
 })

@@ -2,11 +2,14 @@
 
 const path = require("path")
 const extract = require("./extract")
-const oneLine = require("./utils").oneLine
+const utils = require("./utils")
+const oneLine = utils.oneLine
+const splatSet = utils.splatSet
 const getSettings = require("./settings").getSettings
 
 const BOM = "\uFEFF"
 const GET_SCOPE_RULE_NAME = "__eslint-plugin-html-get-scope"
+const DECLARE_VARIABLES_RULE_NAME = "__eslint-plugin-html-declare-variables"
 
 // Disclaimer:
 //
@@ -164,7 +167,7 @@ function verifyWithSharedScopes(
           firstPassValues.push({
             code,
             sourceCode: context.getSourceCode(),
-            neededGlobals: context
+            exportedGlobals: context
               .getScope()
               .through.map(node => node.identifier.name),
             declaredGlobals: context
@@ -178,54 +181,39 @@ function verifyWithSharedScopes(
     pushMessages(localVerify(String(code)), code)
   }
 
-  config.rules = originalRules
+  config.rules = Object.assign(
+    { [DECLARE_VARIABLES_RULE_NAME]: "error" },
+    originalRules
+  )
 
-  // Second pass: for each script tags, add "globals" and "exported" comments then run eslint
+  // Second pass: declare variables for each script scope, then run eslint.
   for (let i = 0; i < firstPassValues.length; i += 1) {
+    this.rules.define(DECLARE_VARIABLES_RULE_NAME, context => {
+      return {
+        Program() {
+          const exportedGlobals = splatSet(
+            firstPassValues
+              .slice(i + 1)
+              .map(nextValues => nextValues.exportedGlobals)
+          )
+          for (const name of exportedGlobals) context.markVariableAsUsed(name)
+
+          const declaredGlobals = splatSet(
+            firstPassValues
+              .slice(0, i)
+              .map(previousValues => previousValues.declaredGlobals)
+          )
+          const scope = context.getScope()
+          scope.through = scope.through.filter(variable => {
+            return !declaredGlobals.has(variable.identifier.name)
+          })
+        },
+      }
+    })
+
     const values = firstPassValues[i]
-
-    declareVariables(
-      values.sourceCode,
-      "globals",
-      firstPassValues
-        .slice(0, i)
-        .map(previousValues =>
-          previousValues.declaredGlobals.filter(
-            name => values.neededGlobals.indexOf(name) >= 0
-          )
-        )
-    )
-
-    declareVariables(
-      values.sourceCode,
-      "exported",
-      firstPassValues
-        .slice(i + 1)
-        .map(nextValues =>
-          nextValues.neededGlobals.filter(
-            name => values.declaredGlobals.indexOf(name) >= 0
-          )
-        )
-    )
-
     pushMessages(localVerify(values.sourceCode), values.code)
   }
-}
-
-function declareVariables(sourceCode, type, vars) {
-  const uniqVars = new Set(vars.reduce((splat, vars) => splat.concat(vars), []))
-  if (!uniqVars.size) return
-
-  const joined = Array.from(uniqVars)
-    .map(name => `${name}: true`)
-    .join(", ")
-
-  sourceCode.ast.comments.push({
-    value: `${type} ${joined}`,
-    loc: { start: 0, end: 0 },
-    range: [0, 0],
-    type: "Block",
-  })
 }
 
 function remapMessages(messages, hasBOM, code) {

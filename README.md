@@ -87,10 +87,10 @@ error in the first script, and `no-undef` should report an error in the second s
 
 ### History
 
-In `eslint-plugin-html` v1 and v2, script code were concatenated and a linted in a single pass, so
-the scope were always shared.  This caused [some issues](MIGRATION_TO_V3.md), so in v3, all scripts
+In `eslint-plugin-html` v1 and v2, script code were concatenated and linted in a single pass, so
+the scope were always shared.  This caused [some issues](MIGRATION_TO_V3.md), so in v3 all scripts
 were linted separately, and scopes were never shared.  In v4, the plugin still lint scripts
-separately, but make sure global variables are declared and used correctly in the non-module case.
+separately, but makes sure global variables are declared and used correctly in the non-module case.
 
 
 XML support

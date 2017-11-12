@@ -1,12 +1,15 @@
 "use strict"
 
 const path = require("path")
-const semver = require("semver")
 const extract = require("./extract")
-const oneLine = require("./utils").oneLine
+const utils = require("./utils")
+const oneLine = utils.oneLine
+const splatSet = utils.splatSet
 const getSettings = require("./settings").getSettings
 
 const BOM = "\uFEFF"
+const GET_SCOPE_RULE_NAME = "__eslint-plugin-html-get-scope"
+const DECLARE_VARIABLES_RULE_NAME = "__eslint-plugin-html-declare-variables"
 
 // Disclaimer:
 //
@@ -18,63 +21,39 @@ const BOM = "\uFEFF"
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-const needleV3 = path.join("lib", "eslint.js")
-const needleV4 = path.join("lib", "linter.js")
+const needle = path.join("lib", "linter.js")
 
 iterateESLintModules(patch)
 
-function getModulesFromRequire() {
-  const version = require("eslint/package.json").version
-
-  const eslint = semver.satisfies(version, ">= 4")
-    ? require("eslint/lib/linter").prototype
-    : require("eslint/lib/eslint")
-
-  return {
-    version,
-    eslint,
-    SourceCodeFixer: require("eslint/lib/util/source-code-fixer"),
-  }
+function getModuleFromRequire() {
+  return require("eslint/lib/linter")
 }
 
-function getModulesFromCache(key) {
-  if (!key.endsWith(needleV3) && !key.endsWith(needleV4)) return
+function getModuleFromCache(key) {
+  if (!key.endsWith(needle)) return
 
   const module = require.cache[key]
   if (!module || !module.exports) return
 
-  const version = require(path.join(key, "..", "..", "package.json")).version
+  const Linter = module.exports
+  if (typeof Linter.prototype.verify !== "function") return
 
-  const SourceCodeFixer =
-    require.cache[path.join(key, "..", "util", "source-code-fixer.js")]
-
-  if (!SourceCodeFixer || !SourceCodeFixer.exports) return
-
-  const eslint = semver.satisfies(version, ">= 4")
-    ? module.exports.prototype
-    : module.exports
-  if (typeof eslint.verify !== "function") return
-
-  return {
-    version,
-    eslint,
-    SourceCodeFixer: SourceCodeFixer.exports,
-  }
+  return Linter
 }
 
 function iterateESLintModules(fn) {
   if (!require.cache || Object.keys(require.cache).length === 0) {
     // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    fn(getModulesFromRequire())
+    fn(getModuleFromRequire())
     return
   }
 
   let found = false
 
   for (const key in require.cache) {
-    const modules = getModulesFromCache(key)
-    if (modules) {
-      fn(modules)
+    const Linter = getModuleFromCache(key)
+    if (Linter) {
+      fn(Linter)
       found = true
     }
   }
@@ -82,22 +61,17 @@ function iterateESLintModules(fn) {
   if (!found) {
     throw new Error(
       oneLine`
-      eslint-plugin-html error: It seems that eslint is not loaded.
-      If you think it is a bug, please file a report at
-      https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
-    `
+        eslint-plugin-html error: It seems that eslint is not loaded.
+        If you think it is a bug, please file a report at
+        https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+      `
     )
   }
 }
 
-function patch(modules) {
-  const eslint = modules.eslint
-  const SourceCodeFixer = modules.SourceCodeFixer
-
-  const sourceCodeForMessages = new WeakMap()
-
-  const verify = eslint.verify
-  eslint.verify = function(
+function patch(Linter) {
+  const verify = Linter.prototype.verify
+  Linter.prototype.verify = function(
     textOrSourceCode,
     config,
     filenameOrOptions,
@@ -119,6 +93,15 @@ function patch(modules) {
       !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
 
     if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
+      messages = []
+
+      const pushMessages = (localMessages, code) => {
+        messages.push.apply(
+          messages,
+          remapMessages(localMessages, textOrSourceCode.startsWith(BOM), code)
+        )
+      }
+
       const currentInfos = extract(
         textOrSourceCode,
         pluginSettings.indent,
@@ -126,52 +109,114 @@ function patch(modules) {
         pluginSettings.isJavaScriptMIMEType
       )
 
-      messages = []
+      if (pluginSettings.reportBadIndent) {
+        currentInfos.badIndentationLines.forEach(line => {
+          messages.push({
+            message: "Bad line indentation.",
+            line,
+            column: 1,
+            ruleId: "(html plugin)",
+            severity: pluginSettings.reportBadIndent,
+          })
+        })
+      }
 
-      currentInfos.code.forEach(code => {
-        messages.push.apply(
-          messages,
-          remapMessages(
-            localVerify(String(code)),
-            textOrSourceCode.startsWith(BOM),
-            code,
-            pluginSettings.reportBadIndent,
-            currentInfos.badIndentationLines
-          )
+      if (
+        config.parserOptions &&
+        config.parserOptions.sourceType === "module"
+      ) {
+        for (const code of currentInfos.code) {
+          pushMessages(localVerify(String(code)), code)
+        }
+      } else {
+        verifyWithSharedScopes.call(
+          this,
+          localVerify,
+          config,
+          currentInfos,
+          pushMessages
         )
-      })
+      }
 
-      sourceCodeForMessages.set(messages, textOrSourceCode)
+      messages.sort((ma, mb) => {
+        return ma.line - mb.line || ma.column - mb.column
+      })
     } else {
       messages = localVerify(textOrSourceCode)
     }
 
     return messages
   }
+}
 
-  const applyFixes = SourceCodeFixer.applyFixes
-  SourceCodeFixer.applyFixes = function(sourceCode, messages, shouldFix) {
-    const originalSourceCode = sourceCodeForMessages.get(messages)
-    if (originalSourceCode) {
-      const hasBOM = originalSourceCode.startsWith(BOM)
-      sourceCode = semver.satisfies(modules.version, ">= 4.6.0")
-        ? originalSourceCode
-        : {
-            text: hasBOM ? originalSourceCode.slice(1) : originalSourceCode,
-            hasBOM,
-          }
-    }
-    return applyFixes.call(this, sourceCode, messages, shouldFix)
+function verifyWithSharedScopes(
+  localVerify,
+  config,
+  currentInfos,
+  pushMessages
+) {
+  // First pass: collect needed globals and declared globals for each script tags.
+  const firstPassValues = []
+  const originalRules = config.rules
+  config.rules = { [GET_SCOPE_RULE_NAME]: "error" }
+
+  for (const code of currentInfos.code) {
+    this.rules.define(GET_SCOPE_RULE_NAME, context => {
+      return {
+        Program() {
+          firstPassValues.push({
+            code,
+            sourceCode: context.getSourceCode(),
+            exportedGlobals: context
+              .getScope()
+              .through.map(node => node.identifier.name),
+            declaredGlobals: context
+              .getScope()
+              .variables.map(variable => variable.name),
+          })
+        },
+      }
+    })
+
+    pushMessages(localVerify(String(code)), code)
+  }
+
+  config.rules = Object.assign(
+    { [DECLARE_VARIABLES_RULE_NAME]: "error" },
+    originalRules
+  )
+
+  // Second pass: declare variables for each script scope, then run eslint.
+  for (let i = 0; i < firstPassValues.length; i += 1) {
+    this.rules.define(DECLARE_VARIABLES_RULE_NAME, context => {
+      return {
+        Program() {
+          const exportedGlobals = splatSet(
+            firstPassValues
+              .slice(i + 1)
+              .map(nextValues => nextValues.exportedGlobals)
+          )
+          for (const name of exportedGlobals) context.markVariableAsUsed(name)
+
+          const declaredGlobals = splatSet(
+            firstPassValues
+              .slice(0, i)
+              .map(previousValues => previousValues.declaredGlobals)
+          )
+          const scope = context.getScope()
+          scope.through = scope.through.filter(variable => {
+            return !declaredGlobals.has(variable.identifier.name)
+          })
+        },
+      }
+    })
+
+    const values = firstPassValues[i]
+    pushMessages(localVerify(values.sourceCode), values.code)
   }
 }
 
-function remapMessages(
-  messages,
-  hasBOM,
-  code,
-  reportBadIndent,
-  badIndentationLines
-) {
+function remapMessages(messages, hasBOM, code) {
   const newMessages = []
   const bomOffset = hasBOM ? -1 : 0
 
@@ -214,22 +259,6 @@ function remapMessages(
       newMessages.push(message)
     }
   }
-
-  if (reportBadIndent) {
-    badIndentationLines.forEach(line => {
-      newMessages.push({
-        message: "Bad line indentation.",
-        line,
-        column: 1,
-        ruleId: "(html plugin)",
-        severity: reportBadIndent === true ? 2 : reportBadIndent,
-      })
-    })
-  }
-
-  newMessages.sort((ma, mb) => {
-    return ma.line - mb.line || ma.column - mb.column
-  })
 
   return newMessages
 }

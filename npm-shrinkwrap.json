@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-html",
-  "version": "3.2.2",
+  "version": "4.0.0-alpha.1",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {
@@ -3243,7 +3243,8 @@
     "semver": {
       "version": "5.4.1",
       "resolved": "https://registry.npmjs.org/semver/-/semver-5.4.1.tgz",
-      "integrity": "sha512-WfG/X9+oATh81XtllIo/I8gOiY9EXRdv1cQdyykeXK17YcUW3EXUAi2To4pcH6nZtJPr7ZOpM5OMyWJZm+8Rsg=="
+      "integrity": "sha512-WfG/X9+oATh81XtllIo/I8gOiY9EXRdv1cQdyykeXK17YcUW3EXUAi2To4pcH6nZtJPr7ZOpM5OMyWJZm+8Rsg==",
+      "dev": true
     },
     "set-blocking": {
       "version": "2.0.0",

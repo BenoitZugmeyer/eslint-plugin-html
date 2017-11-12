@@ -1,3 +1,8 @@
+2017-10-08 v4.0.0-alpha.0
+* **Breaking: drop ESLint < 4.7 support**
+* Non-module script tags are sharing the global scope #66
+* Lint script tags with `type="module"` by default
+
 2017-09-16 v3.2.2
 * Fix ESLint 4.7 support
 

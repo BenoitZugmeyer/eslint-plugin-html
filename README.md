@@ -6,6 +6,19 @@ eslint-plugin-html
 This [`ESLint`](http://eslint.org) plugin allows linting and fixing inline scripts contained in HTML
 files.
 
+Migration to v4
+---------------
+
+`eslint-plugin-html` v4 requires at least ESLint v4.7.  This is because a lot of internal changes
+occured in ESLint v4.7, including a [new API to support autofixing in
+preprocessors](https://eslint.org/docs/developer-guide/working-with-plugins#processors-in-plugins).
+If you are still using an older version of ESLint, please consider upgrading, or keep using
+`eslint-plugin-html` v3.
+
+The big feature (and breaking change) in `eslint-plugin-html` v4 is the ability to chose how [scopes
+are shared between script tags in the same HTML file](#multiple-scripts-tags-in-a-html-file).
+
+
 Migration to v3
 ---------------
 
@@ -32,6 +45,51 @@ Note: by default, when executing the `eslint` command on a directory, only `.js`
 linted. You will have to specify extra extensions with the `--ext` option. Example: `eslint --ext
 .html,.js src` will lint both `.html` and `.js` files in the `src` directory. See [ESLint
 documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
+
+Multiple scripts tags in a HTML file
+------------------------------------
+
+When linting a HTML with multiple script tags, this plugin tries to emulate the browser behavior by
+sharing the global scope between scripts by default.  This behavior doesn't apply to "module"
+scripts (ie: `<script type="module">` and most transpiled code), where [each script tag gets its own
+top-level scope](http://exploringjs.com/es6/ch_modules.html#_modules).
+
+ESLint has already [an
+option](https://eslint.org/docs/user-guide/configuring#specifying-parser-options) to tell the parser
+if the script are modules.  `eslint-plugin-html` will use this option as well to know if the scopes
+should be shared (the default) or not.  To change this, just set it in your ESLint configuration:
+
+```
+{
+  "parserOptions": {
+    "sourceType": "module"
+  }
+}
+```
+
+To illustrate this behavior, consider this HTML extract:
+
+```html
+<script>
+var foo = 1;
+</script>
+
+<script>
+alert(foo);
+</script>
+```
+
+This is perfectly valid by default, and the ESLint rules `no-unused-vars` and `no-undef` shouldn't
+complain.  But if those scripts are considerated as ES modules, `no-unused-vars` should report an
+error in the first script, and `no-undef` should report an error in the second script.
+
+### History
+
+In `eslint-plugin-html` v1 and v2, script code were concatenated and a linted in a single pass, so
+the scope were always shared.  This caused [some issues](MIGRATION_TO_V3.md), so in v3, all scripts
+were linted separately, and scopes were never shared.  In v4, the plugin still lint scripts
+separately, but make sure global variables are declared and used correctly in the non-module case.
+
 
 XML support
 -----------
@@ -121,9 +179,9 @@ display errors. Example:
 
 By default, the code between `<script>` tags is considered as JavaScript code only if there is no
 `type` attribute or if its value matches the pattern
-`/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i`. You can customize the types that
-should be considered as JavaScript by providing one or multiple MIME types. If a MIME type starts
-with a `/`, it will be considered as a regular expression. Example:
+`(application|text)/(x-)?(javascript|babel|ecmascript-6)` or `module` (case insensitive). You can
+customize the types that should be considered as JavaScript by providing one or multiple MIME types.
+If a MIME type starts with a `/`, it will be considered as a regular expression. Example:
 
 ```javascript
 {

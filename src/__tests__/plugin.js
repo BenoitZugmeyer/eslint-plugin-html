@@ -1,15 +1,8 @@
 "use strict"
 
 const path = require("path")
-const semver = require("semver")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
-
-const eslintVersion = require("eslint/package.json").version
-
-function isESLintVersion(descriptor) {
-  return semver.satisfies(eslintVersion, descriptor)
-}
 
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
@@ -24,6 +17,9 @@ function execute(file, baseConfig) {
         },
         baseConfig.rules
       ),
+      globals: baseConfig.globals,
+      env: baseConfig.env,
+      parserOptions: baseConfig.parserOptions,
     },
     ignore: false,
     useEslintrc: false,
@@ -115,61 +111,54 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(9)
+    expect(messages.length).toBe(9)
 
-      // Only the first script is correctly indented (aligned on the first column)
+    // Only the first script is correctly indented (aligned on the first column)
 
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[0].line).toBe(16)
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[0].line).toBe(16)
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[1].line).toBe(17)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[1].line).toBe(17)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[2].line).toBe(18)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[2].line).toBe(18)
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[3].line).toBe(22)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[3].line).toBe(22)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 2 .* but found 8\./
-      )
-      expect(messages[4].line).toBe(23)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 2 .* but found 8\./
+    )
+    expect(messages[4].line).toBe(23)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[5].line).toBe(24)
+    expect(messages[5].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[5].line).toBe(24)
 
-      expect(messages[6].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[6].line).toBe(28)
+    expect(messages[6].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[6].line).toBe(28)
 
-      expect(messages[7].message).toMatch(
-        /Expected indentation of 2 .* but found 12\./
-      )
-      expect(messages[7].line).toBe(29)
+    expect(messages[7].message).toMatch(
+      /Expected indentation of 2 .* but found 12\./
+    )
+    expect(messages[7].line).toBe(29)
 
-      expect(messages[8].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[8].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since every line
-      // is correctly indented relatively to the previous one, there is no error.
-
-      expect(messages.length).toBe(0)
-    }
+    expect(messages[8].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[8].line).toBe(30)
   })
 
   it("should work with a non-zero absolute indentation descriptor", () => {
@@ -183,80 +172,45 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(7)
+    expect(messages.length).toBe(7)
 
-      // The first script is incorrect since the second line gets dedented
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 2 .* but found 0\./
-      )
-      expect(messages[0].line).toBe(11)
+    // The first script is incorrect since the second line gets dedented
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 2 .* but found 0\./
+    )
+    expect(messages[0].line).toBe(11)
 
-      // The second script is correct.
+    // The second script is correct.
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 0 .* but found 6\./
-      )
-      expect(messages[1].line).toBe(22)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 0 .* but found 6\./
+    )
+    expect(messages[1].line).toBe(22)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of .* but found 6\./
-      )
-      expect(messages[2].line).toBe(23)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of .* but found 6\./
+    )
+    expect(messages[2].line).toBe(23)
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of .* but found 4\./
-      )
-      expect(messages[3].line).toBe(24)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of .* but found 4\./
+    )
+    expect(messages[3].line).toBe(24)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[4].line).toBe(28)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[4].line).toBe(28)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of .* but found 10\./
-      )
-      expect(messages[5].line).toBe(29)
+    expect(messages[5].message).toMatch(
+      /Expected indentation of .* but found 10\./
+    )
+    expect(messages[5].line).toBe(29)
 
-      expect(messages[6].message).toMatch(
-        /Expected indentation of .* but found 8\./
-      )
-      expect(messages[6].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
-      // are correctly indented relatively to the previous one, there is less errors.
-
-      expect(messages.length).toBe(5)
-
-      // The first script is incorrect since the second line gets dedented
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 2 .* but found 0\./
-      )
-      expect(messages[0].line).toBe(11)
-
-      // The second script is correct.
-
-      expect(messages[1].message).toMatch(
-        /Expected indentation of .* but found 6\./
-      )
-      expect(messages[1].line).toBe(23)
-
-      expect(messages[2].message).toMatch(
-        /Expected indentation of .* but found 4\./
-      )
-      expect(messages[2].line).toBe(24)
-
-      expect(messages[3].message).toMatch(
-        /Expected indentation of .* but found 10\./
-      )
-      expect(messages[3].line).toBe(29)
-
-      expect(messages[4].message).toMatch(
-        /Expected indentation of .* but found 8\./
-      )
-      expect(messages[4].line).toBe(30)
-    }
+    expect(messages[6].message).toMatch(
+      /Expected indentation of .* but found 8\./
+    )
+    expect(messages[6].line).toBe(30)
   })
 
   it("should work with relative indentation descriptor", () => {
@@ -270,59 +224,42 @@ describe("html/indent setting", () => {
       },
     })
 
-    if (isESLintVersion(">= 4")) {
-      expect(messages.length).toBe(6)
+    expect(messages.length).toBe(6)
 
-      // The first script is correct since it can't be dedented, but follows the indent
-      // rule anyway.
+    // The first script is correct since it can't be dedented, but follows the indent
+    // rule anyway.
 
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[0].line).toBe(16)
+    expect(messages[0].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[0].line).toBe(16)
 
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[1].line).toBe(17)
+    expect(messages[1].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[1].line).toBe(17)
 
-      expect(messages[2].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[2].line).toBe(18)
+    expect(messages[2].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[2].line).toBe(18)
 
-      // The third script is correct.
+    // The third script is correct.
 
-      expect(messages[3].message).toMatch(
-        /Expected indentation of 0 .* but found 10\./
-      )
-      expect(messages[3].line).toBe(28)
+    expect(messages[3].message).toMatch(
+      /Expected indentation of 0 .* but found 10\./
+    )
+    expect(messages[3].line).toBe(28)
 
-      expect(messages[4].message).toMatch(
-        /Expected indentation of 2 .* but found 4\./
-      )
-      expect(messages[4].line).toBe(29)
+    expect(messages[4].message).toMatch(
+      /Expected indentation of 2 .* but found 4\./
+    )
+    expect(messages[4].line).toBe(29)
 
-      expect(messages[5].message).toMatch(
-        /Expected indentation of 0 .* but found 2\./
-      )
-      expect(messages[5].line).toBe(30)
-    } else {
-      // ESlint < 4 indentation was always checked relatively to the previous line. Since some lines
-      // are correctly indented relatively to the previous one, there is less errors.
-
-      expect(messages.length).toBe(2)
-
-      expect(messages[0].message).toMatch(
-        /Expected indentation of 12 .* but found 4\./
-      )
-      expect(messages[0].line).toBe(29)
-
-      expect(messages[1].message).toMatch(
-        /Expected indentation of 10 .* but found 2\./
-      )
-      expect(messages[1].line).toBe(30)
-    }
+    expect(messages[5].message).toMatch(
+      /Expected indentation of 0 .* but found 2\./
+    )
+    expect(messages[5].line).toBe(30)
   })
 
   it("should report messages at the beginning of the file", () => {
@@ -341,13 +278,9 @@ describe("html/indent setting", () => {
     expect(messages[0].line).toBe(1)
     expect(messages[0].column).toBe(9)
 
-    if (isESLintVersion(">= 3")) {
-      expect(messages[1].message).toBe(
-        "File must be at most 1 lines long. It's 7 lines long."
-      )
-    } else {
-      expect(messages[1].message).toBe("File must be at most 1 lines long")
-    }
+    expect(messages[1].message).toBe(
+      "File must be at most 1 lines long. It's 7 lines long."
+    )
     expect(messages[1].line).toBe(1)
     expect(messages[1].column).toBe(9)
   })
@@ -484,13 +417,7 @@ describe("fix", () => {
       },
     })
 
-    if (isESLintVersion(">= 3.17.0")) {
-      // Since v3.17.0, no-extra-semi replaces all semicolons by a single semi colon instead of
-      // removing extra semi colons. See https://github.com/eslint/eslint/pull/8067 .
-      expect(messages[0].fix.range).toEqual([53, 55])
-    } else {
-      expect(messages[0].fix.range).toEqual([54, 55])
-    }
+    expect(messages[0].fix.range).toEqual([53, 55])
   })
 
   it("should fix errors", () => {
@@ -550,8 +477,6 @@ describe("fix", () => {
     })
 
     it("should work with eol-last never", () => {
-      // ESLint 2 did not remove the last new line if any
-      if (isESLintVersion("2")) return
       const result = execute("fix.html", {
         rules: {
           "eol-last": ["error", "never"],
@@ -574,13 +499,16 @@ describe("html/javascript-mime-types", () => {
   it("ignores unknown mime types by default", () => {
     const messages = execute("javascript-mime-types.html")
 
-    expect(messages.length).toBe(2)
+    expect(messages.length).toBe(3)
 
     expect(messages[0].ruleId).toBe("no-console")
     expect(messages[0].line).toBe(8)
 
     expect(messages[1].ruleId).toBe("no-console")
     expect(messages[1].line).toBe(12)
+
+    expect(messages[2].ruleId).toBe("no-console")
+    expect(messages[2].line).toBe(16)
   })
 
   it("specifies a list of valid mime types", () => {
@@ -596,7 +524,7 @@ describe("html/javascript-mime-types", () => {
     expect(messages[0].line).toBe(8)
 
     expect(messages[1].ruleId).toBe("no-console")
-    expect(messages[1].line).toBe(16)
+    expect(messages[1].line).toBe(20)
   })
 
   it("specifies a regexp of valid mime types", () => {
@@ -612,10 +540,10 @@ describe("html/javascript-mime-types", () => {
     expect(messages[0].line).toBe(8)
 
     expect(messages[1].ruleId).toBe("no-console")
-    expect(messages[1].line).toBe(16)
+    expect(messages[1].line).toBe(20)
 
     expect(messages[2].ruleId).toBe("no-console")
-    expect(messages[2].line).toBe(20)
+    expect(messages[2].line).toBe(24)
   })
 })
 
@@ -630,9 +558,147 @@ it("should report correct eol-last message position", () => {
 
   expect(messages[0].ruleId).toBe("eol-last")
   expect(messages[0].line).toBe(6)
-  if (isESLintVersion("> 2")) {
-    expect(messages[0].column).toBe(42)
-  } else {
-    expect(messages[0].column).toBe(12)
-  }
+  expect(messages[0].column).toBe(42)
+})
+
+describe("scope sharing", () => {
+  it("should share the global scope between script tags", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-undef": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+    })
+
+    expect(messages.length).toBe(4)
+    expect(messages[0].line).toBe(13)
+    expect(messages[0].message).toBe(
+      "'varNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[1].line).toBe(14)
+    expect(messages[1].message).toBe(
+      "'letNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[2].line).toBe(15)
+    expect(messages[2].message).toBe(
+      "'functionNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[3].line).toBe(16)
+    expect(messages[3].message).toBe(
+      "'ClassNotYetGloballyDeclared' is not defined."
+    )
+  })
+
+  it("should share the global scope between script tags", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-unused-vars": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+    })
+
+    expect(messages.length).toBe(4)
+    expect(messages[0].line).toBe(20)
+    expect(messages[0].message).toBe(
+      "'varNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[1].line).toBe(21)
+    expect(messages[1].message).toBe(
+      "'letNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[2].line).toBe(22)
+    expect(messages[2].message).toBe(
+      "'functionNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[3].line).toBe(23)
+    expect(messages[3].message).toBe(
+      "'ClassNotYetGloballyDeclared' is defined but never used."
+    )
+  })
+
+  it("should not share the global scope if sourceType is 'module'", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+      parserOptions: {
+        sourceType: "module",
+      },
+    })
+
+    expect(messages.length).toBe(16)
+    expect(messages[0].line).toBe(8)
+    expect(messages[0].message).toBe(
+      "'varGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[1].line).toBe(9)
+    expect(messages[1].message).toBe(
+      "'letGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[2].line).toBe(10)
+    expect(messages[2].message).toBe(
+      "'functionGloballyDeclared' is defined but never used."
+    )
+    expect(messages[3].line).toBe(11)
+    expect(messages[3].message).toBe(
+      "'ClassGloballyDeclared' is defined but never used."
+    )
+    expect(messages[4].line).toBe(13)
+    expect(messages[4].message).toBe(
+      "'varNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[5].line).toBe(14)
+    expect(messages[5].message).toBe(
+      "'letNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[6].line).toBe(15)
+    expect(messages[6].message).toBe(
+      "'functionNotYetGloballyDeclared' is not defined."
+    )
+    expect(messages[7].line).toBe(16)
+    expect(messages[7].message).toBe(
+      "'ClassNotYetGloballyDeclared' is not defined."
+    )
+
+    expect(messages[8].line).toBe(20)
+    expect(messages[8].message).toBe(
+      "'varNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[9].line).toBe(21)
+    expect(messages[9].message).toBe(
+      "'letNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    expect(messages[10].line).toBe(22)
+    expect(messages[10].message).toBe(
+      "'functionNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[11].line).toBe(23)
+    expect(messages[11].message).toBe(
+      "'ClassNotYetGloballyDeclared' is defined but never used."
+    )
+    expect(messages[12].line).toBe(25)
+    expect(messages[12].message).toBe("'varGloballyDeclared' is not defined.")
+    expect(messages[13].line).toBe(26)
+    expect(messages[13].message).toBe("'letGloballyDeclared' is not defined.")
+    expect(messages[14].line).toBe(27)
+    expect(messages[14].message).toBe(
+      "'functionGloballyDeclared' is not defined."
+    )
+    expect(messages[15].line).toBe(28)
+    expect(messages[15].message).toBe("'ClassGloballyDeclared' is not defined.")
+  })
 })

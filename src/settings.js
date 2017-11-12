@@ -88,7 +88,10 @@ function getSettings(settings) {
         ? rawJavaScriptMIMETypes
         : [rawJavaScriptMIMETypes]
       ).map(s => (s.startsWith("/") ? compileRegExp(s) : s))
-    : [/^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i]
+    : [
+        /^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i,
+        /^module$/i,
+      ]
 
   function isJavaScriptMIMEType(type) {
     return javaScriptMIMETypes.some(

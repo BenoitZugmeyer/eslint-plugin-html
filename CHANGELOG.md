@@ -1,3 +1,6 @@
+2017-11-22 v4.0.1
+* Fix processing files after processing a HTML file without script tag #82
+
 2017-11-12 v4.0.0
 * **Breaking: drop ESLint < 4.7 support**
 * **Breaking: Non-module script tags are sharing the global scope** #66

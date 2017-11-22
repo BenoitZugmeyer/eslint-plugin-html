@@ -214,6 +214,8 @@ function verifyWithSharedScopes(
     const values = firstPassValues[i]
     pushMessages(localVerify(values.sourceCode), values.code)
   }
+
+  config.rules = originalRules
 }
 
 function remapMessages(messages, hasBOM, code) {

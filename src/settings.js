@@ -8,6 +8,7 @@ const defaultHTMLExtensions = [
   ".hbs",
   ".htm",
   ".html",
+  ".isml",
   ".mustache",
   ".nunjucks",
   ".php",

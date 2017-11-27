@@ -29,7 +29,7 @@ If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3
 Usage
 -----
 
-Simply install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
+Simply install via `npm install --save-dev eslint-plugin-isml` and add the plugin to your ESLint
 configuration. See
 [ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
 
@@ -38,7 +38,7 @@ Example:
 ```javascript
 {
     "plugins": [
-        "html"
+        "isml"
     ]
 }
 ```
@@ -72,9 +72,9 @@ should be shared (the default) or not.  To change this, just set it in your ESLi
 To illustrate this behavior, consider this HTML extract:
 
 ```html
-<script>
+<isscript>
 var foo = 1;
-</script>
+</isscript>
 
 <script>
 alert(foo);
@@ -87,7 +87,7 @@ error in the first script, and `no-undef` should report an error in the second s
 
 ### History
 
-In `eslint-plugin-html` v1 and v2, script code were concatenated and linted in a single pass, so
+In `eslint-plugin-isml` v1 and v2, script code were concatenated and linted in a single pass, so
 the scope were always shared.  This caused [some issues](MIGRATION_TO_V3.md), so in v3 all scripts
 were linted separately, and scopes were never shared.  In v4, the plugin still lint scripts
 separately, but makes sure global variables are declared and used correctly in the non-module case.
@@ -110,7 +110,7 @@ Settings
 > Note: all settings can be written either as `"html/key": value` or in a nested object `"html": {
 > "key": value }`
 
-### `html/html-extensions`
+### `siml/html-extensions`
 
 By default, this plugin will only consider files ending with those extensions as HTML: `.erb`,
 `.handlebars`, `.hbs`, `.htm`, `.html`, `.mustache`, `.nunjucks`, `.php`, `.tag`, `.twig`, `.vue`,
@@ -118,15 +118,15 @@ By default, this plugin will only consider files ending with those extensions as
 
 ```javascript
 {
-    "plugins": [ "html" ],
+    "plugins": [ "isml" ],
     "settings": {
-        "html/html-extensions": [".html", ".we"],  // consider .html and .we files as HTML
+        "isml/html-extensions": [".html", ".isml"],  // consider .html and .we files as HTML
     }
 }
 ```
 
 
-### `html/xml-extensions`
+### `isml/xml-extensions`
 
 By default, this plugin will only consider files ending with those extensions as XML: `.xhtml`,
 `.xml`. You can set your own list of XML extensions by using this setting. Example:
@@ -135,13 +135,13 @@ By default, this plugin will only consider files ending with those extensions as
 {
     "plugins": [ "html" ],
     "settings": {
-        "html/xml-extensions": [".html"],  // consider .html files as XML
+        "html/xml-extensions": [".isml"],  // consider .html files as XML
     }
 }
 ```
 
 
-### `html/indent`
+### `isml/indent`
 
 By default, the code between `<script>` tags is dedented according to the first non-empty line. The
 setting `html/indent` allows to ensure that every script tags follow an uniform indentation. Like
@@ -154,13 +154,14 @@ value with a `+` to be relative to the `<script>` tag indentation. Example:
     "settings": {
         "html/indent": "0",   // code should start at the beginning of the line (no initial indentation).
         "html/indent": "+2",  // indentation is the <script> indentation plus two spaces.
+        "html/indent": "+tab",// indentation is the <script> indentation plus one tab.
         "html/indent": "tab", // indentation is one tab at the beginning of the line.
     }
 }
 ```
 
 
-### `html/report-bad-indent`
+### `isml/report-bad-indent`
 
 By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
 indented). If you want to make sure the indentation is correct, use the `html/report-bad-indent` in
@@ -177,7 +178,7 @@ display errors. Example:
 ```
 
 
-### `html/javascript-mime-types`
+### `isml/javascript-mime-types`
 
 By default, the code between `<script>` tags is considered as JavaScript code only if there is no
 `type` attribute or if its value matches the pattern
@@ -187,10 +188,10 @@ If a MIME type starts with a `/`, it will be considered as a regular expression.
 
 ```javascript
 {
-    "plugins": [ "html" ],
+    "plugins": [ "isml" ],
     "settings": {
-        "html/javascript-mime-types": ["text/javascript", "text/jsx"],  // also use script tags with a "text/jsx" type attribute
-        "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/",    // same thing
+        "isml/javascript-mime-types": ["text/javascript", "text/jsx"],  // also use script tags with a "text/jsx" type attribute
+        "isml/javascript-mime-types": "/^text\\/(javascript|jsx)$/",    // same thing
     }
 }
 ```

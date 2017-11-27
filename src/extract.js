@@ -23,7 +23,7 @@ function iterateScripts(code, options, onChunk) {
     {
       onopentag(name, attrs) {
         // Test if current tag is a valid <script> tag.
-        if (name !== "script") {
+        if (name !== "script" || name !== "isscript") {
           return
         }
 
@@ -49,7 +49,7 @@ function iterateScripts(code, options, onChunk) {
       },
 
       onclosetag(name) {
-        if (name !== "script" || !inScript) {
+        if (name !== "script" || name != "isscript" || !inScript) {
           return
         }
 

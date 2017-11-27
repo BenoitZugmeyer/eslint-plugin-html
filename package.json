@@ -1,18 +1,19 @@
 {
-  "name": "eslint-plugin-html",
+  "name": "eslint-plugin-isml",
   "version": "4.0.1",
   "description": "A ESLint plugin to lint and fix inline scripts contained in HTML files.",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/BenoitZugmeyer/eslint-plugin-html"
+    "url": "https://github.com/Neskromny/eslint-plugin-isml"
   },
-  "homepage": "https://github.com/BenoitZugmeyer/eslint-plugin-html",
-  "bugs": "https://github.com/BenoitZugmeyer/eslint-plugin-html/issues",
+  "homepage": "https://github.com/Neskromny/eslint-plugin-isml",
+  "bugs": "https://github.com/Neskromny/eslint-plugin-isml/issues",
   "keywords": [
     "eslint-plugin",
     "eslintplugin",
     "eslint",
+    "isml",
     "html"
   ],
   "main": "src/index.js",

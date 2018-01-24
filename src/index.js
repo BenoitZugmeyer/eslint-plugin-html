@@ -36,9 +36,12 @@ function getModuleFromCache(key) {
   if (!module || !module.exports) return
 
   const Linter = module.exports
-  if (typeof Linter.prototype.verify !== "function") return
-
-  return Linter
+  if (
+    typeof Linter === "function" &&
+    typeof Linter.prototype.verify === "function"
+  ) {
+    return Linter
+  }
 }
 
 function iterateESLintModules(fn) {

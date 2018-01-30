@@ -710,20 +710,20 @@ describe("linting attributes", () => {
         "no-unused-vars": "error",
       },
     })
-    expect(messages.length).toBe(0);
+    expect(messages.length).toBe(0)
   })
   it("should respect semi rule", () => {
     const messages = execute("attributes.html", {
       rules: {
-        "semi": ["error", "never"],
+        semi: ["error", "never"],
       },
     })
-    expect(messages.length).toBe(0);
+    expect(messages.length).toBe(0)
   })
   it("should respect indent rule", () => {
     const messages = execute("attributes.html", {
       rules: {
-        "indent": ["error", "tab"],
+        indent: ["error", "tab"],
       },
     })
     expect(messages.length).toBe(1)

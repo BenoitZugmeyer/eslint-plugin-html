@@ -82,17 +82,15 @@ function addOnXXX(textOrSourceCode, config) {
   }
   let virtualScriptContent = ""
   const regex = /^on[a-zA-Z]+$/
-  const parser = new htmlparser.Parser(
-    {
-      onopentag(name, attrs) {
-        for (const id in attrs) {
-          if (regex.test(id)) {
-            virtualScriptContent = virtualScriptContent.concat(`${indent}${indent}${attrs[id]}\n`)
-          }
+  const parser = new htmlparser.Parser({
+    onopentag(name, attrs) {
+      for (const id in attrs) {
+        if (regex.test(id)) {
+          virtualScriptContent = virtualScriptContent.concat(`${indent}${indent}${attrs[id]}\n`)
         }
       }
     }
-  )
+  })
   parser.parseComplete(textOrSourceCode)
   if (virtualScriptContent.length) {
     let semi = ";"
@@ -106,7 +104,7 @@ ${virtualScriptContent}
 ${indent}}
 ${indent}virtualScript()${semi}
 </script>`
-    textOrSourceCode = textOrSourceCode.concat(virtualScript);
+    textOrSourceCode = textOrSourceCode.concat(virtualScript)
   }
   return textOrSourceCode
 }
@@ -119,7 +117,7 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
-    textOrSourceCode = addOnXXX(textOrSourceCode, config);
+    textOrSourceCode = addOnXXX(textOrSourceCode, config)
     const localVerify = code =>
       verify.call(this, code, config, filenameOrOptions, saveState)
 

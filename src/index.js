@@ -74,14 +74,14 @@ function iterateESLintModules(fn) {
 }
 
 function addOnXXX(textOrSourceCode, config) {
-  var indent = "    "
+  let indent = "    "
   if(config && config.rules && config.rules.indent) {
     if(config.rules.indent.includes("tab")) {
       indent = "\t"
     }
   }
-  var virtualScriptContent = ""
-  var regex = /^on[a-zA-Z]+$/
+  let virtualScriptContent = ""
+  const regex = /^on[a-zA-Z]+$/
   const parser = new htmlparser.Parser(
     {
       onopentag(name, attrs) {
@@ -95,12 +95,12 @@ function addOnXXX(textOrSourceCode, config) {
   )
   parser.parseComplete(textOrSourceCode)
   if(virtualScriptContent.length) {
-    var semi = ";"
+    let semi = ";"
     if(config && config.rules && config.rules.semi && config.rules.semi.includes("never")) {
       semi = ""
     }
     virtualScriptContent = virtualScriptContent.slice(0, -1)
-    var virtualScript = `<script>
+    const virtualScript = `<script>
 ${indent}function virtualScript() {
 ${virtualScriptContent}
 ${indent}}

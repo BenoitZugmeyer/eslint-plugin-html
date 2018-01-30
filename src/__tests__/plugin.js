@@ -707,7 +707,7 @@ describe("linting attributes", () => {
   it("should respect no-unused-vars rule", () => {
     const messages = execute("attributes.html", {
       rules: {
-        "no-unused-vars": "error"
+        "no-unused-vars": "error",
       },
     })
     expect(messages.length).toBe(0);
@@ -715,7 +715,7 @@ describe("linting attributes", () => {
   it("should respect semi rule", () => {
     const messages = execute("attributes.html", {
       rules: {
-        "semi": ["error", "never"]
+        "semi": ["error", "never"],
       },
     })
     expect(messages.length).toBe(0);
@@ -723,12 +723,10 @@ describe("linting attributes", () => {
   it("should respect indent rule", () => {
     const messages = execute("attributes.html", {
       rules: {
-        "indent": ["error", "tab"]
+        "indent": ["error", "tab"],
       },
     })
-    expect(messages.length).toBe(1);
-    expect(messages[0].message).toBe("Expected indentation of 1 tab but found 2 spaces.");
-    messages.forEach(function(message) {
-    });
+    expect(messages.length).toBe(1)
+    expect(messages[0].message).toBe("Expected indentation of 1 tab but found 2 spaces.")
   })
 })

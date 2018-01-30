@@ -75,8 +75,8 @@ function iterateESLintModules(fn) {
 
 function addOnXXX(textOrSourceCode, config) {
   let indent = "    "
-  if(config && config.rules && config.rules.indent) {
-    if(config.rules.indent.includes("tab")) {
+  if (config && config.rules && config.rules.indent) {
+    if (config.rules.indent.includes("tab")) {
       indent = "\t"
     }
   }
@@ -86,7 +86,7 @@ function addOnXXX(textOrSourceCode, config) {
     {
       onopentag(name, attrs) {
         for (const id in attrs) {
-          if(regex.test(id)) {
+          if (regex.test(id)) {
             virtualScriptContent = virtualScriptContent.concat(`${indent}${indent}${attrs[id]}\n`)
           }
         }
@@ -94,9 +94,9 @@ function addOnXXX(textOrSourceCode, config) {
     }
   )
   parser.parseComplete(textOrSourceCode)
-  if(virtualScriptContent.length) {
+  if (virtualScriptContent.length) {
     let semi = ";"
-    if(config && config.rules && config.rules.semi && config.rules.semi.includes("never")) {
+    if (config && config.rules && config.rules.semi && config.rules.semi.includes("never")) {
       semi = ""
     }
     virtualScriptContent = virtualScriptContent.slice(0, -1)

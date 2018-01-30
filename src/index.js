@@ -73,10 +73,20 @@ function iterateESLintModules(fn) {
   }
 }
 
+function includes(array, element) {
+  let r = false
+  array.forEach(e => {
+    if (e === element) {
+      r = true
+    }
+  })
+  return r
+}
+
 function addOnXXX(textOrSourceCode, config) {
   let indent = "    "
   if (config && config.rules && config.rules.indent) {
-    if (config.rules.indent.includes("tab")) {
+    if (includes(config.rules.indent, "tab")) {
       indent = "\t"
     }
   }
@@ -100,7 +110,7 @@ function addOnXXX(textOrSourceCode, config) {
       config &&
       config.rules &&
       config.rules.semi &&
-      config.rules.semi.includes("never")
+      includes(config.rules.semi, "never")
     ) {
       semi = ""
     }

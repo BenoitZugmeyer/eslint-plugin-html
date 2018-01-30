@@ -1,6 +1,7 @@
 "use strict"
 
 const path = require("path")
+const htmlparser = require("htmlparser2")
 const extract = require("./extract")
 const utils = require("./utils")
 const oneLine = utils.oneLine
@@ -72,6 +73,44 @@ function iterateESLintModules(fn) {
   }
 }
 
+function addOnXXX(textOrSourceCode, config) {
+  var indent = "    "
+  if(config && config.rules && config.rules.indent) {
+    if(config.rules.indent.includes("tab")) {
+      indent = "\t"
+    }
+  }
+  var virtualScriptContent = ""
+  var regex = /^on[a-zA-Z]+$/
+  const parser = new htmlparser.Parser(
+    {
+      onopentag(name, attrs) {
+        for (const id in attrs) {
+          if(regex.test(id)) {
+            virtualScriptContent = virtualScriptContent.concat(`${indent}${indent}${attrs[id]}\n`)
+          }
+        }
+      }
+    }
+  )
+  parser.parseComplete(textOrSourceCode)
+  if(virtualScriptContent.length) {
+    var semi = ";"
+    if(config && config.rules && config.rules.semi && config.rules.semi.includes("never")) {
+      semi = ""
+    }
+    virtualScriptContent = virtualScriptContent.slice(0, -1)
+    var virtualScript = `<script>
+${indent}function virtualScript() {
+${virtualScriptContent}
+${indent}}
+${indent}virtualScript()${semi}
+</script>`
+    textOrSourceCode = textOrSourceCode.concat(virtualScript);
+  }
+  return textOrSourceCode
+}
+
 function patch(Linter) {
   const verify = Linter.prototype.verify
   Linter.prototype.verify = function(
@@ -80,6 +119,7 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
+    textOrSourceCode = addOnXXX(textOrSourceCode, config);
     const localVerify = code =>
       verify.call(this, code, config, filenameOrOptions, saveState)
 

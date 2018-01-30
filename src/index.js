@@ -86,15 +86,22 @@ function addOnXXX(textOrSourceCode, config) {
     onopentag(name, attrs) {
       for (const id in attrs) {
         if (regex.test(id)) {
-          virtualScriptContent = virtualScriptContent.concat(`${indent}${indent}${attrs[id]}\n`)
+          virtualScriptContent = virtualScriptContent.concat(
+            `${indent}${indent}${attrs[id]}\n`
+          )
         }
       }
-    }
+    },
   })
   parser.parseComplete(textOrSourceCode)
   if (virtualScriptContent.length) {
     let semi = ";"
-    if (config && config.rules && config.rules.semi && config.rules.semi.includes("never")) {
+    if (
+      config &&
+      config.rules &&
+      config.rules.semi &&
+      config.rules.semi.includes("never")
+    ) {
       semi = ""
     }
     virtualScriptContent = virtualScriptContent.slice(0, -1)

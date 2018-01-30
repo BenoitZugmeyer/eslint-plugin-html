@@ -727,6 +727,8 @@ describe("linting attributes", () => {
       },
     })
     expect(messages.length).toBe(1)
-    expect(messages[0].message).toBe("Expected indentation of 1 tab but found 2 spaces.")
+    expect(messages[0].message).toBe(`
+      "Expected indentation of 1 tab but found 2 spaces."
+    `)
   })
 })

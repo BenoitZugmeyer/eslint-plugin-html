@@ -10,6 +10,8 @@ const getSettings = require("./settings").getSettings
 const BOM = "\uFEFF"
 const GET_SCOPE_RULE_NAME = "__eslint-plugin-html-get-scope"
 const DECLARE_VARIABLES_RULE_NAME = "__eslint-plugin-html-declare-variables"
+const LINTER_ISPATCHED_PROPERTY_NAME =
+  "__eslint-plugin-html-verify-function-is-patched"
 
 // Disclaimer:
 //
@@ -74,6 +76,12 @@ function iterateESLintModules(fn) {
 
 function patch(Linter) {
   const verify = Linter.prototype.verify
+
+  // ignore if verify function is already been patched sometime before
+  if (Linter[LINTER_ISPATCHED_PROPERTY_NAME] === true) {
+    return
+  }
+  Linter[LINTER_ISPATCHED_PROPERTY_NAME] = true
   Linter.prototype.verify = function(
     textOrSourceCode,
     config,

@@ -1,3 +1,9 @@
+2018-04-11 v4.0.3
+* Prevent patching ESLint multiple times #89
+
+2018-01-24 v4.0.2
+* Fix compatibility with tslint #85
+
 2017-11-22 v4.0.1
 * Fix processing files after processing a HTML file without script tag #82
 

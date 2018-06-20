@@ -75,7 +75,8 @@ function iterateESLintModules(fn) {
       eslintVersion = "n/a"
     }
 
-    const pluginVersion = require("../package.json").version
+    const parentPaths = module =>
+      module ? [module.filename].concat(parentPaths(module.parent)) : []
 
     throw new Error(
       `eslint-plugin-html error: It seems that eslint is not loaded.
@@ -85,13 +86,14 @@ In the report, please include *all* those informations:
 
 * ESLint version: ${eslintVersion}
 * ESLint path: ${eslintPath}
-* Plugin version: ${pluginVersion}
-* Plugin path: ${__dirname}
+* Plugin version: ${require("../package.json").version}
+* Plugin inclusion paths: ${parentPaths(module).join(", ")}
 * NodeJS version: ${process.version}
-* Content of your lock file (package-lock.json or yarn.lock)
+* CLI arguments: ${JSON.stringify(process.argv)}
+* Content of your lock file (package-lock.json or yarn.lock) or the output of \`npm list\`
 * How did you run ESLint (via the command line? an editor plugin?)
 * The following stack trace:
-    ${new Error().stack}
+    ${new Error().stack.slice(10)}
 
 
       `

@@ -1,3 +1,6 @@
+2018-06-20 v4.0.4
+* Request detailed informations when ESLint is not found
+
 2018-04-11 v4.0.3
 * Prevent patching ESLint multiple times #89
 

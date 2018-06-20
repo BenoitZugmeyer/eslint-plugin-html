@@ -1,3 +1,6 @@
+2018-06-20 v4.0.5
+* Fix typo regression from v4.0.4
+
 2018-06-20 v4.0.4
 * Request detailed informations when ESLint is not found
 

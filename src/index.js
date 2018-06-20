@@ -3,7 +3,6 @@
 const path = require("path")
 const extract = require("./extract")
 const utils = require("./utils")
-const oneLine = utils.oneLine
 const splatSet = utils.splatSet
 const getSettings = require("./settings").getSettings
 
@@ -63,12 +62,38 @@ function iterateESLintModules(fn) {
     }
   }
 
-  if (!found) {
+  if (found) {
+    let eslintPath, eslintVersion
+    try {
+      eslintPath = require.resolve("eslint")
+    } catch (e) {
+      eslintPath = "(not found)"
+    }
+    try {
+      eslintVersion = require("eslint/package.json").version
+    } catch (e) {
+      eslintVersion = "n/a"
+    }
+
+    const pluginVersion = require("../package.json").version
+
     throw new Error(
-      oneLine`
-        eslint-plugin-html error: It seems that eslint is not loaded.
-        If you think it is a bug, please file a report at
-        https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+      `eslint-plugin-html error: It seems that eslint is not loaded.
+If you think this is a bug, please file a report at https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
+
+In the report, please include *all* those informations:
+
+* ESLint version: ${eslintVersion}
+* ESLint path: ${eslintPath}
+* Plugin version: ${pluginVersion}
+* Plugin path: ${__dirname}
+* NodeJS version: ${process.version}
+* Content of your lock file (package-lock.json or yarn.lock)
+* How did you run ESLint (via the command line? an editor plugin?)
+* The following stack trace:
+    ${new Error().stack}
+
+
       `
     )
   }

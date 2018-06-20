@@ -62,7 +62,7 @@ function iterateESLintModules(fn) {
     }
   }
 
-  if (found) {
+  if (!found) {
     let eslintPath, eslintVersion
     try {
       eslintPath = require.resolve("eslint")

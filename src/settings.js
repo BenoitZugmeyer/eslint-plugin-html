@@ -94,8 +94,8 @@ function getSettings(settings) {
       ]
 
   function isJavaScriptMIMEType(type) {
-    return javaScriptMIMETypes.some(
-      o => (typeof o === "string" ? type === o : o.test(type))
+    return javaScriptMIMETypes.some(o =>
+      typeof o === "string" ? type === o : o.test(type)
     )
   }
 

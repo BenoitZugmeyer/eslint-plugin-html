@@ -17,13 +17,13 @@
   ],
   "main": "src/index.js",
   "dependencies": {
-    "htmlparser2": "^3.8.2"
+    "htmlparser2": "^3.10.0"
   },
   "devDependencies": {
-    "eslint": "^4.7.0",
-    "eslint-config-benoitz-prettier": "^1.0.1",
-    "jest": "^21.1.0",
-    "prettier": "^1.7.4"
+    "eslint": "^5.9.0",
+    "eslint-config-benoitz-prettier": "^1.1.0",
+    "jest": "^23.6.0",
+    "prettier": "^1.15.2"
   },
   "scripts": {
     "validate": "npm run lint && npm run test",

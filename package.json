@@ -20,10 +20,10 @@
     "htmlparser2": "^3.8.2"
   },
   "devDependencies": {
-    "eslint": "^4.7.0",
+    "eslint": "^5.0.0",
     "eslint-config-benoitz-prettier": "^1.0.1",
-    "jest": "^21.1.0",
-    "prettier": "^1.7.4"
+    "jest": "^23.1.0",
+    "prettier": "^1.13.5"
   },
   "scripts": {
     "validate": "npm run lint && npm run test",

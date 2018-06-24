@@ -3,7 +3,8 @@ node_js:
   - 4
   - 6
   - 8
+  - 10
 script:
-  - if node --version | grep -q v8; then npm run lint; fi
+  - if node --version | grep -q v10; then npm run lint; fi
   - npm install eslint@4.7 && npm test
   - npm install eslint@latest && npm test

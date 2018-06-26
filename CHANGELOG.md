@@ -1,3 +1,7 @@
+UNRELEASED v5
+* **Breaking: drop support of Node.js 4**
+* More detailed error reporting
+
 2018-06-20 v4.0.5
 * Fix typo regression from v4.0.4
 

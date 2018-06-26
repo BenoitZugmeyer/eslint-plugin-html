@@ -1,3 +1,7 @@
+UNRELEASED v5
+* **Breaking: drop support of Node.js 4**
+* More detailed error reporting
+
 2018-09-22 v4.0.6
 * Ignore script tags with a `src` attribute #102
 

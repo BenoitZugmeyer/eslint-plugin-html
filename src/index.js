@@ -6,9 +6,7 @@ const utils = require("./utils")
 const splatSet = utils.splatSet
 const getSettings = require("./settings").getSettings
 
-const BOM = "\uFEFF"
-const GET_SCOPE_RULE_NAME = "__eslint-plugin-html-get-scope"
-const DECLARE_VARIABLES_RULE_NAME = "__eslint-plugin-html-declare-variables"
+const PREPARE_RULE_NAME = "__eslint-plugin-html-prepare"
 const LINTER_ISPATCHED_PROPERTY_NAME =
   "__eslint-plugin-html-verify-function-is-patched"
 
@@ -101,6 +99,21 @@ In the report, please include *all* those informations:
   }
 }
 
+function getMode(pluginSettings, filenameOrOptions) {
+  const filename =
+    typeof filenameOrOptions === "object"
+      ? filenameOrOptions.filename
+      : filenameOrOptions
+  const extension = path.extname(filename || "")
+
+  if (pluginSettings.htmlExtensions.indexOf(extension) >= 0) {
+    return "html"
+  }
+  if (pluginSettings.xmlExtensions.indexOf(extension) >= 0) {
+    return "xml"
+  }
+}
+
 function patch(Linter) {
   const verify = Linter.prototype.verify
 
@@ -115,153 +128,137 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
-    const localVerify = code =>
-      verify.call(this, code, config, filenameOrOptions, saveState)
-
-    let messages
-    const filename =
-      typeof filenameOrOptions === "object"
-        ? filenameOrOptions.filename
-        : filenameOrOptions
-    const extension = path.extname(filename || "")
-
     const pluginSettings = getSettings(config.settings || {})
-    const isHTML = pluginSettings.htmlExtensions.indexOf(extension) >= 0
-    const isXML =
-      !isHTML && pluginSettings.xmlExtensions.indexOf(extension) >= 0
+    const mode = getMode(pluginSettings, filenameOrOptions)
 
-    if (typeof textOrSourceCode === "string" && (isHTML || isXML)) {
-      messages = []
-
-      const pushMessages = (localMessages, code) => {
-        messages.push.apply(
-          messages,
-          remapMessages(localMessages, textOrSourceCode.startsWith(BOM), code)
-        )
-      }
-
-      const currentInfos = extract(
+    if (!mode || typeof textOrSourceCode !== "string") {
+      return verify.call(
+        this,
         textOrSourceCode,
-        pluginSettings.indent,
-        isXML,
-        pluginSettings.isJavaScriptMIMEType
+        config,
+        filenameOrOptions,
+        saveState
+      )
+    }
+    const extractResult = extract(
+      textOrSourceCode,
+      pluginSettings.indent,
+      mode === "xml",
+      pluginSettings.isJavaScriptMIMEType
+    )
+
+    const messages = []
+
+    if (pluginSettings.reportBadIndent) {
+      messages.push(
+        ...extractResult.badIndentationLines.map(line => ({
+          message: "Bad line indentation.",
+          line,
+          column: 1,
+          ruleId: "(html plugin)",
+          severity: pluginSettings.reportBadIndent,
+        }))
+      )
+    }
+
+    // Save code parts parsed source code so we don't have to parse it twice
+    const sourceCodes = new WeakMap()
+    const verifyCodePart = (codePart, { prepare, ignoreRules } = {}) => {
+      this.rules.define(PREPARE_RULE_NAME, context => {
+        sourceCodes.set(codePart, context.getSourceCode())
+        return {
+          Program() {
+            if (prepare) {
+              prepare(context)
+            }
+          },
+        }
+      })
+
+      const localMessages = verify.call(
+        this,
+        sourceCodes.get(codePart) || String(codePart),
+        Object.assign({}, config, {
+          rules: Object.assign(
+            { [PREPARE_RULE_NAME]: "error" },
+            !ignoreRules && config.rules
+          ),
+        }),
+        filenameOrOptions,
+        saveState
       )
 
-      if (pluginSettings.reportBadIndent) {
-        currentInfos.badIndentationLines.forEach(line => {
-          messages.push({
-            message: "Bad line indentation.",
-            line,
-            column: 1,
-            ruleId: "(html plugin)",
-            severity: pluginSettings.reportBadIndent,
-          })
-        })
-      }
-
-      if (
-        config.parserOptions &&
-        config.parserOptions.sourceType === "module"
-      ) {
-        for (const code of currentInfos.code) {
-          pushMessages(localVerify(String(code)), code)
-        }
-      } else {
-        verifyWithSharedScopes.call(
-          this,
-          localVerify,
-          config,
-          currentInfos,
-          pushMessages
-        )
-      }
-
-      messages.sort((ma, mb) => {
-        return ma.line - mb.line || ma.column - mb.column
-      })
-    } else {
-      messages = localVerify(textOrSourceCode)
+      messages.push(
+        ...remapMessages(localMessages, extractResult.hasBOM, codePart)
+      )
     }
+
+    if (config.parserOptions && config.parserOptions.sourceType === "module") {
+      for (const codePart of extractResult.code) {
+        verifyCodePart(codePart)
+      }
+    } else {
+      verifyWithSharedScopes(extractResult.code, verifyCodePart)
+    }
+
+    messages.sort((ma, mb) => ma.line - mb.line || ma.column - mb.column)
 
     return messages
   }
 }
 
-function verifyWithSharedScopes(
-  localVerify,
-  config,
-  currentInfos,
-  pushMessages
-) {
+function verifyWithSharedScopes(codeParts, verifyCodePart) {
   // First pass: collect needed globals and declared globals for each script tags.
   const firstPassValues = []
-  const originalRules = config.rules
-  config.rules = { [GET_SCOPE_RULE_NAME]: "error" }
 
-  for (const code of currentInfos.code) {
-    this.rules.define(GET_SCOPE_RULE_NAME, context => {
-      return {
-        Program() {
-          firstPassValues.push({
-            code,
-            sourceCode: context.getSourceCode(),
-            exportedGlobals: context
-              .getScope()
-              .through.map(node => node.identifier.name),
-            declaredGlobals: context
-              .getScope()
-              .variables.map(variable => variable.name),
-          })
-        },
-      }
+  for (const codePart of codeParts) {
+    verifyCodePart(codePart, {
+      prepare(context) {
+        firstPassValues.push({
+          codePart,
+          exportedGlobals: context
+            .getScope()
+            .through.map(node => node.identifier.name),
+          declaredGlobals: context
+            .getScope()
+            .variables.map(variable => variable.name),
+        })
+      },
+      ignoreRules: true,
     })
-
-    pushMessages(localVerify(String(code)), code)
   }
-
-  config.rules = Object.assign(
-    { [DECLARE_VARIABLES_RULE_NAME]: "error" },
-    originalRules
-  )
 
   // Second pass: declare variables for each script scope, then run eslint.
   for (let i = 0; i < firstPassValues.length; i += 1) {
-    this.rules.define(DECLARE_VARIABLES_RULE_NAME, context => {
-      return {
-        Program() {
-          const exportedGlobals = splatSet(
-            firstPassValues
-              .slice(i + 1)
-              .map(nextValues => nextValues.exportedGlobals)
-          )
-          for (const name of exportedGlobals) context.markVariableAsUsed(name)
+    verifyCodePart(firstPassValues[i].codePart, {
+      prepare(context) {
+        const exportedGlobals = splatSet(
+          firstPassValues
+            .slice(i + 1)
+            .map(nextValues => nextValues.exportedGlobals)
+        )
+        for (const name of exportedGlobals) context.markVariableAsUsed(name)
 
-          const declaredGlobals = splatSet(
-            firstPassValues
-              .slice(0, i)
-              .map(previousValues => previousValues.declaredGlobals)
-          )
-          const scope = context.getScope()
-          scope.through = scope.through.filter(variable => {
-            return !declaredGlobals.has(variable.identifier.name)
-          })
-        },
-      }
+        const declaredGlobals = splatSet(
+          firstPassValues
+            .slice(0, i)
+            .map(previousValues => previousValues.declaredGlobals)
+        )
+        const scope = context.getScope()
+        scope.through = scope.through.filter(variable => {
+          return !declaredGlobals.has(variable.identifier.name)
+        })
+      },
     })
-
-    const values = firstPassValues[i]
-    pushMessages(localVerify(values.sourceCode), values.code)
   }
-
-  config.rules = originalRules
 }
 
-function remapMessages(messages, hasBOM, code) {
+function remapMessages(messages, hasBOM, codePart) {
   const newMessages = []
   const bomOffset = hasBOM ? -1 : 0
 
   for (const message of messages) {
-    const location = code.originalLocation({
+    const location = codePart.originalLocation({
       line: message.line,
       // eslint-plugin-eslint-comments is raising message with column=0 to bypass ESLint ignore
       // comments. Since messages are already ignored at this time, just reset the column to a valid
@@ -272,21 +269,21 @@ function remapMessages(messages, hasBOM, code) {
     // Ignore messages if they were in transformed code
     if (location) {
       Object.assign(message, location)
-      message.source = code.getOriginalLine(location.line)
+      message.source = codePart.getOriginalLine(location.line)
 
       // Map fix range
       if (message.fix && message.fix.range) {
         message.fix.range = [
-          code.originalIndex(message.fix.range[0]) + bomOffset,
+          codePart.originalIndex(message.fix.range[0]) + bomOffset,
           // The range end is exclusive, meaning it should replace all characters  with indexes from
           // start to end - 1. We have to get the original index of the last targeted character.
-          code.originalIndex(message.fix.range[1] - 1) + 1 + bomOffset,
+          codePart.originalIndex(message.fix.range[1] - 1) + 1 + bomOffset,
         ]
       }
 
       // Map end location
       if (message.endLine && message.endColumn) {
-        const endLocation = code.originalLocation({
+        const endLocation = codePart.originalLocation({
           line: message.endLine,
           column: message.endColumn,
         })

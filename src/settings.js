@@ -50,6 +50,9 @@ function getSettings(settings) {
     getSetting(settings, "xml-extensions") ||
     filterOut(defaultXMLExtensions, getSetting(settings, "html-extensions"))
 
+  let fakeFileExtension = getSetting(settings, "fake-file-extension")
+  if (fakeFileExtension === true) fakeFileExtension = ".js"
+
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {
     case undefined:
@@ -104,6 +107,7 @@ function getSettings(settings) {
     xmlExtensions,
     indent,
     reportBadIndent,
+    fakeFileExtension,
     isJavaScriptMIMEType,
   }
 }

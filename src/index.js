@@ -114,6 +114,25 @@ function getMode(pluginSettings, filenameOrOptions) {
   }
 }
 
+function replaceExtension(fileName, extension) {
+  const index = fileName.lastIndexOf(".")
+  const fileNameWithoutExtension =
+    index < 0 ? fileName : fileName.slice(0, index)
+  return fileNameWithoutExtension + extension
+}
+
+function fakeFileExtension(filenameOrOptions, extension) {
+  if (!extension) return filenameOrOptions
+
+  if (typeof filenameOrOptions === "object") {
+    return Object.assign({}, filenameOrOptions, {
+      filename: replaceExtension(filenameOrOptions.filename, extension),
+    })
+  }
+
+  return replaceExtension(filenameOrOptions, extension)
+}
+
 function patch(Linter) {
   const verify = Linter.prototype.verify
 
@@ -184,7 +203,7 @@ function patch(Linter) {
             !ignoreRules && config.rules
           ),
         }),
-        filenameOrOptions,
+        fakeFileExtension(filenameOrOptions, pluginSettings.fakeFileExtension),
         saveState
       )
 

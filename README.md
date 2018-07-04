@@ -195,6 +195,26 @@ If a MIME type starts with a `/`, it will be considered as a regular expression.
 }
 ```
 
+### `html/fake-file-extension`
+
+Some other `ESLint` plugin are basing their behavior on the file extension.  For example,
+`eslint-plugin-prettier` will format the script according to the file type determined by the file
+extension.  By default, the file name won't be changed, so if the file extension is `.html`,
+`Prettier` will fail to handle the script because it will try to parse it as HTML, even if it will
+receive only the JavaScript parts.  This setting will override the file extension reported to other
+plugins.
+
+```javascript
+{
+    "plugins": [ "html" ],
+    "settings": {
+        "html/fake-file-extension": true,    // will replace the file extension with ".js"
+        "html/fake-file-extension": ".jsx",  // will replace the file extension with ".jsx"
+    }
+}
+```
+
+
 Troubleshooting
 ---------------
 
@@ -223,3 +243,8 @@ Initially, [`eslint-plugin-vue`](https://github.com/vuejs/eslint-plugin-vue) was
 `eslint-plugin-html` to lint code inside script tags.  Since v3, `eslint-plugin-vue` is using its
 own parser, so it is *incompatible* with `eslint-plugin-html`.  You should remove
 `eslint-plugin-html` from your dependencies if you still have this.
+
+
+### Compatibility with `eslint-plugin-prettier`
+
+Use the setting [`html/fake-file-extension`](#htmlfake-file-extension).

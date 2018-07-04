@@ -4,31 +4,34 @@ const path = require("path")
 const CLIEngine = require("eslint").CLIEngine
 const plugin = require("..")
 
-function execute(file, baseConfig) {
-  if (!baseConfig) baseConfig = {}
+function execute(file, options) {
+  if (!options) options = {}
 
   const cli = new CLIEngine({
     extensions: ["html"],
     baseConfig: {
-      settings: baseConfig.settings,
+      settings: options.settings,
       rules: Object.assign(
         {
           "no-console": 2,
         },
-        baseConfig.rules
+        options.rules
       ),
-      globals: baseConfig.globals,
-      env: baseConfig.env,
-      parserOptions: baseConfig.parserOptions,
+      globals: options.globals,
+      env: options.env,
+      parserOptions: options.parserOptions,
     },
     ignore: false,
     useEslintrc: false,
-    fix: baseConfig.fix,
+    fix: options.fix,
   })
   cli.addPlugin("html", plugin)
+  if (options.mockPlugin) {
+    cli.addPlugin("mock", options.mockPlugin)
+  }
   const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)])
     .results[0]
-  return baseConfig.fix ? results : results && results.messages
+  return options.fix ? results : results && results.messages
 }
 
 it("should extract and remap messages", () => {
@@ -322,6 +325,70 @@ describe("html/report-bad-indent setting", () => {
     expect(messages[2].message).toBe("Bad line indentation.")
     expect(messages[2].line).toBe(11)
     expect(messages[2].column).toBe(1)
+  })
+})
+
+describe("html/fake-file-extension setting", () => {
+  const filenames = []
+  function config(settingValue) {
+    return {
+      rules: {
+        "mock/foo": "error",
+      },
+      settings: {
+        "html/fake-file-extension": settingValue,
+      },
+      mockPlugin: {
+        rules: {
+          foo: {
+            create(context) {
+              filenames.push(context.getFilename())
+              return {}
+            },
+          },
+        },
+      },
+    }
+  }
+
+  beforeEach(() => {
+    filenames.length = 0
+  })
+
+  it("fakes the file extension", () => {
+    execute("simple.html", config(true))
+    const filePath = path.resolve(__dirname, "fixtures/simple.js")
+    expect(filenames).toEqual([
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+    ])
+  })
+
+  it("doesn't fake the file extension", () => {
+    execute("simple.html", config(false))
+    const filePath = path.resolve(__dirname, "fixtures/simple.html")
+    expect(filenames).toEqual([
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+    ])
+  })
+
+  it("set a custom file extension", () => {
+    execute("simple.html", config(".jsx"))
+    const filePath = path.resolve(__dirname, "fixtures/simple.jsx")
+    expect(filenames).toEqual([
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+      filePath,
+    ])
   })
 })
 

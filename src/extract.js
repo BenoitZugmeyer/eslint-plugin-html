@@ -224,6 +224,7 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   return {
     code: codeParts,
     badIndentationLines,
+    hasBOM: code.startsWith("\uFEFF"),
   }
 }
 

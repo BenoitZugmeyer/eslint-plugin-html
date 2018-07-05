@@ -1,9 +1,11 @@
-UNRELEASED v5
+2018-11-11 v5
 * **Breaking: drop support of Node.js 4**
-* More detailed error reporting
+* **Breaking: don't lint .vue files by default**
+* Update dependencies
 
 2018-09-22 v4.0.6
 * Ignore script tags with a `src` attribute #102
+* More detailed error reporting
 
 2018-06-20 v4.0.5
 * Fix typo regression from v4.0.4

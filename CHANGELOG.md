@@ -1,3 +1,6 @@
+2018-09-22 v4.0.6
+* Ignore script tags with a `src` attribute #102
+
 2018-06-20 v4.0.5
 * Fix typo regression from v4.0.4
 

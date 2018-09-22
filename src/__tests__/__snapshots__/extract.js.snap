@@ -165,6 +165,8 @@ Array [
 ]
 `;
 
+exports[`skips script with src attributes 1`] = `Array []`;
+
 exports[`trim last line spaces 1`] = `
 Array [
   "var foo = 1;

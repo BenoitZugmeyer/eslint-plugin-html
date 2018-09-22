@@ -31,6 +31,10 @@ function iterateScripts(code, options, onChunk) {
           return
         }
 
+        if (attrs.src) {
+          return
+        }
+
         inScript = true
         pushChunk("html", parser.endIndex + 1)
       },

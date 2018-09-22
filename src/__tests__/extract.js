@@ -311,3 +311,9 @@ it("handles self closing script tags in xhtml mode", () => {
     xmlMode: true,
   })
 })
+
+it("skips script with src attributes", () => {
+  test({
+    input: '<script src="foo"></script>',
+  })
+})

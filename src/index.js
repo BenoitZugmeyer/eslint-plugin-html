@@ -1,6 +1,7 @@
 "use strict"
 
 const path = require("path")
+const htmlparser = require("htmlparser2")
 const extract = require("./extract")
 const utils = require("./utils")
 const splatSet = utils.splatSet
@@ -101,6 +102,59 @@ In the report, please include *all* those informations:
   }
 }
 
+function includes(array, element) {
+  let r = false
+  array.forEach(e => {
+    if (e === element) {
+      r = true
+    }
+  })
+  return r
+}
+
+function addOnXXX(textOrSourceCode, config) {
+  let indent = "    "
+  if (config && config.rules && config.rules.indent) {
+    if (includes(config.rules.indent, "tab")) {
+      indent = "\t"
+    }
+  }
+  let virtualScriptContent = ""
+  const regex = /^on[a-zA-Z]+$/
+  const parser = new htmlparser.Parser({
+    onopentag(name, attrs) {
+      for (const id in attrs) {
+        if (regex.test(id)) {
+          virtualScriptContent = virtualScriptContent.concat(
+            `${indent}${indent}${attrs[id]}\n`
+          )
+        }
+      }
+    },
+  })
+  parser.parseComplete(textOrSourceCode)
+  if (virtualScriptContent.length) {
+    let semi = ";"
+    if (
+      config &&
+      config.rules &&
+      config.rules.semi &&
+      includes(config.rules.semi, "never")
+    ) {
+      semi = ""
+    }
+    virtualScriptContent = virtualScriptContent.slice(0, -1)
+    const virtualScript = `<script>
+${indent}function virtualScript() {
+${virtualScriptContent}
+${indent}}
+${indent}virtualScript()${semi}
+</script>`
+    textOrSourceCode = textOrSourceCode.concat(virtualScript)
+  }
+  return textOrSourceCode
+}
+
 function patch(Linter) {
   const verify = Linter.prototype.verify
 
@@ -115,6 +169,7 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
+    textOrSourceCode = addOnXXX(textOrSourceCode, config)
     const localVerify = code =>
       verify.call(this, code, config, filenameOrOptions, saveState)
 

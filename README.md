@@ -113,8 +113,8 @@ Settings
 ### `html/html-extensions`
 
 By default, this plugin will only consider files ending with those extensions as HTML: `.erb`,
-`.handlebars`, `.hbs`, `.htm`, `.html`, `.mustache`, `.nunjucks`, `.php`, `.tag`, `.twig`, `.vue`,
-`.we`. You can set your own list of HTML extensions by using this setting. Example:
+`.handlebars`, `.hbs`, `.htm`, `.html`, `.mustache`, `.nunjucks`, `.php`, `.tag`, `.twig`, `.we`.
+You can set your own list of HTML extensions by using this setting. Example:
 
 ```javascript
 {
@@ -221,5 +221,5 @@ console.log(mydata);
 
 Initially, [`eslint-plugin-vue`](https://github.com/vuejs/eslint-plugin-vue) was using
 `eslint-plugin-html` to lint code inside script tags.  Since v3, `eslint-plugin-vue` is using its
-own parser, so it is *incompatible* with `eslint-plugin-html`.  You should remove
-`eslint-plugin-html` from your dependencies if you still have this.
+own parser, so it is *incompatible* with `eslint-plugin-html`.  You should use `eslint-plugin-vue`
+exclusively and remove `eslint-plugin-html` from your dependencies if you still have it.

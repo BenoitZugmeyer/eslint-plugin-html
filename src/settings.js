@@ -13,7 +13,6 @@ const defaultHTMLExtensions = [
   ".php",
   ".tag",
   ".twig",
-  ".vue",
   ".we",
 ]
 

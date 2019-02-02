@@ -2,7 +2,14 @@
 
 const path = require("path")
 const CLIEngine = require("eslint").CLIEngine
+const semver = require("semver")
+const eslintVersion = require("eslint/package.json").version
 const plugin = require("..")
+
+function ifVersion(versionSpec, fn, ...args) {
+  const execFn = semver.satisfies(eslintVersion, versionSpec) ? fn : fn.skip
+  execFn(...args)
+}
 
 function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
@@ -24,6 +31,7 @@ function execute(file, baseConfig) {
     ignore: false,
     useEslintrc: false,
     fix: baseConfig.fix,
+    reportUnusedDisableDirectives: baseConfig.reportUnusedDisableDirectives,
   })
   cli.addPlugin("html", plugin)
   const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)])
@@ -492,6 +500,32 @@ describe("fix", () => {
 `)
       expect(result.messages.length).toBe(0)
     })
+  })
+})
+
+ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
+  it("reports unused disabled directives", () => {
+    const messages = execute("inline-disabled-rule.html", {
+      reportUnusedDisableDirectives: true,
+    })
+
+    expect(messages.length).toBe(1)
+    expect(messages[0].line).toBe(2)
+    expect(messages[0].column).toBe(3)
+    expect(messages[0].message).toBe(
+      "Unused eslint-disable directive (no problems were reported from 'no-eval')."
+    )
+  })
+
+  it("doesn't report used disabled directives", () => {
+    const messages = execute("inline-disabled-rule.html", {
+      reportUnusedDisableDirectives: true,
+      rules: {
+        "no-eval": 2,
+      },
+    })
+
+    expect(messages.length).toBe(0)
   })
 })
 

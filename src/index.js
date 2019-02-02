@@ -184,7 +184,11 @@ function patch(Linter) {
             !ignoreRules && config.rules
           ),
         }),
-        filenameOrOptions,
+        ignoreRules && typeof filenameOrOptions === "object"
+          ? Object.assign({}, filenameOrOptions, {
+              reportUnusedDisableDirectives: false,
+            })
+          : filenameOrOptions,
         saveState
       )
 

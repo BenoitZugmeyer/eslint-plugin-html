@@ -23,7 +23,8 @@
     "eslint": "^5.13.0",
     "eslint-config-benoitz-prettier": "^1.1.0",
     "jest": "^24.0.0",
-    "prettier": "^1.16.3"
+    "prettier": "^1.16.3",
+    "semver": "^5.6.0"
   },
   "scripts": {
     "validate": "npm run lint && npm run test",

@@ -1,3 +1,6 @@
+2019-02-02 v5.0.2
+* Fix support for the --report-unused-disabled-directives option #111
+
 2019-02-02 v5.0.1
 * Fix compatibility with ESLint 5.13.0
 * Update dependencies

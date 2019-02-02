@@ -197,12 +197,13 @@ function patch(Linter) {
       )
     }
 
-    if (config.parserOptions && config.parserOptions.sourceType === "module") {
+    const parserOptions = config.parserOptions || {}
+    if (parserOptions.sourceType === "module") {
       for (const codePart of extractResult.code) {
         verifyCodePart(codePart)
       }
     } else {
-      verifyWithSharedScopes(extractResult.code, verifyCodePart)
+      verifyWithSharedScopes(extractResult.code, verifyCodePart, parserOptions)
     }
 
     messages.sort((ma, mb) => ma.line - mb.line || ma.column - mb.column)
@@ -211,21 +212,33 @@ function patch(Linter) {
   }
 }
 
-function verifyWithSharedScopes(codeParts, verifyCodePart) {
+function verifyWithSharedScopes(codeParts, verifyCodePart, parserOptions) {
   // First pass: collect needed globals and declared globals for each script tags.
   const firstPassValues = []
 
   for (const codePart of codeParts) {
     verifyCodePart(codePart, {
       prepare(context) {
+        const globalScope = context.getScope()
+        // See https://github.com/eslint/eslint/blob/4b267a5c8a42477bb2384f33b20083ff17ad578c/lib/rules/no-redeclare.js#L67-L78
+        let scopeForDeclaredGlobals
+        if (
+          parserOptions.ecmaFeatures &&
+          parserOptions.ecmaFeatures.globalReturn
+        ) {
+          scopeForDeclaredGlobals = globalScope.childScopes[0]
+        } else {
+          scopeForDeclaredGlobals = globalScope
+        }
+
         firstPassValues.push({
           codePart,
-          exportedGlobals: context
-            .getScope()
-            .through.map(node => node.identifier.name),
-          declaredGlobals: context
-            .getScope()
-            .variables.map(variable => variable.name),
+          exportedGlobals: globalScope.through.map(
+            node => node.identifier.name
+          ),
+          declaredGlobals: scopeForDeclaredGlobals.variables.map(
+            variable => variable.name
+          ),
         })
       },
       ignoreRules: true,

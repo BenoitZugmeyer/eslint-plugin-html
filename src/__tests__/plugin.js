@@ -596,7 +596,7 @@ it("should report correct eol-last message position", () => {
 })
 
 describe("scope sharing", () => {
-  it("should share the global scope between script tags", () => {
+  it("should export global variables between script scopes", () => {
     const messages = execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
@@ -627,7 +627,7 @@ describe("scope sharing", () => {
     )
   })
 
-  it("should share the global scope between script tags", () => {
+  it("should mark variable as used when the variable is used in another tag", () => {
     const messages = execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
@@ -656,6 +656,27 @@ describe("scope sharing", () => {
     expect(messages[3].message).toBe(
       "'ClassNotYetGloballyDeclared' is defined but never used."
     )
+  })
+
+  it("should not be influenced by the ECMA feature 'globalReturn'", () => {
+    const messages = execute("scope-sharing.html", {
+      rules: {
+        "no-console": "off",
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      globals: {
+        console: false,
+      },
+      env: { es6: true },
+      parserOptions: {
+        ecmaFeatures: {
+          globalReturn: true,
+        },
+      },
+    })
+
+    expect(messages.length).toBe(8)
   })
 
   it("should not share the global scope if sourceType is 'module'", () => {

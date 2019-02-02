@@ -164,7 +164,7 @@ function patch(Linter) {
     // Save code parts parsed source code so we don't have to parse it twice
     const sourceCodes = new WeakMap()
     const verifyCodePart = (codePart, { prepare, ignoreRules } = {}) => {
-      this.rules.define(PREPARE_RULE_NAME, context => {
+      this.defineRule(PREPARE_RULE_NAME, context => {
         sourceCodes.set(codePart, context.getSourceCode())
         return {
           Program() {

@@ -1,4 +1,8 @@
-2018-11-11 v5
+2019-02-02 v5.0.1
+* Fix compatibility with ESLint 5.13.0
+* Update dependencies
+
+2018-11-11 v5.0.0
 * **Breaking: drop support of Node.js 4**
 * **Breaking: don't lint .vue files by default**
 * Update dependencies

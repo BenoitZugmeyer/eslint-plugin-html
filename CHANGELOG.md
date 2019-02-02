@@ -1,3 +1,6 @@
+2019-02-02 v5.0.3
+* Fix support for `parserOptions.ecmaFeatures.globalReturn: true` while sharing scope between multiple script tags
+
 2019-02-02 v5.0.2
 * Fix support for the --report-unused-disabled-directives option #111
 

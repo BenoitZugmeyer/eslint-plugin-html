@@ -1,3 +1,6 @@
+2019-05-12 v5.0.4
+* Fix support for ESLint v6.0.0-alpha.1 #117
+
 2019-02-02 v5.0.3
 * Fix support for `parserOptions.ecmaFeatures.globalReturn: true` while sharing scope between multiple script tags
 

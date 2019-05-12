@@ -114,7 +114,8 @@ function getMode(pluginSettings, filenameOrOptions) {
   }
 }
 
-function patch(Linter) {
+function patch(moduleExports) {
+  const Linter = moduleExports.Linter ? moduleExports.Linter : moduleExports
   const verify = Linter.prototype.verify
 
   // ignore if verify function is already been patched sometime before
@@ -128,6 +129,10 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
+    if (typeof config.extractConfig === "function") {
+      return verify.call(this, textOrSourceCode, config, filenameOrOptions)
+    }
+
     const pluginSettings = getSettings(config.settings || {})
     const mode = getMode(pluginSettings, filenameOrOptions)
 

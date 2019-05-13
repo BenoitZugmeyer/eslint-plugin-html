@@ -1,3 +1,7 @@
+2019-05-13 v5.0.5
+* Fix support for ESLint v6.0.0-alpha.1 (again)
+* Improved integration tests
+
 2019-05-12 v5.0.4
 * Fix support for ESLint v6.0.0-alpha.1 #117
 

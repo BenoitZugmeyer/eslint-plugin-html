@@ -24,8 +24,12 @@ const needle = path.join("lib", "linter.js")
 
 iterateESLintModules(patch)
 
+function getLinterFromModule(moduleExports) {
+  return moduleExports.Linter ? moduleExports.Linter : moduleExports
+}
+
 function getModuleFromRequire() {
-  return require("eslint/lib/linter")
+  return getLinterFromModule(require("eslint/lib/linter"))
 }
 
 function getModuleFromCache(key) {
@@ -34,7 +38,7 @@ function getModuleFromCache(key) {
   const module = require.cache[key]
   if (!module || !module.exports) return
 
-  const Linter = module.exports
+  const Linter = getLinterFromModule(module.exports)
   if (
     typeof Linter === "function" &&
     typeof Linter.prototype.verify === "function"
@@ -114,8 +118,7 @@ function getMode(pluginSettings, filenameOrOptions) {
   }
 }
 
-function patch(moduleExports) {
-  const Linter = moduleExports.Linter ? moduleExports.Linter : moduleExports
+function patch(Linter) {
   const verify = Linter.prototype.verify
 
   // ignore if verify function is already been patched sometime before

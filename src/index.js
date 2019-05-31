@@ -20,12 +20,17 @@ const LINTER_ISPATCHED_PROPERTY_NAME =
 // https://github.com/eslint/eslint/issues/3422
 // https://github.com/eslint/eslint/issues/4153
 
-const needle = path.join("lib", "linter.js")
+const needles = [
+  path.join("lib", "linter", "linter.js"), // ESLint 5-
+  path.join("lib", "linter.js"), // ESLint 6+
+]
 
 iterateESLintModules(patch)
 
 function getLinterFromModule(moduleExports) {
-  return moduleExports.Linter ? moduleExports.Linter : moduleExports
+  return moduleExports.Linter
+    ? moduleExports.Linter // ESLint 6+
+    : moduleExports // ESLint 5-
 }
 
 function getModuleFromRequire() {
@@ -33,7 +38,7 @@ function getModuleFromRequire() {
 }
 
 function getModuleFromCache(key) {
-  if (!key.endsWith(needle)) return
+  if (!needles.some(needle => key.endsWith(needle))) return
 
   const module = require.cache[key]
   if (!module || !module.exports) return
@@ -119,14 +124,17 @@ function getMode(pluginSettings, filenameOrOptions) {
 }
 
 function patch(Linter) {
-  const verify = Linter.prototype.verify
+  const verifyMethodName = Linter.prototype._verifyWithoutProcessors
+    ? "_verifyWithoutProcessors" // ESLint 6+
+    : "verify" // ESLint 5-
+  const verify = Linter.prototype[verifyMethodName]
 
   // ignore if verify function is already been patched sometime before
   if (Linter[LINTER_ISPATCHED_PROPERTY_NAME] === true) {
     return
   }
   Linter[LINTER_ISPATCHED_PROPERTY_NAME] = true
-  Linter.prototype.verify = function(
+  Linter.prototype[verifyMethodName] = function(
     textOrSourceCode,
     config,
     filenameOrOptions,

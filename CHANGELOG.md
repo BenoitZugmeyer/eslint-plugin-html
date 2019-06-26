@@ -1,3 +1,7 @@
+2019-06-26 v6.0.0 (the 666 release)
+* **Breaking: drop Node 6 support**
+* Fix support for ESLint v6
+
 2019-05-13 v5.0.5
 * Fix support for ESLint v6.0.0-alpha.1 (again)
 * Improved integration tests
@@ -16,7 +20,7 @@
 * Update dependencies
 
 2018-11-11 v5.0.0
-* **Breaking: drop support of Node.js 4**
+* **Breaking: drop Node 4 support**
 * **Breaking: don't lint .vue files by default**
 * Update dependencies
 

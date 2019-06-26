@@ -6,8 +6,12 @@ const semver = require("semver")
 const eslintVersion = require("eslint/package.json").version
 const plugin = require("..")
 
+function matchVersion(versionSpec) {
+  return semver.satisfies(eslintVersion, versionSpec)
+}
+
 function ifVersion(versionSpec, fn, ...args) {
-  const execFn = semver.satisfies(eslintVersion, versionSpec) ? fn : fn.skip
+  const execFn = matchVersion(versionSpec) ? fn : fn.skip
   execFn(...args)
 }
 
@@ -280,14 +284,19 @@ describe("html/indent setting", () => {
     })
 
     expect(messages.length).toBe(2)
+
     expect(messages[0].message).toBe(
-      "Line 1 exceeds the maximum line length of 35."
+      matchVersion(">= 6")
+        ? "This line has a length of 70. Maximum allowed is 35."
+        : "Line 1 exceeds the maximum line length of 35."
     )
     expect(messages[0].line).toBe(1)
     expect(messages[0].column).toBe(9)
 
     expect(messages[1].message).toBe(
-      "File must be at most 1 lines long. It's 7 lines long."
+      matchVersion(">= 6")
+        ? "File has too many lines (7). Maximum allowed is 1."
+        : "File must be at most 1 lines long. It's 7 lines long."
     )
     expect(messages[1].line).toBe(1)
     expect(messages[1].column).toBe(9)

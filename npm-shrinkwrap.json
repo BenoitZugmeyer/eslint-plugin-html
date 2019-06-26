@@ -1,6 +1,6 @@
 {
   "name": "eslint-plugin-html",
-  "version": "5.0.5",
+  "version": "6.0.0",
   "lockfileVersion": 1,
   "requires": true,
   "dependencies": {

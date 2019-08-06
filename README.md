@@ -1,3 +1,5 @@
+<img src="media/logo.svg" width="150" height="150">
+
 eslint-plugin-html
 ==================
 

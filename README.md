@@ -1,17 +1,16 @@
-eslint-plugin-html
-==================
+<img src="media/logo.svg" width="150" height="150">
+
+# eslint-plugin-html
 
 [![NPM version](https://img.shields.io/npm/v/eslint-plugin-html.svg)](https://www.npmjs.com/package/eslint-plugin-html)
 [![Build Status](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html.svg?branch=master)](https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html)
 
-
 This [`ESLint`](http://eslint.org) plugin allows linting and fixing inline scripts contained in HTML
 files.
 
-Migration to v4
----------------
+## Migration to v4
 
-`eslint-plugin-html` v4 requires at least ESLint v4.7.  This is because a lot of internal changes
+`eslint-plugin-html` v4 requires at least ESLint v4.7. This is because a lot of internal changes
 occured in ESLint v4.7, including a [new API to support autofixing in
 preprocessors](https://eslint.org/docs/developer-guide/working-with-plugins#processors-in-plugins).
 If you are still using an older version of ESLint, please consider upgrading, or keep using
@@ -20,14 +19,11 @@ If you are still using an older version of ESLint, please consider upgrading, or
 The big feature (and breaking change) in `eslint-plugin-html` v4 is the ability to chose how [scopes
 are shared between script tags in the same HTML file](#multiple-scripts-tags-in-a-html-file).
 
-
-Migration to v3
----------------
+## Migration to v3
 
 If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3.md).
 
-Usage
------
+## Usage
 
 Simply install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
 configuration. See
@@ -44,22 +40,20 @@ Example:
 ```
 
 Note: by default, when executing the `eslint` command on a directory, only `.js` files will be
-linted. You will have to specify extra extensions with the `--ext` option. Example: `eslint --ext
-.html,.js src` will lint both `.html` and `.js` files in the `src` directory. See [ESLint
+linted. You will have to specify extra extensions with the `--ext` option. Example: `eslint --ext .html,.js src` will lint both `.html` and `.js` files in the `src` directory. See [ESLint
 documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 
-Multiple scripts tags in a HTML file
-------------------------------------
+## Multiple scripts tags in a HTML file
 
 When linting a HTML with multiple script tags, this plugin tries to emulate the browser behavior by
-sharing the global scope between scripts by default.  This behavior doesn't apply to "module"
+sharing the global scope between scripts by default. This behavior doesn't apply to "module"
 scripts (ie: `<script type="module">` and most transpiled code), where [each script tag gets its own
 top-level scope](http://exploringjs.com/es6/ch_modules.html#_modules).
 
 ESLint has already [an
 option](https://eslint.org/docs/user-guide/configuring#specifying-parser-options) to tell the parser
-if the script are modules.  `eslint-plugin-html` will use this option as well to know if the scopes
-should be shared (the default) or not.  To change this, just set it in your ESLint configuration:
+if the script are modules. `eslint-plugin-html` will use this option as well to know if the scopes
+should be shared (the default) or not. To change this, just set it in your ESLint configuration:
 
 ```
 {
@@ -73,42 +67,38 @@ To illustrate this behavior, consider this HTML extract:
 
 ```html
 <script>
-var foo = 1;
+  var foo = 1
 </script>
 
 <script>
-alert(foo);
+  alert(foo)
 </script>
 ```
 
 This is perfectly valid by default, and the ESLint rules `no-unused-vars` and `no-undef` shouldn't
-complain.  But if those scripts are considerated as ES modules, `no-unused-vars` should report an
+complain. But if those scripts are considerated as ES modules, `no-unused-vars` should report an
 error in the first script, and `no-undef` should report an error in the second script.
 
 ### History
 
 In `eslint-plugin-html` v1 and v2, script code were concatenated and linted in a single pass, so
-the scope were always shared.  This caused [some issues](MIGRATION_TO_V3.md), so in v3 all scripts
-were linted separately, and scopes were never shared.  In v4, the plugin still lint scripts
+the scope were always shared. This caused [some issues](MIGRATION_TO_V3.md), so in v3 all scripts
+were linted separately, and scopes were never shared. In v4, the plugin still lint scripts
 separately, but makes sure global variables are declared and used correctly in the non-module case.
 
-
-XML support
------------
+## XML support
 
 This plugin parses HTML and XML markup slightly differently, mainly when considering `CDATA`
 sections:
-* in XML, any data inside a `CDATA` section will be considered as raw text (not XML) and the `CDATA`
+
+- in XML, any data inside a `CDATA` section will be considered as raw text (not XML) and the `CDATA`
   delimiter will be droped ;
-* in HTML, there is no such thing for `<script>` tags: the `CDATA` delimiter is considered as normal
+- in HTML, there is no such thing for `<script>` tags: the `CDATA` delimiter is considered as normal
   text and thus, part of the script.
 
+## Settings
 
-Settings
---------
-
-> Note: all settings can be written either as `"html/key": value` or in a nested object `"html": {
-> "key": value }`
+> Note: all settings can be written either as `"html/key": value` or in a nested object `"html": { "key": value }`
 
 ### `html/html-extensions`
 
@@ -125,7 +115,6 @@ You can set your own list of HTML extensions by using this setting. Example:
 }
 ```
 
-
 ### `html/xml-extensions`
 
 By default, this plugin will only consider files ending with those extensions as XML: `.xhtml`,
@@ -139,7 +128,6 @@ By default, this plugin will only consider files ending with those extensions as
     }
 }
 ```
-
 
 ### `html/indent`
 
@@ -159,7 +147,6 @@ value with a `+` to be relative to the `<script>` tag indentation. Example:
 }
 ```
 
-
 ### `html/report-bad-indent`
 
 By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
@@ -175,7 +162,6 @@ display errors. Example:
     }
 }
 ```
-
 
 ### `html/javascript-mime-types`
 
@@ -195,31 +181,29 @@ If a MIME type starts with a `/`, it will be considered as a regular expression.
 }
 ```
 
-Troubleshooting
----------------
+## Troubleshooting
 
 ### Linting templates (or PHP)
 
-`eslint-plugin-html` won't evaluate or remove your template markup.  If you have template markup in
+`eslint-plugin-html` won't evaluate or remove your template markup. If you have template markup in
 your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
 it.
 
 One possible hacky workaround to make sure the code is valid JavaScript is to put your template
-markup inside a comment.  When the template is rendered, the generated JS code must start with a new
-line, so it will be written below the comment.  PHP example:
+markup inside a comment. When the template is rendered, the generated JS code must start with a new
+line, so it will be written below the comment. PHP example:
 
 ```html
 <script>
-var mydata;
-// <?= "\n mydata = " . json_encode($var) . ";" ?>
-console.log(mydata);
+  var mydata
+  // <?= "\n mydata = " . json_encode($var) . ";" ?>
+  console.log(mydata)
 </script>
 ```
-
 
 ### Linting VUE files
 
 Initially, [`eslint-plugin-vue`](https://github.com/vuejs/eslint-plugin-vue) was using
-`eslint-plugin-html` to lint code inside script tags.  Since v3, `eslint-plugin-vue` is using its
-own parser, so it is *incompatible* with `eslint-plugin-html`.  You should use `eslint-plugin-vue`
+`eslint-plugin-html` to lint code inside script tags. Since v3, `eslint-plugin-vue` is using its
+own parser, so it is _incompatible_ with `eslint-plugin-html`. You should use `eslint-plugin-vue`
 exclusively and remove `eslint-plugin-html` from your dependencies if you still have it.

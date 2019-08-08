@@ -227,3 +227,6 @@ are shared between script tags in the same HTML file](#multiple-scripts-tags-in-
 
 If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3.md).
 
+## Credits
+
+A big thank you to [@Bkucera](https://github.com/Bkucera) for the logo image!

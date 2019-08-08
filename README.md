@@ -20,6 +20,7 @@
   * [Linting templates (or PHP)](#linting-templates-or-php)
   * [Linting Vue files](#linting-vue-files)
 * [Migration from older versions](#migration-from-older-versions)
+* [Credits](#credits)
 
 ## Usage
 

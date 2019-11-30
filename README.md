@@ -192,7 +192,10 @@ documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
 it.
 
-One possible hacky workaround to make sure the code is valid JavaScript is to put your template
+For PHP, you can use [`eslint-plugin-php-markup`](https://github.com/tengattack/eslint-plugin-php-markup) to
+lint php files, it use a same way to process php markup like `eslint-plugin-html`.
+
+Or another possible hacky workaround to make sure the code is valid JavaScript is to put your template
 markup inside a comment. When the template is rendered, the generated JS code must start with a new
 line, so it will be written below the comment. PHP example:
 

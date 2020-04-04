@@ -21,8 +21,8 @@ const LINTER_ISPATCHED_PROPERTY_NAME =
 // https://github.com/eslint/eslint/issues/4153
 
 const needles = [
-  path.join("lib", "linter", "linter.js"), // ESLint 5-
-  path.join("lib", "linter.js"), // ESLint 6+
+  path.join("lib", "linter", "linter.js"), // ESLint 6+
+  path.join("lib", "linter.js"), // ESLint 5-
 ]
 
 iterateESLintModules(patch)

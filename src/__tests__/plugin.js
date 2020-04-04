@@ -7,7 +7,9 @@ const eslintVersion = require("eslint/package.json").version
 const plugin = require("..")
 
 function matchVersion(versionSpec) {
-  return semver.satisfies(eslintVersion, versionSpec)
+  return semver.satisfies(eslintVersion, versionSpec, {
+    includePrerelease: true,
+  })
 }
 
 function ifVersion(versionSpec, fn, ...args) {

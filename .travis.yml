@@ -10,6 +10,8 @@ matrix:
       env: ESLINT_VERSION=latest RUN_LINT=true RUN_INTEGRATION=true
     - node_js: 12
       env: ESLINT_VERSION=4.7 RUN_INTEGRATION=true
+    - node_js: 12
+      env: ESLINT_VERSION=next RUN_INTEGRATION=true
 
 script:
   - if [[ $RUN_LINT = true ]]; then npm run lint; fi

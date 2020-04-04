@@ -185,7 +185,7 @@ function extract(code, indentDescriptor, xmlMode, isJavaScriptMIMEType) {
   let lineNumber = 1
   let previousHTML = ""
 
-  iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, chunk => {
+  iterateScripts(code, { xmlMode, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
     if (chunk.type === "html") {
       const match = slice.match(/\r\n|\n|\r/g)

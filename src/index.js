@@ -38,7 +38,7 @@ function getModuleFromRequire() {
 }
 
 function getModuleFromCache(key) {
-  if (!needles.some(needle => key.endsWith(needle))) return
+  if (!needles.some((needle) => key.endsWith(needle))) return
 
   const module = require.cache[key]
   if (!module || !module.exports) return
@@ -82,7 +82,7 @@ function iterateESLintModules(fn) {
       eslintVersion = "n/a"
     }
 
-    const parentPaths = module =>
+    const parentPaths = (module) =>
       module ? [module.filename].concat(parentPaths(module.parent)) : []
 
     throw new Error(
@@ -134,7 +134,7 @@ function patch(Linter) {
     return
   }
   Linter[LINTER_ISPATCHED_PROPERTY_NAME] = true
-  Linter.prototype[verifyMethodName] = function(
+  Linter.prototype[verifyMethodName] = function (
     textOrSourceCode,
     config,
     filenameOrOptions,
@@ -167,7 +167,7 @@ function patch(Linter) {
 
     if (pluginSettings.reportBadIndent) {
       messages.push(
-        ...extractResult.badIndentationLines.map(line => ({
+        ...extractResult.badIndentationLines.map((line) => ({
           message: "Bad line indentation.",
           line,
           column: 1,
@@ -180,7 +180,7 @@ function patch(Linter) {
     // Save code parts parsed source code so we don't have to parse it twice
     const sourceCodes = new WeakMap()
     const verifyCodePart = (codePart, { prepare, ignoreRules } = {}) => {
-      this.defineRule(PREPARE_RULE_NAME, context => {
+      this.defineRule(PREPARE_RULE_NAME, (context) => {
         sourceCodes.set(codePart, context.getSourceCode())
         return {
           Program() {
@@ -250,10 +250,10 @@ function verifyWithSharedScopes(codeParts, verifyCodePart, parserOptions) {
         firstPassValues.push({
           codePart,
           exportedGlobals: globalScope.through.map(
-            node => node.identifier.name
+            (node) => node.identifier.name
           ),
           declaredGlobals: scopeForDeclaredGlobals.variables.map(
-            variable => variable.name
+            (variable) => variable.name
           ),
         })
       },
@@ -268,17 +268,17 @@ function verifyWithSharedScopes(codeParts, verifyCodePart, parserOptions) {
         const exportedGlobals = splatSet(
           firstPassValues
             .slice(i + 1)
-            .map(nextValues => nextValues.exportedGlobals)
+            .map((nextValues) => nextValues.exportedGlobals)
         )
         for (const name of exportedGlobals) context.markVariableAsUsed(name)
 
         const declaredGlobals = splatSet(
           firstPassValues
             .slice(0, i)
-            .map(previousValues => previousValues.declaredGlobals)
+            .map((previousValues) => previousValues.declaredGlobals)
         )
         const scope = context.getScope()
-        scope.through = scope.through.filter(variable => {
+        scope.through = scope.through.filter((variable) => {
           return !declaredGlobals.has(variable.identifier.name)
         })
       },

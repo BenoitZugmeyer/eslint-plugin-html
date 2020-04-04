@@ -8,7 +8,7 @@ function oneLine(parts) {
     .join("")
     .trim()
     .split("\n")
-    .map(line => line.trim())
+    .map((line) => line.trim())
     .join(" ")
 }
 

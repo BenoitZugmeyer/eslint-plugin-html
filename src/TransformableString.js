@@ -88,7 +88,7 @@ module.exports = class TransformableString {
     ) {
       this._blocks.push(newBlock)
     } else {
-      const index = this._blocks.findIndex(other => other.to > from)
+      const index = this._blocks.findIndex((other) => other.to > from)
       if (this._blocks[index].from < to) throw new Error("Can't replace slice")
       this._blocks.splice(index, 0, newBlock)
     }

@@ -27,7 +27,7 @@ function test(params) {
     params.xmlMode,
     params.isJavaScriptMIMEType
   )
-  expect(infos.code.map(code => code.toString())).toMatchSnapshot()
+  expect(infos.code.map((code) => code.toString())).toMatchSnapshot()
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
 

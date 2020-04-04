@@ -20,7 +20,7 @@ const defaultXMLExtensions = [".xhtml", ".xml"]
 
 function filterOut(array, excludeArray) {
   if (!excludeArray) return array
-  return array.filter(item => excludeArray.indexOf(item) < 0)
+  return array.filter((item) => excludeArray.indexOf(item) < 0)
 }
 
 function compileRegExp(re) {
@@ -86,14 +86,14 @@ function getSettings(settings) {
     ? (Array.isArray(rawJavaScriptMIMETypes)
         ? rawJavaScriptMIMETypes
         : [rawJavaScriptMIMETypes]
-      ).map(s => (s.startsWith("/") ? compileRegExp(s) : s))
+      ).map((s) => (s.startsWith("/") ? compileRegExp(s) : s))
     : [
         /^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i,
         /^module$/i,
       ]
 
   function isJavaScriptMIMEType(type) {
-    return javaScriptMIMETypes.some(o =>
+    return javaScriptMIMETypes.some((o) =>
       typeof o === "string" ? type === o : o.test(type)
     )
   }

@@ -1,3 +1,8 @@
+2020-04-05 v6.0.1 (the 5th anniversary release)
+* Update dependencies
+* Run CI against eslint@next
+* Add eslint-plugin-php-markup reference to the README
+
 2019-06-26 v6.0.0 (the 666 release)
 * **Breaking: drop Node 6 support**
 * Fix support for ESLint v6

@@ -1,3 +1,6 @@
+2020-04-15 v6.0.2
+* Remove npm-shrinkwrap.json from the npm package #125
+
 2020-04-05 v6.0.1 (the 5th anniversary release)
 * Update dependencies
 * Run CI against eslint@next

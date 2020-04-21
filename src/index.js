@@ -292,10 +292,12 @@ function remapMessages(messages, hasBOM, codePart) {
 
   for (const message of messages) {
     const location = codePart.originalLocation({
-      line: message.line,
-      // eslint-plugin-eslint-comments is raising message with column=0 to bypass ESLint ignore
-      // comments. Since messages are already ignored at this time, just reset the column to a valid
-      // number. See https://github.com/BenoitZugmeyer/eslint-plugin-html/issues/70
+      // * @typescript-eslint/parser may send messages with no line/column, so they should have
+      //   default values.
+      // * eslint-plugin-eslint-comments send messages with column=0 to bypass ESLint ignore comments.
+      //   Since messages are already ignored at this time, just reset the column to a valid number.
+      //   See https://github.com/BenoitZugmeyer/eslint-plugin-html/issues/70
+      line: message.line || 1,
       column: message.column || 1,
     })
 

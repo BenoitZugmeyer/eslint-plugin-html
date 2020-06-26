@@ -279,7 +279,7 @@ describe("html/indent setting", () => {
   it("should report messages at the beginning of the file", () => {
     const messages = execute("error-at-the-beginning.html", {
       rules: {
-        "max-lines": [2, { max: 1 }],
+        "max-lines": [2, { max: 3 }],
         "max-len": [2, { code: 35 }],
         "no-console": 0,
       },
@@ -297,11 +297,18 @@ describe("html/indent setting", () => {
 
     expect(messages[1].message).toBe(
       matchVersion(">= 6")
-        ? "File has too many lines (7). Maximum allowed is 1."
-        : "File must be at most 1 lines long. It's 7 lines long."
+        ? "File has too many lines (7). Maximum allowed is 3."
+        : "File must be at most 3 lines long. It's 7 lines long."
     )
-    expect(messages[1].line).toBe(1)
-    expect(messages[1].column).toBe(9)
+    // Starting with eslint 7.3, this message is reported at the beginning of the first extra line
+    // instead of the beginning of the file.
+    if (matchVersion(">= 7.3")) {
+      expect(messages[1].line).toBe(4)
+      expect(messages[1].column).toBe(1)
+    } else {
+      expect(messages[1].line).toBe(1)
+      expect(messages[1].column).toBe(9)
+    }
   })
 })
 

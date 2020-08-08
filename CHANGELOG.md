@@ -1,3 +1,6 @@
+2020-08-08 v6.0.3
+* Update dependencies
+
 2020-04-15 v6.0.2
 * Remove npm-shrinkwrap.json from the npm package #125
 

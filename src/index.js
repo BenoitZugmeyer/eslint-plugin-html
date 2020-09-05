@@ -5,6 +5,7 @@ const extract = require("./extract")
 const utils = require("./utils")
 const splatSet = utils.splatSet
 const getSettings = require("./settings").getSettings
+const getFileMode = require("./getFileMode")
 
 const PREPARE_RULE_NAME = "__eslint-plugin-html-prepare"
 const LINTER_ISPATCHED_PROPERTY_NAME =
@@ -108,21 +109,6 @@ In the report, please include *all* those informations:
   }
 }
 
-function getMode(pluginSettings, filenameOrOptions) {
-  const filename =
-    typeof filenameOrOptions === "object"
-      ? filenameOrOptions.filename
-      : filenameOrOptions
-  const extension = path.extname(filename || "")
-
-  if (pluginSettings.htmlExtensions.indexOf(extension) >= 0) {
-    return "html"
-  }
-  if (pluginSettings.xmlExtensions.indexOf(extension) >= 0) {
-    return "xml"
-  }
-}
-
 function patch(Linter) {
   const verifyMethodName = Linter.prototype._verifyWithoutProcessors
     ? "_verifyWithoutProcessors" // ESLint 6+
@@ -145,7 +131,7 @@ function patch(Linter) {
     }
 
     const pluginSettings = getSettings(config.settings || {})
-    const mode = getMode(pluginSettings, filenameOrOptions)
+    const mode = getFileMode(pluginSettings, filenameOrOptions)
 
     if (!mode || typeof textOrSourceCode !== "string") {
       return verify.call(

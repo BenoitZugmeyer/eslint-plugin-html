@@ -1,3 +1,6 @@
+2020-09-06 v6.1.0
+* Allow dots in extensions #127
+
 2020-08-08 v6.0.3
 * Update dependencies
 

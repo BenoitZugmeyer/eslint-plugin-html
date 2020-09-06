@@ -3,6 +3,20 @@ const { execSync: exec } = require("child_process")
 const { readFileSync: read } = require("fs")
 const { request } = require("https")
 
+const REPO = "BenoitZugmeyer/eslint-plugin-html"
+const PACKAGE_FILES = [
+  "LICENSE",
+  "src/extract.js",
+  "src/getFileMode.js",
+  "src/index.js",
+  "src/settings.js",
+  "src/TransformableString.js",
+  "src/utils.js",
+  "package.json",
+  "CHANGELOG.md",
+  "README.md",
+]
+
 main().catch((error) => {
   console.log(error)
   process.exitCode = 1
@@ -84,18 +98,7 @@ function verifyPackageContent() {
     }
   }
 
-  const expectedContent = new Set([
-    "LICENSE",
-    "src/extract.js",
-    "src/getFileMode.js",
-    "src/index.js",
-    "src/settings.js",
-    "src/TransformableString.js",
-    "src/utils.js",
-    "package.json",
-    "CHANGELOG.md",
-    "README.md",
-  ])
+  const expectedContent = new Set(PACKAGE_FILES)
 
   for (const file of expectedContent) {
     if (!content.has(file)) error(`Missing ${file} in package content`)
@@ -128,7 +131,7 @@ async function verifyBuild() {
     if (!build) {
       console.log("Build not found yet...")
     } else {
-      const buildURL = `https://travis-ci.org/github/BenoitZugmeyer/eslint-plugin-html/builds/${build.id}`
+      const buildURL = `https://travis-ci.org/github/${REPO}/builds/${build.id}`
       if (build.finished_at) {
         // state: errored, failed, created, started, passed, canceled
         if (build.state !== "passed") {
@@ -140,14 +143,14 @@ async function verifyBuild() {
         console.log(`Build ${buildURL} ${build.state}`)
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await new Promise((resolve) => setTimeout(resolve, 3000))
   }
 }
 
 function fetchBuilds() {
   return new Promise((resolve, reject) => {
     const req = request(
-      "https://api.travis-ci.org/repos/BenoitZugmeyer/eslint-plugin-html/builds?event_type=push",
+      `https://api.travis-ci.org/repos/${REPO}/builds?event_type=push`,
       {
         headers: {
           "User-Agent": "release-script/1.0.0",

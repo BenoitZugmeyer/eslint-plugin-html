@@ -124,37 +124,32 @@ function createVersion(version) {
 async function verifyBuild() {
   const sha = exec("git rev-parse HEAD").toString().trim()
   while (true) {
-    const { commits, builds } = await fetchBuilds()
-    const commit = commits.find((commit) => commit.sha === sha)
-    const build =
-      commit && builds.find((build) => build.commit_id === commit.id)
-    if (!build) {
-      console.log("Build not found yet...")
+    const { workflow_runs: runs } = await fetchWorkflowRuns()
+    const run = runs.find((commit) => commit.head_sha === sha)
+    if (!run) {
+      console.log("Workflow run not found yet...")
     } else {
-      const buildURL = `https://travis-ci.org/github/${REPO}/builds/${build.id}`
-      if (build.finished_at) {
-        // state: errored, failed, created, started, passed, canceled
-        if (build.state !== "passed") {
-          error(`Build ${buildURL} finished as ${build.state}`)
+      if (run.status === "completed") {
+        if (run.conclusion !== "success") {
+          error(`Workflow run ${run.html_url} finished as ${run.conclusion}`)
         } else {
           return
         }
       } else {
-        console.log(`Build ${buildURL} ${build.state}`)
+        console.log(`Workflow run ${run.html_url} ${run.status}`)
       }
     }
     await new Promise((resolve) => setTimeout(resolve, 3000))
   }
 }
 
-function fetchBuilds() {
+function fetchWorkflowRuns() {
   return new Promise((resolve, reject) => {
     const req = request(
-      `https://api.travis-ci.org/repos/${REPO}/builds?event_type=push`,
+      `https://api.github.com/repos/${REPO}/actions/runs?event=push&branch=master`,
       {
         headers: {
           "User-Agent": "release-script/1.0.0",
-          Accept: "application/vnd.travis-ci.2.1+json",
         },
       }
     )

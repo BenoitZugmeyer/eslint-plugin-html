@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+  schedule:
+    # Every sunday at midnight
+    - cron:  '0 0 * * 0'
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm ci
+      - run: npm run lint
+
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        eslint: ["4.7", latest, next]
+    steps:
+      - uses: actions/checkout@v2
+      - run: npm ci
+      - run: ESLINT_VERSION=${{ matrix.eslint }} ./tools/integration-tests.bash
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - node: 10
+            eslint: latest
+          - node: 12
+            eslint: latest
+          - node: 14
+            eslint: "4.7"
+          - node: 14
+            eslint: latest
+          - node: 14
+            eslint: next
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm ci
+      - run: npm install eslint@${{ matrix.eslint }}
+      - run: npm test

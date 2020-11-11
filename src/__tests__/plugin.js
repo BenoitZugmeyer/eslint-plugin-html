@@ -296,7 +296,9 @@ describe("html/indent setting", () => {
     expect(messages[0].column).toBe(9)
 
     expect(messages[1].message).toBe(
-      matchVersion(">= 6")
+      matchVersion(">= 7.11")
+        ? "File has too many lines (6). Maximum allowed is 3."
+        : matchVersion(">= 6")
         ? "File has too many lines (7). Maximum allowed is 3."
         : "File must be at most 3 lines long. It's 7 lines long."
     )

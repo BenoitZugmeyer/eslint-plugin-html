@@ -2,7 +2,7 @@
     <img src="media/logo.svg" width="150" height="150">
     <h1>eslint-plugin-html</h1>
     <a href="https://www.npmjs.com/package/eslint-plugin-html"><img alt="NPM version" src="https://img.shields.io/npm/v/eslint-plugin-html.svg"></a>
-    <a href="https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html"><img alt="Build Status" src="https://travis-ci.org/BenoitZugmeyer/eslint-plugin-html.svg?branch=master"></a>
+    <a href="https://github.com/BenoitZugmeyer/eslint-plugin-html/actions?query=workflow%3ATests"><img alt="Tests Status" src="https://img.shields.io/github/workflow/status/BenoitZugmeyer/eslint-plugin-html/Tests"></a>
     <p>A <a href="http://eslint.org">ESLint</a> plugin to lint and fix inline scripts contained in HTML files.</p>
 </div>
 

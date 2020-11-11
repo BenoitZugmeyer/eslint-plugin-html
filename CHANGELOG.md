@@ -1,3 +1,7 @@
+2020-11-11 v6.1.1
+* Update dependencies
+* Move from travis to github actions
+
 2020-09-06 v6.1.0
 * Allow dots in extensions #127
 

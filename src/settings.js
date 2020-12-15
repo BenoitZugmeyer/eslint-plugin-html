@@ -49,6 +49,9 @@ function getSettings(settings) {
     getSetting(settings, "xml-extensions") ||
     filterOut(defaultXMLExtensions, getSetting(settings, "html-extensions"))
 
+  const parseTags =
+    getSetting(settings, "parse-tags") || ["script"]
+
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {
     case undefined:
@@ -101,6 +104,7 @@ function getSettings(settings) {
   return {
     htmlExtensions,
     xmlExtensions,
+    parseTags,
     indent,
     reportBadIndent,
     isJavaScriptMIMEType,

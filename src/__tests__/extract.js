@@ -25,6 +25,7 @@ function test(params) {
     dedent(params.input),
     params.indent,
     params.xmlMode,
+    params.parseTags || ["script"],
     params.isJavaScriptMIMEType
   )
   expect(infos.code.map((code) => code.toString())).toMatchSnapshot()
@@ -315,5 +316,21 @@ it("handles self closing script tags in xhtml mode", () => {
 it("skips script with src attributes", () => {
   test({
     input: '<script src="foo"></script>',
+  })
+})
+
+it("extract multiple tags types", () => {
+  test({
+    input: `
+      some html
+      <script>
+        var foo = 1;
+      </script>
+      other
+      <customscript>
+        var bar = 1;
+      </customscript>
+    `,
+    parseTags: ["script", "customscript"],
   })
 })

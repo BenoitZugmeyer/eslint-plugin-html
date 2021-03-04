@@ -224,7 +224,7 @@ preprocessors](https://eslint.org/docs/developer-guide/working-with-plugins#proc
 If you are still using an older version of ESLint, please consider upgrading, or keep using
 `eslint-plugin-html` v3.
 
-The big feature (and breaking change) in `eslint-plugin-html` v4 is the ability to chose how [scopes
+The big feature (and breaking change) in `eslint-plugin-html` v4 is the ability to choose how [scopes
 are shared between script tags in the same HTML file](#multiple-scripts-tags-in-a-html-file).
 
 ### To v3

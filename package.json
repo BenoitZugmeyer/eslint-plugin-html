@@ -17,7 +17,7 @@
   ],
   "main": "src/index.js",
   "dependencies": {
-    "htmlparser2": "^5.0.1"
+    "htmlparser2": "^6.0.0"
   },
   "devDependencies": {
     "eslint": "^7.13.0",

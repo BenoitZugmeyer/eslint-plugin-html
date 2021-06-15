@@ -6,21 +6,25 @@
     <p>A <a href="http://eslint.org">ESLint</a> plugin to lint and fix inline scripts contained in HTML files.</p>
 </div>
 
-* [Usage](#usage)
-* [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
-* [XML Support](#xml-support)
-* [Settings](#settings)
-  * [`html/html-extensions`](#htmlhtml-extensions)
-  * [`html/xml-extensions`](#htmlxml-extensions)
-  * [`html/indent`](#htmlindent)
-  * [`html/report-bad-indent`](#htmlreport-bad-indent)
-  * [`html/javascript-mime-types`](#htmljavascript-mime-types)
-* [Troubleshooting](#troubleshooting)
-  * [No file linted when running `eslint` on a directory](#no-file-linted-when-running-eslint-on-a-directory)
-  * [Linting templates (or PHP)](#linting-templates-or-php)
-  * [Linting Vue files](#linting-vue-files)
-* [Migration from older versions](#migration-from-older-versions)
-* [Credits](#credits)
+- [Usage](#usage)
+- [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
+  - [History](#history)
+- [XML support](#xml-support)
+- [Settings](#settings)
+  - [`html/html-extensions`](#htmlhtml-extensions)
+  - [`html/xml-extensions`](#htmlxml-extensions)
+  - [`html/indent`](#htmlindent)
+  - [`html/report-bad-indent`](#htmlreport-bad-indent)
+  - [`html/parse-tags`](#htmlparse-tags)
+  - [`html/javascript-mime-types`](#htmljavascript-mime-types)
+- [Troubleshooting](#troubleshooting)
+  - [No file linted when running `eslint` on a directory](#no-file-linted-when-running-eslint-on-a-directory)
+  - [Linting templates (or PHP)](#linting-templates-or-php)
+  - [Linting VUE files](#linting-vue-files)
+- [Migration from older versions](#migration-from-older-versions)
+  - [To v4](#to-v4)
+  - [To v3](#to-v3)
+- [Credits](#credits)
 
 ## Usage
 
@@ -154,6 +158,21 @@ display errors. Example:
     "plugins": [ "html" ],
     "settings": {
         "html/report-bad-indent": "error",
+    }
+}
+```
+
+### `html/parse-tags`
+
+By default, the code between `<script>` tags is considered as JavaScript.
+
+Example:
+
+```javascript
+{
+    "plugins": [ "html" ],
+    "settings": {
+        "html/parse-tags": ["script", "customscript"],
     }
 }
 ```

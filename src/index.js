@@ -146,6 +146,7 @@ function patch(Linter) {
       textOrSourceCode,
       pluginSettings.indent,
       mode === "xml",
+      pluginSettings.parseTags,
       pluginSettings.isJavaScriptMIMEType
     )
 

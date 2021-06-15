@@ -1,3 +1,7 @@
+2021-03-08 v6.1.2
+* Update htmlparser2 #141
+* Update dependencies
+
 2020-11-11 v6.1.1
 * Update dependencies
 * Move from travis to github actions

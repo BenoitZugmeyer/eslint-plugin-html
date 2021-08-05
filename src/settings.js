@@ -12,6 +12,7 @@ const defaultHTMLExtensions = [
   ".nunjucks",
   ".php",
   ".tag",
+  ".riot",
   ".twig",
   ".we",
 ]

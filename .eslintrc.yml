@@ -10,3 +10,4 @@ env:
 
 parserOptions:
   sourceType: script
+  ecmaVersion: 2018

@@ -1,7 +1,7 @@
 "use strict"
 
 const path = require("path")
-const CLIEngine = require("eslint").CLIEngine
+const eslint = require("eslint")
 const semver = require("semver")
 const eslintVersion = require("eslint/package.json").version
 const plugin = require("..")
@@ -17,10 +17,12 @@ function ifVersion(versionSpec, fn, ...args) {
   execFn(...args)
 }
 
-function execute(file, baseConfig) {
+async function execute(file, baseConfig) {
   if (!baseConfig) baseConfig = {}
 
-  const cli = new CLIEngine({
+  const files = [path.join(__dirname, "fixtures", file)]
+
+  const options = {
     extensions: ["html"],
     baseConfig: {
       settings: baseConfig.settings,
@@ -37,16 +39,30 @@ function execute(file, baseConfig) {
     ignore: false,
     useEslintrc: false,
     fix: baseConfig.fix,
-    reportUnusedDisableDirectives: baseConfig.reportUnusedDisableDirectives,
-  })
-  cli.addPlugin("html", plugin)
-  const results = cli.executeOnFiles([path.join(__dirname, "fixtures", file)])
-    .results[0]
+    reportUnusedDisableDirectives:
+      baseConfig.reportUnusedDisableDirectives || null,
+  }
+
+  let results
+  if (eslint.ESLint) {
+    const instance = new eslint.ESLint({
+      ...options,
+      plugins: { html: plugin },
+    })
+    results = (await instance.lintFiles(files))[0]
+  } else if (eslint.CLIEngine) {
+    const cli = new eslint.CLIEngine(options)
+    cli.addPlugin("html", plugin)
+    results = cli.executeOnFiles(files).results[0]
+  } else {
+    throw new Error("invalid ESLint dependency")
+  }
+
   return baseConfig.fix ? results : results && results.messages
 }
 
-it("should extract and remap messages", () => {
-  const messages = execute("simple.html")
+it("should extract and remap messages", async () => {
+  const messages = await execute("simple.html")
 
   expect(messages.length).toBe(5)
 
@@ -93,8 +109,8 @@ it("should extract and remap messages", () => {
   }
 })
 
-it("should report correct line numbers with crlf newlines", () => {
-  const messages = execute("crlf-newlines.html")
+it("should report correct line numbers with crlf newlines", async () => {
+  const messages = await execute("crlf-newlines.html")
 
   expect(messages.length).toBe(1)
 
@@ -104,8 +120,8 @@ it("should report correct line numbers with crlf newlines", () => {
 })
 
 describe("html/indent setting", () => {
-  it("should automatically compute indent when nothing is specified", () => {
-    const messages = execute("indent-setting.html", {
+  it("should automatically compute indent when nothing is specified", async () => {
+    const messages = await execute("indent-setting.html", {
       rules: {
         indent: [2, 2],
       },
@@ -114,8 +130,8 @@ describe("html/indent setting", () => {
     expect(messages.length).toBe(0)
   })
 
-  it("should work with a zero absolute indentation descriptor", () => {
-    const messages = execute("indent-setting.html", {
+  it("should work with a zero absolute indentation descriptor", async () => {
+    const messages = await execute("indent-setting.html", {
       rules: {
         indent: [2, 2],
       },
@@ -175,8 +191,8 @@ describe("html/indent setting", () => {
     expect(messages[8].line).toBe(30)
   })
 
-  it("should work with a non-zero absolute indentation descriptor", () => {
-    const messages = execute("indent-setting.html", {
+  it("should work with a non-zero absolute indentation descriptor", async () => {
+    const messages = await execute("indent-setting.html", {
       rules: {
         indent: [2, 2],
       },
@@ -227,8 +243,8 @@ describe("html/indent setting", () => {
     expect(messages[6].line).toBe(30)
   })
 
-  it("should work with relative indentation descriptor", () => {
-    const messages = execute("indent-setting.html", {
+  it("should work with relative indentation descriptor", async () => {
+    const messages = await execute("indent-setting.html", {
       rules: {
         indent: [2, 2],
       },
@@ -276,8 +292,8 @@ describe("html/indent setting", () => {
     expect(messages[5].line).toBe(30)
   })
 
-  it("should report messages at the beginning of the file", () => {
-    const messages = execute("error-at-the-beginning.html", {
+  it("should report messages at the beginning of the file", async () => {
+    const messages = await execute("error-at-the-beginning.html", {
       rules: {
         "max-lines": [2, { max: 3 }],
         "max-len": [2, { code: 35 }],
@@ -315,8 +331,8 @@ describe("html/indent setting", () => {
 })
 
 describe("html/report-bad-indent setting", () => {
-  it("should report under-indented code with auto indent setting", () => {
-    const messages = execute("report-bad-indent-setting.html", {
+  it("should report under-indented code with auto indent setting", async () => {
+    const messages = await execute("report-bad-indent-setting.html", {
       settings: {
         "html/report-bad-indent": true,
       },
@@ -329,8 +345,8 @@ describe("html/report-bad-indent setting", () => {
     expect(messages[0].column).toBe(1)
   })
 
-  it("should report under-indented code with provided indent setting", () => {
-    const messages = execute("report-bad-indent-setting.html", {
+  it("should report under-indented code with provided indent setting", async () => {
+    const messages = await execute("report-bad-indent-setting.html", {
       settings: {
         "html/report-bad-indent": true,
         "html/indent": "+4",
@@ -354,8 +370,8 @@ describe("html/report-bad-indent setting", () => {
 })
 
 describe("xml support", () => {
-  it("consider .html files as HTML", () => {
-    const messages = execute("cdata.html")
+  it("consider .html files as HTML", async () => {
+    const messages = await execute("cdata.html")
 
     expect(messages.length).toBe(1)
 
@@ -365,8 +381,8 @@ describe("xml support", () => {
     expect(messages[0].column).toBe(7)
   })
 
-  it("can be forced to consider .html files as XML", () => {
-    const messages = execute("cdata.html", {
+  it("can be forced to consider .html files as XML", async () => {
+    const messages = await execute("cdata.html", {
       settings: {
         "html/xml-extensions": [".html"],
       },
@@ -379,8 +395,8 @@ describe("xml support", () => {
     expect(messages[0].column).toBe(9)
   })
 
-  it("consider .xhtml files as XML", () => {
-    const messages = execute("cdata.xhtml")
+  it("consider .xhtml files as XML", async () => {
+    const messages = await execute("cdata.xhtml")
 
     expect(messages.length).toBe(1)
 
@@ -389,8 +405,8 @@ describe("xml support", () => {
     expect(messages[0].column).toBe(9)
   })
 
-  it("can be forced to consider .xhtml files as HTML", () => {
-    const messages = execute("cdata.xhtml", {
+  it("can be forced to consider .xhtml files as HTML", async () => {
+    const messages = await execute("cdata.xhtml", {
       settings: {
         "html/html-extensions": [".xhtml"],
       },
@@ -404,8 +420,8 @@ describe("xml support", () => {
     expect(messages[0].column).toBe(7)
   })
 
-  it("removes white space at the end of scripts ending with CDATA", () => {
-    const messages = execute("cdata.xhtml", {
+  it("removes white space at the end of scripts ending with CDATA", async () => {
+    const messages = await execute("cdata.xhtml", {
       rules: {
         "no-console": "off",
         "no-trailing-spaces": "error",
@@ -416,18 +432,15 @@ describe("xml support", () => {
     expect(messages.length).toBe(0)
   })
 
-  it("should support self closing script tags", () => {
-    let messages
-    expect(() => {
-      messages = execute("self-closing-tags.xhtml")
-    }).not.toThrow()
-    expect(messages.length).toBe(0)
+  it("should support self closing script tags", async () => {
+    const messages = execute("self-closing-tags.xhtml")
+    await expect(messages).resolves.toEqual([])
   })
 })
 
 describe("lines-around-comment and multiple scripts", () => {
-  it("should not warn with lines-around-comment if multiple scripts", () => {
-    const messages = execute("simple.html", {
+  it("should not warn with lines-around-comment if multiple scripts", async () => {
+    const messages = await execute("simple.html", {
       rules: {
         "lines-around-comment": ["error", { beforeLineComment: true }],
       },
@@ -438,8 +451,8 @@ describe("lines-around-comment and multiple scripts", () => {
 })
 
 describe("fix", () => {
-  it("should remap fix ranges", () => {
-    const messages = execute("fix.html", {
+  it("should remap fix ranges", async () => {
+    const messages = await execute("fix.html", {
       rules: {
         "no-extra-semi": ["error"],
       },
@@ -448,8 +461,8 @@ describe("fix", () => {
     expect(messages[0].fix.range).toEqual([53, 55])
   })
 
-  it("should fix errors", () => {
-    const result = execute("fix.html", {
+  it("should fix errors", async () => {
+    const result = await execute("fix.html", {
       rules: {
         "no-extra-semi": ["error"],
       },
@@ -466,8 +479,8 @@ describe("fix", () => {
     expect(result.messages.length).toBe(0)
   })
 
-  it("should fix errors in files with BOM", () => {
-    const result = execute("fix-bom.html", {
+  it("should fix errors in files with BOM", async () => {
+    const result = await execute("fix-bom.html", {
       rules: {
         "no-extra-semi": ["error"],
       },
@@ -485,8 +498,8 @@ describe("fix", () => {
   })
 
   describe("eol-last rule", () => {
-    it("should work with eol-last always", () => {
-      const result = execute("fix.html", {
+    it("should work with eol-last always", async () => {
+      const result = await execute("fix.html", {
         rules: {
           "eol-last": ["error"],
           "no-extra-semi": ["error"],
@@ -504,8 +517,8 @@ describe("fix", () => {
       expect(result.messages.length).toBe(0)
     })
 
-    it("should work with eol-last never", () => {
-      const result = execute("fix.html", {
+    it("should work with eol-last never", async () => {
+      const result = await execute("fix.html", {
         rules: {
           "eol-last": ["error", "never"],
         },
@@ -524,9 +537,9 @@ describe("fix", () => {
 })
 
 ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
-  it("reports unused disabled directives", () => {
-    const messages = execute("inline-disabled-rule.html", {
-      reportUnusedDisableDirectives: true,
+  it("reports unused disabled directives", async () => {
+    const messages = await execute("inline-disabled-rule.html", {
+      reportUnusedDisableDirectives: "error",
     })
 
     expect(messages.length).toBe(1)
@@ -537,9 +550,9 @@ ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
     )
   })
 
-  it("doesn't report used disabled directives", () => {
-    const messages = execute("inline-disabled-rule.html", {
-      reportUnusedDisableDirectives: true,
+  it("doesn't report used disabled directives", async () => {
+    const messages = await execute("inline-disabled-rule.html", {
+      reportUnusedDisableDirectives: "error",
       rules: {
         "no-eval": 2,
       },
@@ -550,8 +563,8 @@ ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
 })
 
 describe("html/javascript-mime-types", () => {
-  it("ignores unknown mime types by default", () => {
-    const messages = execute("javascript-mime-types.html")
+  it("ignores unknown mime types by default", async () => {
+    const messages = await execute("javascript-mime-types.html")
 
     expect(messages.length).toBe(3)
 
@@ -565,8 +578,8 @@ describe("html/javascript-mime-types", () => {
     expect(messages[2].line).toBe(16)
   })
 
-  it("specifies a list of valid mime types", () => {
-    const messages = execute("javascript-mime-types.html", {
+  it("specifies a list of valid mime types", async () => {
+    const messages = await execute("javascript-mime-types.html", {
       settings: {
         "html/javascript-mime-types": ["text/foo"],
       },
@@ -581,8 +594,8 @@ describe("html/javascript-mime-types", () => {
     expect(messages[1].line).toBe(20)
   })
 
-  it("specifies a regexp of valid mime types", () => {
-    const messages = execute("javascript-mime-types.html", {
+  it("specifies a regexp of valid mime types", async () => {
+    const messages = await execute("javascript-mime-types.html", {
       settings: {
         "html/javascript-mime-types": "/^(application|text)/foo$/",
       },
@@ -601,8 +614,8 @@ describe("html/javascript-mime-types", () => {
   })
 })
 
-it("should report correct eol-last message position", () => {
-  const messages = execute("eol-last.html", {
+it("should report correct eol-last message position", async () => {
+  const messages = await execute("eol-last.html", {
     rules: {
       "eol-last": "error",
     },
@@ -616,8 +629,8 @@ it("should report correct eol-last message position", () => {
 })
 
 describe("scope sharing", () => {
-  it("should export global variables between script scopes", () => {
-    const messages = execute("scope-sharing.html", {
+  it("should export global variables between script scopes", async () => {
+    const messages = await execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
         "no-undef": "error",
@@ -647,8 +660,8 @@ describe("scope sharing", () => {
     )
   })
 
-  it("should mark variable as used when the variable is used in another tag", () => {
-    const messages = execute("scope-sharing.html", {
+  it("should mark variable as used when the variable is used in another tag", async () => {
+    const messages = await execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
         "no-unused-vars": "error",
@@ -678,8 +691,8 @@ describe("scope sharing", () => {
     )
   })
 
-  it("should not be influenced by the ECMA feature 'globalReturn'", () => {
-    const messages = execute("scope-sharing.html", {
+  it("should not be influenced by the ECMA feature 'globalReturn'", async () => {
+    const messages = await execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
         "no-undef": "error",
@@ -699,8 +712,8 @@ describe("scope sharing", () => {
     expect(messages.length).toBe(8)
   })
 
-  it("should not share the global scope if sourceType is 'module'", () => {
-    const messages = execute("scope-sharing.html", {
+  it("should not share the global scope if sourceType is 'module'", async () => {
+    const messages = await execute("scope-sharing.html", {
       rules: {
         "no-console": "off",
         "no-undef": "error",

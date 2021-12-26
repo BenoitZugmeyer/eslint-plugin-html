@@ -1,0 +1,4 @@
+* text=auto eol=lf
+
+# ignore test fixture
+src/__tests__/fixtures/crlf-newlines.html eol=crlf

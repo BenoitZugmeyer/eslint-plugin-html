@@ -30,6 +30,8 @@ jobs:
     strategy:
       matrix:
         include:
+          - node: 10
+            eslint: 7
           - node: 12
             eslint: latest
           - node: 14

@@ -29,15 +29,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - node: 10
-            eslint: latest
           - node: 12
             eslint: latest
           - node: 14
-            eslint: "4.7"
-          - node: 14
             eslint: latest
-          - node: 14
+          - node: 16
+            eslint: "4.7"
+          - node: 16
+            eslint: latest
+          - node: 16
             eslint: next
     steps:
       - uses: actions/checkout@v2

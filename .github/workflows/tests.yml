@@ -23,7 +23,10 @@ jobs:
     needs: lint
     strategy:
       matrix:
-        eslint: ["4.7", latest, next]
+        eslint:
+          - "4.7"
+          - 7
+          - 8
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2

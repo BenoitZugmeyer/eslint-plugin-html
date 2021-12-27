@@ -1,9 +1,10 @@
 name: Tests
 
 on:
+  pull_request:
   push:
-    branches-ignore:
-      - "dependabot/**"
+    branches:
+      - main
   schedule:
     # Every sunday at midnight
     - cron:  '0 0 * * 0'
@@ -32,20 +33,27 @@ jobs:
       matrix:
         include:
           - node: 10
-            eslint: latest
+            eslint: 7
           - node: 12
             eslint: latest
           - node: 14
-            eslint: "4.7"
-          - node: 14
             eslint: latest
-          - node: 14
+          - node: 16
+            eslint: "4.7"
+          - node: 16
+            eslint: latest
+          - node: 16
+            eslint: next
+          - node: 17
+            eslint: latest
+          - node: 17
             eslint: next
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
+      - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node }}
+          cache: npm
       - run: npm ci
       - run: npm install eslint@${{ matrix.eslint }}
       - run: npm test

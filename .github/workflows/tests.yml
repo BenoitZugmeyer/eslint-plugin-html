@@ -21,18 +21,23 @@ jobs:
       - run: npm run lint
 
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
       matrix:
+        os: [ubuntu-latest]
         eslint: ["4.7", latest, next]
+        include:
+          # Windows support
+          - os: windows-latest
+            eslint: latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           cache: npm
       - run: npm ci
-      - run: ESLINT_VERSION=${{ matrix.eslint }} ./tools/integration-tests.bash
+      - run: bash tools/integration-tests.bash ${{ matrix.eslint }}
 
   test:
     runs-on: ${{ matrix.os }}

@@ -3,6 +3,8 @@ name: Tests
 on:
   pull_request:
   push:
+    branches:
+      - main
   schedule:
     # Every sunday at midnight
     - cron:  '0 0 * * 0'

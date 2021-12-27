@@ -11,7 +11,7 @@ function finish {
 trap finish EXIT
 
 REPO_PATH=$(pwd)
-ESLINT_VERSION=${ESLINT_VERSION:-latest}
+ESLINT_VERSION=${1:-latest}
 
 set -x
 cd $ROOT
@@ -34,8 +34,10 @@ module.exports = {
 }
 EOF
 
+expected_path="$(node -p "path.resolve('index.html')")"
+
 cat << EOF | diff -u <(npx eslint --format compact index.html 2>&1) -
-$(pwd)/index.html: line 2, col 1, Error - Unexpected console statement. (no-console)
+$expected_path: line 2, col 1, Error - Unexpected console statement. (no-console)
 
 1 problem
 EOF

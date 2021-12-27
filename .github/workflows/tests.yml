@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          cache: npm
       - run: npm ci
       - run: npm run lint
 
@@ -24,6 +27,9 @@ jobs:
         eslint: ["4.7", latest, next]
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          cache: npm
       - run: npm ci
       - run: ESLINT_VERSION=${{ matrix.eslint }} ./tools/integration-tests.bash
 

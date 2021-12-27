@@ -22,6 +22,7 @@ jobs:
 
   integration:
     runs-on: ubuntu-latest
+    needs: lint
     strategy:
       matrix:
         eslint: ["4.7", latest, next]
@@ -35,6 +36,7 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    needs: lint
     strategy:
       matrix:
         include:

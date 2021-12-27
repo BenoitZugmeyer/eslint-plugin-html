@@ -6,3 +6,6 @@ end_of_line = lf
 indent_size = 2
 indent_style = space
 insert_final_newline = true
+
+[src/__tests__/fixtures/crlf-newlines.html]
+end_of_line = crlf

@@ -35,27 +35,33 @@ jobs:
       - run: ESLINT_VERSION=${{ matrix.eslint }} ./tools/integration-tests.bash
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     needs: lint
     strategy:
       matrix:
+        os: [ubuntu-latest]
+        node: [12, 14, 16, 17]
+        eslint: [latest]
         include:
-          - node: 10
+          # Node 10 support: will be dropped in next major version
+          - os: ubuntu-latest
+            node: 10
             eslint: 7
-          - node: 12
-            eslint: latest
-          - node: 14
-            eslint: latest
-          - node: 16
+
+          # ESLint 4.7 support: lowest version supported
+          - os: ubuntu-latest
+            node: 16
             eslint: "4.7"
-          - node: 16
-            eslint: latest
-          - node: 16
+
+          # Upcoming ESLint major version support
+          - os: ubuntu-latest
+            node: 16
             eslint: next
-          - node: 17
+
+          # Windows support
+          - os: windows-latest
+            node: 16
             eslint: latest
-          - node: 17
-            eslint: next
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2

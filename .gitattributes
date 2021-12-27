@@ -1,0 +1,2 @@
+# ignore test fixtures
+src/__tests__/fixtures/* -text

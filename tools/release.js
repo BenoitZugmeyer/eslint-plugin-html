@@ -146,7 +146,7 @@ async function verifyBuild() {
 function fetchWorkflowRuns() {
   return new Promise((resolve, reject) => {
     const req = request(
-      `https://api.github.com/repos/${REPO}/actions/runs?event=push&branch=master`,
+      `https://api.github.com/repos/${REPO}/actions/runs?event=push&branch=main`,
       {
         headers: {
           "User-Agent": "release-script/1.0.0",

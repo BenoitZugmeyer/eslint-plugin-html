@@ -15,7 +15,7 @@
   - [`html/xml-extensions`](#htmlxml-extensions)
   - [`html/indent`](#htmlindent)
   - [`html/report-bad-indent`](#htmlreport-bad-indent)
-  - [`html/parse-tags`](#htmlparse-tags)
+  - [`html/javascript-tag-names`](#htmljavascript-tag-names)
   - [`html/javascript-mime-types`](#htmljavascript-mime-types)
 - [Troubleshooting](#troubleshooting)
   - [No file linted when running `eslint` on a directory](#no-file-linted-when-running-eslint-on-a-directory)
@@ -162,7 +162,7 @@ display errors. Example:
 }
 ```
 
-### `html/parse-tags`
+### `html/javascript-tag-names`
 
 By default, the code between `<script>` tags is considered as JavaScript. You can customize which
 tags should be considered JavaScript by providing one or multiple tag names.
@@ -173,7 +173,7 @@ Example:
 {
     "plugins": [ "html" ],
     "settings": {
-        "html/parse-tags": ["script", "customscript"],
+        "html/javascript-tag-names": ["script", "customscript"],
     }
 }
 ```

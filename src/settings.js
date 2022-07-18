@@ -50,8 +50,9 @@ function getSettings(settings) {
     getSetting(settings, "xml-extensions") ||
     filterOut(defaultXMLExtensions, getSetting(settings, "html-extensions"))
 
-  const parseTags =
-    getSetting(settings, "parse-tags") || ["script"]
+  const javaScriptTagNames = getSetting(settings, "javascript-tag-names") || [
+    "script",
+  ]
 
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {
@@ -105,7 +106,7 @@ function getSettings(settings) {
   return {
     htmlExtensions,
     xmlExtensions,
-    parseTags,
+    javaScriptTagNames,
     indent,
     reportBadIndent,
     isJavaScriptMIMEType,

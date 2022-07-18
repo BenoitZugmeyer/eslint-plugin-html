@@ -25,7 +25,7 @@ function test(params) {
     dedent(params.input),
     params.indent,
     params.xmlMode,
-    params.parseTags || ["script"],
+    params.javaScriptTagNames || ["script"],
     params.isJavaScriptMIMEType
   )
   expect(infos.code.map((code) => code.toString())).toMatchSnapshot()
@@ -331,6 +331,6 @@ it("extract multiple tags types", () => {
         var bar = 1;
       </customscript>
     `,
-    parseTags: ["script", "customscript"],
+    javaScriptTagNames: ["script", "customscript"],
   })
 })

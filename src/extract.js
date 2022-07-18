@@ -8,7 +8,7 @@ function iterateScripts(code, options, onChunk) {
 
   const xmlMode = options.xmlMode
   const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
-  const parseTags = options.parseTags || ['script']
+  const javaScriptTagNames = options.javaScriptTagNames || ['script']
   let index = 0
   let inScript = false
   let cdata = []
@@ -24,7 +24,7 @@ function iterateScripts(code, options, onChunk) {
     {
       onopentag(name, attrs) {
         // Test if current tag is a valid <script> tag.
-        if (!parseTags.includes(name)) {
+        if (!javaScriptTagNames.includes(name)) {
           return
         }
 
@@ -54,7 +54,7 @@ function iterateScripts(code, options, onChunk) {
       },
 
       onclosetag(name) {
-        if (!parseTags.includes(name) || !inScript) {
+        if (!javaScriptTagNames.includes(name) || !inScript) {
           return
         }
 
@@ -180,13 +180,13 @@ function* dedent(indent, slice) {
   }
 }
 
-function extract(code, indentDescriptor, xmlMode, parseTags, isJavaScriptMIMEType) {
+function extract(code, indentDescriptor, xmlMode, javaScriptTagNames, isJavaScriptMIMEType) {
   const badIndentationLines = []
   const codeParts = []
   let lineNumber = 1
   let previousHTML = ""
 
-  iterateScripts(code, { xmlMode, parseTags, isJavaScriptMIMEType }, (chunk) => {
+  iterateScripts(code, { xmlMode, javaScriptTagNames, isJavaScriptMIMEType }, (chunk) => {
     const slice = code.slice(chunk.start, chunk.end)
     if (chunk.type === "html") {
       const match = slice.match(/\r\n|\n|\r/g)

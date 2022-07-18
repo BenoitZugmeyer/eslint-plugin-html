@@ -7,6 +7,7 @@
 </div>
 
 - [Usage](#usage)
+- [Disable ESLint](#disable-eslint)
 - [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
   - [History](#history)
 - [XML support](#xml-support)
@@ -41,6 +42,32 @@ Example:
     ]
 }
 ```
+
+## Disable ESLint
+
+To temporarily disable ESLint, use the `<!-- eslint-disable -->` HTML comment. Re-enable it with
+`<!-- eslint enable -->`. Example:
+
+```html
+<!-- eslint-disable -->
+<script>
+  var foo = 1
+</script>
+<!-- eslint-enable -->
+```
+
+To disable ESLint for the next script tag only, use the `<!-- eslint-disable-next-script -->` HTML
+comment. Example:
+
+```html
+<!-- eslint-disable-next-script -->
+<script>
+  var foo = 1
+</script>
+```
+
+Disabled script tags are completely ignored: their content will not be parsed as JavaScript. You can
+use this to disable script tags containing template syntax.
 
 ## Multiple scripts tags in a HTML file
 
@@ -209,14 +236,17 @@ documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 
 `eslint-plugin-html` won't evaluate or remove your template markup. If you have template markup in
 your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
-it.
+it. Here are some workarounds:
 
-For PHP, you can use [`eslint-plugin-php-markup`](https://github.com/tengattack/eslint-plugin-php-markup) to
-lint php files, it use a same way to process php markup like `eslint-plugin-html`.
+- You can use [HTML comments to disable ESLint](#disable-eslint) for specific script tags.
 
-Or another possible hacky workaround to make sure the code is valid JavaScript is to put your template
-markup inside a comment. When the template is rendered, the generated JS code must start with a new
-line, so it will be written below the comment. PHP example:
+- For PHP, you can use
+  [`eslint-plugin-php-markup`](https://github.com/tengattack/eslint-plugin-php-markup) to lint php
+  files, it use a same way to process php markup like `eslint-plugin-html`.
+
+- Another possible hacky workaround to make sure the code is valid JavaScript is to put your
+  template markup inside a comment. When the template is rendered, the generated JS code must start
+  with a new line, so it will be written below the comment. PHP example:
 
 ```html
 <script>

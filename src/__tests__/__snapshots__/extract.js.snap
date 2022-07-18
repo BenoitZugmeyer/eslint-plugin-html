@@ -9,6 +9,20 @@ a;
 ]
 `;
 
+exports[`disable comments ignores next script 1`] = `
+Array [
+  "var bar = 2;
+",
+]
+`;
+
+exports[`disable comments ignores script 1`] = `
+Array [
+  "var bar = 2;
+",
+]
+`;
+
 exports[`extract empty script tag (#7) 1`] = `
 Array [
   "",

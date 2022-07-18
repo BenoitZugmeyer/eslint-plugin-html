@@ -334,3 +334,35 @@ it("extract multiple tags types", () => {
     javaScriptTagNames: ["script", "customscript"],
   })
 })
+
+describe("disable comments", () => {
+  it("ignores next script", () => {
+    test({
+      input: `
+      <!-- eslint-disable-next-script -->
+      <script>
+        var foo = 1;
+      </script>
+
+      <script>
+        var bar = 2;
+      </script>
+      `,
+    })
+  })
+
+  it("ignores script", () => {
+    test({
+      input: `
+      <!-- eslint-disable -->
+      <script>
+        var foo = 1;
+      </script>
+      <!-- eslint-enable -->
+      <script>
+        var bar = 2;
+      </script>
+      `,
+    })
+  })
+})

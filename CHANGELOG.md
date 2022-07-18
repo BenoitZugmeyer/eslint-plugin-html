@@ -1,7 +1,8 @@
-UNRELEASED v7.0.0
+2022-07-19 v7.0.0
 
 - **Breaking: drop Node 10 support**
 - Allow temporarily disabling ESLint wit HTML comments
+- Allow configuring which script tag names should be considered as JavaScript #137
 
 2021-09-20 v6.2.0
 

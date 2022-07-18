@@ -164,7 +164,8 @@ display errors. Example:
 
 ### `html/parse-tags`
 
-By default, the code between `<script>` tags is considered as JavaScript.
+By default, the code between `<script>` tags is considered as JavaScript. You can customize which
+tags should be considered JavaScript by providing one or multiple tag names.
 
 Example:
 

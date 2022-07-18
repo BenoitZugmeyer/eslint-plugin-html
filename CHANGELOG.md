@@ -1,4 +1,4 @@
-2022-07-19 v7.0.0
+2022-07-18 v7.0.0
 
 - **Breaking: drop Node 10 support**
 - Allow temporarily disabling ESLint wit HTML comments

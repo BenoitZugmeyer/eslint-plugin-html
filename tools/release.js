@@ -56,8 +56,9 @@ function getVersion() {
   }
 
   const [_, date, version, channel = "latest"] = matches
-  if (date !== new Date().toISOString().slice(0, 10)) {
-    error("Invalid changelog date")
+  const expected = new Date().toISOString().slice(0, 10)
+  if (date !== expected) {
+    error(`Invalid changelog date (should be ${expected})`)
   }
 
   return [version, channel]

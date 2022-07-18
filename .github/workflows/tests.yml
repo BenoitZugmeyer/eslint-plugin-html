@@ -13,8 +13,8 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           cache: npm
       - run: npm ci
@@ -32,10 +32,17 @@ jobs:
           - os: windows-latest
             eslint: latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           cache: npm
+      # https://github.com/actions/setup-node/issues/515#issuecomment-1153685437
+      - if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+           $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
+           $NodeDirPath = Split-Path $WhereNode -Parent
+           cd $NodeDirPath
+           npm install npm@8.12.1
       - run: npm ci
       - run: bash tools/integration-tests.bash ${{ matrix.eslint }}
 
@@ -48,11 +55,6 @@ jobs:
         node: [12, 14, 16, 17]
         eslint: [latest]
         include:
-          # Node 10 support: will be dropped in next major version
-          - os: ubuntu-latest
-            node: 10
-            eslint: 7
-
           # ESLint 4.7 support: lowest version supported
           - os: ubuntu-latest
             node: 16
@@ -68,8 +70,8 @@ jobs:
             node: 16
             eslint: latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node }}
           cache: npm

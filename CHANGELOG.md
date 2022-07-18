@@ -1,3 +1,6 @@
+UNRELEASED v7.0.0
+* **Breaking: drop Node 10 support**
+
 2021-09-20 v6.2.0
 * Update dependencies
 * Fix support for ESLint v8.0.0-beta.2

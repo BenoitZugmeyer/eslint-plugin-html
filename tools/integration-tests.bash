@@ -34,9 +34,11 @@ module.exports = {
 }
 EOF
 
+npx eslint --format compact index.html > actual_output 2>&1 || true
+
 expected_path="$(node -p "path.resolve('index.html')")"
 
-cat << EOF | diff -u <(npx eslint --format compact index.html 2>&1) -
+cat << EOF | diff -u actual_output -
 $expected_path: line 2, col 1, Error - Unexpected console statement. (no-console)
 
 1 problem

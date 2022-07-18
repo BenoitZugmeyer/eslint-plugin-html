@@ -10,8 +10,7 @@
         try {
           if (fn() === false) console.error(`${fn} returned false`)
           console.log(`${fn} succeeded`)
-        }
-        catch (e) {
+        } catch (e) {
           console.error(`${fn} threw ${e}`)
         }
       }
@@ -20,12 +19,10 @@
         try {
           fn()
           console.error(`${fn} didn't threw ${expectedException.name}`)
-        }
-        catch (e) {
+        } catch (e) {
           if (e instanceof expectedException) {
             console.log(`${fn} expectedly threw ${expectedException.name}`)
-          }
-          else {
+          } else {
             console.log(`${fn} threw ${e} instead of ${expectedException.name}`)
           }
         }
@@ -76,7 +73,9 @@
     </script>
 
     <script>
-      console.group("Modules are not exporting declarations to the global scope")
+      console.group(
+        "Modules are not exporting declarations to the global scope"
+      )
       expectThrows(() => varModuleDeclared, ReferenceError)
       console.groupEnd()
     </script>

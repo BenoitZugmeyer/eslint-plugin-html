@@ -66,11 +66,11 @@ To illustrate this behavior, consider this HTML extract:
 
 ```html
 <script>
-  var foo = 1;
+  var foo = 1
 </script>
 
 <script>
-  alert(foo);
+  alert(foo)
 </script>
 ```
 
@@ -205,7 +205,6 @@ will have to specify extra extensions with the `--ext` option. Example: `eslint 
 will lint both `.html` and `.js` files in the `src` directory. See [ESLint
 documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 
-
 ### Linting templates (or PHP)
 
 `eslint-plugin-html` won't evaluate or remove your template markup. If you have template markup in
@@ -221,9 +220,9 @@ line, so it will be written below the comment. PHP example:
 
 ```html
 <script>
-  var mydata;
+  var mydata
   // <?= "\n mydata = " . json_encode($var) . ";" ?>
-  console.log(mydata);
+  console.log(mydata)
 </script>
 ```
 

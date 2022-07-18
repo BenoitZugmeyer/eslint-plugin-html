@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "eslint": "^8.5.0",
-    "eslint-config-benoitz-prettier": "^1.1.0",
+    "eslint-config-prettier": "^8.5.0",
     "jest": "^28.1.3",
     "prettier": "^2.1.2",
     "semver": "^7.3.2"
@@ -29,6 +29,7 @@
   "scripts": {
     "validate": "npm run lint && npm run test",
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "format": "prettier --check ."
   }
 }

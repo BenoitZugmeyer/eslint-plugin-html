@@ -3,6 +3,10 @@
 const htmlparser = require("htmlparser2")
 const TransformableString = require("./TransformableString")
 
+const NO_IGNORE = 0
+const IGNORE_NEXT = 1
+const IGNORE_UNTIL_ENABLE = 2
+
 function iterateScripts(code, options, onChunk) {
   if (!code) return
 
@@ -12,6 +16,7 @@ function iterateScripts(code, options, onChunk) {
   let index = 0
   let inScript = false
   let cdata = []
+  let ignoreState = NO_IGNORE
 
   const chunks = []
   function pushChunk(type, end) {
@@ -33,6 +38,15 @@ function iterateScripts(code, options, onChunk) {
         }
 
         if (attrs.src) {
+          return
+        }
+
+        if (ignoreState === IGNORE_NEXT) {
+          ignoreState = NO_IGNORE
+          return
+        }
+
+        if (ignoreState === IGNORE_UNTIL_ENABLE) {
           return
         }
 
@@ -75,6 +89,17 @@ function iterateScripts(code, options, onChunk) {
         }
 
         pushChunk("script", parser.endIndex + 1)
+      },
+
+      oncomment(comment) {
+        comment = comment.trim()
+        if (comment === "eslint-disable") {
+          ignoreState = IGNORE_UNTIL_ENABLE
+        } else if (comment === "eslint-enable") {
+          ignoreState = NO_IGNORE
+        } else if (comment === "eslint-disable-next-script") {
+          ignoreState = IGNORE_NEXT
+        }
       },
     },
     {

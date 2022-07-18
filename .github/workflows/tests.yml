@@ -7,7 +7,7 @@ on:
       - main
   schedule:
     # Every sunday at midnight
-    - cron:  '0 0 * * 0'
+    - cron: "0 0 * * 0"
 
 jobs:
   lint:
@@ -19,6 +19,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm run format
+      - run: npx markdown-link-check -p README.md
 
   integration:
     runs-on: ${{ matrix.os }}
@@ -39,10 +41,10 @@ jobs:
       # https://github.com/actions/setup-node/issues/515#issuecomment-1153685437
       - if: ${{ matrix.os == 'windows-latest' }}
         run: |
-           $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
-           $NodeDirPath = Split-Path $WhereNode -Parent
-           cd $NodeDirPath
-           npm install npm@8.12.1
+          $WhereNode = Get-Command node | Select-Object -ExpandProperty Definition
+          $NodeDirPath = Split-Path $WhereNode -Parent
+          cd $NodeDirPath
+          npm install npm@8.12.1
       - run: npm ci
       - run: bash tools/integration-tests.bash ${{ matrix.eslint }}
 

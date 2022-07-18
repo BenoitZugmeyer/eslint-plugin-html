@@ -46,6 +46,15 @@ Array [
 ]
 `;
 
+exports[`extract multiple tags types 1`] = `
+Array [
+  "var foo = 1;
+",
+  "var bar = 1;
+",
+]
+`;
+
 exports[`extract script containing 'lower than' characters correctly (#1) 1`] = `
 Array [
   "if (a < b) { doit(); }

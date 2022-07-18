@@ -252,4 +252,4 @@ If you are considering upgrading to v3, please read [this guide](MIGRATION_TO_V3
 
 ## Credits
 
-A big thank you to [@Bkucera](https://github.com/Bkucera) for the logo image!
+A big thank you to [@kuceb](https://github.com/kuceb) for the logo image!

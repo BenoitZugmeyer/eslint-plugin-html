@@ -20,6 +20,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run format
+      - run: npx markdown-link-check -p README.md
 
   integration:
     runs-on: ${{ matrix.os }}

@@ -126,22 +126,37 @@ function patch(Linter) {
     filenameOrOptions,
     saveState
   ) {
+    const callOriginalVerify = () =>
+      verify.call(this, textOrSourceCode, config, filenameOrOptions, saveState)
+
     if (typeof config.extractConfig === "function") {
-      return verify.call(this, textOrSourceCode, config, filenameOrOptions)
+      return callOriginalVerify()
     }
 
     const pluginSettings = getSettings(config.settings || {})
     const mode = getFileMode(pluginSettings, filenameOrOptions)
 
     if (!mode || typeof textOrSourceCode !== "string") {
-      return verify.call(
-        this,
-        textOrSourceCode,
-        config,
-        filenameOrOptions,
-        saveState
-      )
+      return callOriginalVerify()
     }
+
+    let messages
+    ;[messages, config] = verifyExternalHtmlPlugin(config, callOriginalVerify)
+
+    if (config.parser && config.parser.id === "@html-eslint/parser") {
+      messages.push(...callOriginalVerify())
+      const rules = {}
+      for (const name in config.rules) {
+        if (!name.startsWith("@html-eslint/")) {
+          rules[name] = config.rules[name]
+        }
+      }
+      config = editConfig(config, {
+        parser: null,
+        rules,
+      })
+    }
+
     const extractResult = extract(
       textOrSourceCode,
       pluginSettings.indent,
@@ -149,8 +164,6 @@ function patch(Linter) {
       pluginSettings.javaScriptTagNames,
       pluginSettings.isJavaScriptMIMEType
     )
-
-    const messages = []
 
     if (pluginSettings.reportBadIndent) {
       messages.push(
@@ -181,7 +194,7 @@ function patch(Linter) {
       const localMessages = verify.call(
         this,
         sourceCodes.get(codePart) || String(codePart),
-        Object.assign({}, config, {
+        editConfig(config, {
           rules: Object.assign(
             { [PREPARE_RULE_NAME]: "error" },
             !ignoreRules && config.rules
@@ -213,6 +226,57 @@ function patch(Linter) {
 
     return messages
   }
+}
+
+function editConfig(config, { parser = config.parser, rules = config.rules }) {
+  return {
+    ...config,
+    parser,
+    rules,
+  }
+}
+
+const externalHtmlPluginPrefixes = [
+  "@html-eslint/",
+  "@angular-eslint/template-",
+]
+
+function getParserId(config) {
+  if (!config.parser) {
+    return
+  }
+
+  if (typeof config.parser === "string") {
+    // old versions of ESLint (ex: 4.7)
+    return config.parser
+  }
+
+  return config.parser.id
+}
+
+function verifyExternalHtmlPlugin(config, callOriginalVerify) {
+  const parserId = getParserId(config)
+  const externalHtmlPluginPrefix =
+    parserId &&
+    externalHtmlPluginPrefixes.find((prefix) => parserId.startsWith(prefix))
+  if (!externalHtmlPluginPrefix) {
+    return [[], config]
+  }
+
+  const rules = {}
+  for (const name in config.rules) {
+    if (!name.startsWith(externalHtmlPluginPrefix)) {
+      rules[name] = config.rules[name]
+    }
+  }
+
+  return [
+    callOriginalVerify(),
+    editConfig(config, {
+      parser: null,
+      rules,
+    }),
+  ]
 }
 
 function verifyWithSharedScopes(codeParts, verifyCodePart, parserOptions) {

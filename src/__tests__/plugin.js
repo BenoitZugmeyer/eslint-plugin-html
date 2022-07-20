@@ -4,7 +4,7 @@ const path = require("path")
 const eslint = require("eslint")
 const semver = require("semver")
 const eslintVersion = require("eslint/package.json").version
-const plugin = require("..")
+require("..")
 
 function matchVersion(versionSpec) {
   return semver.satisfies(eslintVersion, versionSpec, {
@@ -17,48 +17,49 @@ function ifVersion(versionSpec, fn, ...args) {
   execFn(...args)
 }
 
-async function execute(file, baseConfig) {
-  if (!baseConfig) baseConfig = {}
-
+async function execute(file, options = {}) {
   const files = [path.join(__dirname, "fixtures", file)]
 
-  const options = {
+  const eslintOptions = {
     extensions: ["html"],
     baseConfig: {
-      settings: baseConfig.settings,
+      settings: options.settings,
       rules: Object.assign(
         {
           "no-console": 2,
         },
-        baseConfig.rules
+        options.rules
       ),
-      globals: baseConfig.globals,
-      env: baseConfig.env,
-      parserOptions: baseConfig.parserOptions,
+      globals: options.globals,
+      env: options.env,
+      parserOptions: options.parserOptions,
+      parser: options.parser,
     },
     ignore: false,
     useEslintrc: false,
-    fix: baseConfig.fix,
+    fix: options.fix,
     reportUnusedDisableDirectives:
-      baseConfig.reportUnusedDisableDirectives || null,
+      options.reportUnusedDisableDirectives || null,
   }
 
   let results
   if (eslint.ESLint) {
-    const instance = new eslint.ESLint({
-      ...options,
-      plugins: { html: plugin },
-    })
+    eslintOptions.baseConfig.plugins = options.plugins
+    const instance = new eslint.ESLint(eslintOptions)
     results = (await instance.lintFiles(files))[0]
   } else if (eslint.CLIEngine) {
-    const cli = new eslint.CLIEngine(options)
-    cli.addPlugin("html", plugin)
+    const cli = new eslint.CLIEngine(eslintOptions)
+    if (options.plugins) {
+      for (const plugin of options.plugins) {
+        cli.addPlugin(plugin.split("/")[0], require(plugin))
+      }
+    }
     results = cli.executeOnFiles(files).results[0]
   } else {
     throw new Error("invalid ESLint dependency")
   }
 
-  return baseConfig.fix ? results : results && results.messages
+  return options.fix ? results : results && results.messages
 }
 
 it("should extract and remap messages", async () => {
@@ -788,5 +789,64 @@ describe("scope sharing", () => {
     )
     expect(messages[15].line).toBe(28)
     expect(messages[15].message).toBe("'ClassGloballyDeclared' is not defined.")
+  })
+})
+
+// For some reason @html-eslint is not compatible with ESLint < 5
+ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
+  it("check", async () => {
+    const messages = await execute("other-html-plugins-compatibility.html", {
+      plugins: ["@html-eslint/eslint-plugin"],
+      parser: "@html-eslint/parser",
+      rules: {
+        "@html-eslint/require-img-alt": ["error"],
+      },
+    })
+    expect(messages).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "column": 1,
+          "endColumn": 13,
+          "endLine": 1,
+          "line": 1,
+          "message": "Missing \`alt\` attribute at \`<img>\` tag",
+          "messageId": "missingAlt",
+          "nodeType": null,
+          "ruleId": "@html-eslint/require-img-alt",
+          "severity": 2,
+        },
+        Object {
+          "column": 3,
+          "endColumn": 14,
+          "endLine": 3,
+          "line": 3,
+          "message": "Unexpected console statement.",
+          "messageId": "unexpected",
+          "nodeType": "MemberExpression",
+          "ruleId": "no-console",
+          "severity": 2,
+          "source": "  console.log(\\"toto\\")",
+        },
+      ]
+    `)
+  })
+
+  it("fix", async () => {
+    const result = await execute("other-html-plugins-compatibility.html", {
+      plugins: ["@html-eslint/eslint-plugin"],
+      parser: "@html-eslint/parser",
+      rules: {
+        "@html-eslint/quotes": ["error", "single"],
+        quotes: ["error", "single"],
+      },
+      fix: true,
+    })
+    expect(result.output).toMatchInlineSnapshot(`
+      "<img src=''>
+      <script>
+        console.log('toto')
+      </script>
+      "
+    `)
   })
 })

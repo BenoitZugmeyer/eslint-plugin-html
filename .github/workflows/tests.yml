@@ -54,22 +54,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [12, 14, 16, 17]
+        node: [12, 14, 16, 18]
         eslint: [latest]
         include:
           # ESLint 4.7 support: lowest version supported
           - os: ubuntu-latest
-            node: 16
+            node: 18
             eslint: "4.7"
 
           # Upcoming ESLint major version support
           - os: ubuntu-latest
-            node: 16
+            node: 18
             eslint: next
 
           # Windows support
           - os: windows-latest
-            node: 16
+            node: 18
             eslint: latest
     steps:
       - uses: actions/checkout@v3

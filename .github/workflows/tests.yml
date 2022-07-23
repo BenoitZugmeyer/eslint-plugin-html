@@ -62,6 +62,11 @@ jobs:
             node: 18
             eslint: "4.7"
 
+          # ESLint 5 support: lowest version we can use to test external html plugins support
+          - os: ubuntu-latest
+            node: 18
+            eslint: "5.0"
+
           # Upcoming ESLint major version support
           - os: ubuntu-latest
             node: 18

@@ -7,7 +7,8 @@
 </div>
 
 - [Usage](#usage)
-- [Disable ESLint](#disable-eslint)
+- [Disabling ESLint](#disabling-eslint)
+- [Linting HTML](#linting-html)
 - [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
   - [History](#history)
 - [XML support](#xml-support)
@@ -43,7 +44,7 @@ Example:
 }
 ```
 
-## Disable ESLint
+## Disabling ESLint
 
 To temporarily disable ESLint, use the `<!-- eslint-disable -->` HTML comment. Re-enable it with
 `<!-- eslint enable -->`. Example:
@@ -68,6 +69,14 @@ comment. Example:
 
 Disabled script tags are completely ignored: their content will not be parsed as JavaScript. You can
 use this to disable script tags containing template syntax.
+
+## Linting HTML
+
+This plugin focuses on applying ESLint rules on inline scripts contained in HTML. It does not
+provide any rule related to HTML. For that, you can use other plugins like
+[`@eslint-html`](https://yeonjuan.github.io/html-eslint/) or
+[@angular-eslint](https://github.com/angular-eslint/angular-eslint). `eslint-plugin-html` is
+compatible with those plugins and can be used along them.
 
 ## Multiple scripts tags in a HTML file
 
@@ -238,7 +247,7 @@ documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
 it. Here are some workarounds:
 
-- You can use [HTML comments to disable ESLint](#disable-eslint) for specific script tags.
+- You can use [HTML comments to disable ESLint](#disabling-eslint) for specific script tags.
 
 - For PHP, you can use
   [`eslint-plugin-php-markup`](https://github.com/tengattack/eslint-plugin-php-markup) to lint php

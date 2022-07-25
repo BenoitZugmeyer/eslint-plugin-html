@@ -1,4 +1,4 @@
-UNRELEASED v7.1.0
+2022-07-25 v7.1.0
 
 - Add support for @html-eslint and @angular-eslint/template plugins #176
 

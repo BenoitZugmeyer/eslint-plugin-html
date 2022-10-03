@@ -20,7 +20,7 @@
     "htmlparser2": "^8.0.1"
   },
   "devDependencies": {
-    "@html-eslint/eslint-plugin": "^0.13.2",
+    "@html-eslint/eslint-plugin": "^0.15.0",
     "@html-eslint/parser": "^0.13.2",
     "eslint": "^8.5.0",
     "eslint-config-prettier": "^8.5.0",

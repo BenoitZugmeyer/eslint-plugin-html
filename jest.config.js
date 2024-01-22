@@ -4,4 +4,5 @@ module.exports = {
     "@eslint/eslintrc/universal":
       "<rootDir>/node_modules/@eslint/eslintrc/dist/eslintrc-universal.cjs",
   },
+  prettierPath: null,
 }

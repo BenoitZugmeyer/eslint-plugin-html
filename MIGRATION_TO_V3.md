@@ -5,7 +5,7 @@ parts of the file content were replaced by a `/* HTML */` comment. For example, 
 like this:
 
 ```html
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <body>
     <script>

@@ -316,8 +316,8 @@ describe("html/indent setting", () => {
       matchVersion(">= 7.11")
         ? "File has too many lines (6). Maximum allowed is 3."
         : matchVersion(">= 6")
-        ? "File has too many lines (7). Maximum allowed is 3."
-        : "File must be at most 3 lines long. It's 7 lines long."
+          ? "File has too many lines (7). Maximum allowed is 3."
+          : "File must be at most 3 lines long. It's 7 lines long."
     )
     // Starting with eslint 7.3, this message is reported at the beginning of the first extra line
     // instead of the beginning of the file.
@@ -811,34 +811,34 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
         suggestions: "(ignored)",
       }))
     ).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "column": 1,
-          "endColumn": 13,
-          "endLine": 1,
-          "line": 1,
-          "message": "Missing \`alt\` attribute at \`<img>\` tag",
-          "messageId": "missingAlt",
-          "nodeType": null,
-          "ruleId": "@html-eslint/require-img-alt",
-          "severity": 2,
-          "suggestions": "(ignored)",
-        },
-        Object {
-          "column": 3,
-          "endColumn": 14,
-          "endLine": 3,
-          "line": 3,
-          "message": "Unexpected console statement.",
-          "messageId": "unexpected",
-          "nodeType": "MemberExpression",
-          "ruleId": "no-console",
-          "severity": 2,
-          "source": "  console.log(\\"toto\\")",
-          "suggestions": "(ignored)",
-        },
-      ]
-    `)
+[
+  {
+    "column": 1,
+    "endColumn": 13,
+    "endLine": 1,
+    "line": 1,
+    "message": "Missing \`alt\` attribute at \`<img>\` tag",
+    "messageId": "missingAlt",
+    "nodeType": null,
+    "ruleId": "@html-eslint/require-img-alt",
+    "severity": 2,
+    "suggestions": "(ignored)",
+  },
+  {
+    "column": 3,
+    "endColumn": 14,
+    "endLine": 3,
+    "line": 3,
+    "message": "Unexpected console statement.",
+    "messageId": "unexpected",
+    "nodeType": "MemberExpression",
+    "ruleId": "no-console",
+    "severity": 2,
+    "source": "  console.log("toto")",
+    "suggestions": "(ignored)",
+  },
+]
+`)
   })
 
   it("fix", async () => {

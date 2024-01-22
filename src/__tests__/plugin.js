@@ -802,7 +802,15 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
         "@html-eslint/require-img-alt": ["error"],
       },
     })
-    expect(messages).toMatchInlineSnapshot(`
+    expect(
+      messages.map((message) => ({
+        ...message,
+
+        // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
+        // versions of ESLint, we need to ignore these suggestions.
+        suggestions: "(ignored)",
+      }))
+    ).toMatchInlineSnapshot(`
       Array [
         Object {
           "column": 1,
@@ -814,6 +822,7 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
           "nodeType": null,
           "ruleId": "@html-eslint/require-img-alt",
           "severity": 2,
+          "suggestions": "(ignored)",
         },
         Object {
           "column": 3,
@@ -826,6 +835,7 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
           "ruleId": "no-console",
           "severity": 2,
           "source": "  console.log(\\"toto\\")",
+          "suggestions": "(ignored)",
         },
       ]
     `)

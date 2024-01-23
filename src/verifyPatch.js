@@ -67,9 +67,9 @@ function createVerifyPatch(verify) {
       this.defineRule(PREPARE_RULE_NAME, (context) => {
         sourceCodes.set(codePart, context.getSourceCode())
         return {
-          Program() {
+          Program(program) {
             if (prepare) {
-              prepare(context)
+              prepare(context, program)
             }
           },
         }

@@ -34,14 +34,33 @@ module.exports = {
 }
 EOF
 
-npx eslint --format compact index.html > actual_output 2>&1 || true
+cat << EOF > eslint.config.mjs
+import html from "eslint-plugin-html";
+
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: {
+      html,
+    },
+    rules: {
+      "no-console": "error",
+    }
+  }
+];
+EOF
+
+npx eslint index.html > actual_output 2>&1 || true
 
 expected_path="$(node -p "path.resolve('index.html')")"
 
 cat << EOF | diff -u actual_output -
-$expected_path: line 2, col 1, Error - Unexpected console statement. (no-console)
 
-1 problem
+$expected_path
+  2:1  error  Unexpected console statement  no-console
+
+✖ 1 problem (1 error, 0 warnings)
+
 EOF
 
 echo "All passed"

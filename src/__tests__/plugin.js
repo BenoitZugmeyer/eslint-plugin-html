@@ -20,31 +20,69 @@ function ifVersion(versionSpec, fn, ...args) {
 async function execute(file, options = {}) {
   const files = [path.join(__dirname, "fixtures", file)]
 
-  const eslintOptions = {
-    extensions: ["html"],
-    baseConfig: {
-      settings: options.settings,
-      rules: Object.assign(
-        {
-          "no-console": 2,
+  let eslintOptions
+  if (matchVersion(">= 9")) {
+    eslintOptions = {
+      plugins: {
+        html: require(".."),
+      },
+      baseConfig: {
+        files: ["**/*.html", "**/*.xhtml"],
+        settings: options.settings || {},
+        rules: Object.assign(
+          {
+            "no-console": 2,
+          },
+          options.rules
+        ),
+        languageOptions: {
+          globals: options.globals || {},
+          sourceType: "script",
+          parserOptions: options.parserOptions || {},
+          ...("parser" in options ? { parser: options.parser } : {}),
         },
-        options.rules
-      ),
-      globals: options.globals,
-      env: options.env,
-      parserOptions: options.parserOptions,
-      parser: options.parser,
-    },
-    ignore: false,
-    useEslintrc: false,
-    fix: options.fix,
-    reportUnusedDisableDirectives:
-      options.reportUnusedDisableDirectives || null,
+        linterOptions: {
+          ...("reportUnusedDisableDirective" in options
+            ? {
+                reportUnusedDisableDirectives:
+                  options.reportUnusedDisableDirectives,
+              }
+            : {}),
+        },
+        plugins: options.plugins || {},
+      },
+      ignore: false,
+      ignorePatterns: [],
+      overrideConfigFile: true,
+      fix: options.fix,
+    }
+  } else {
+    eslintOptions = {
+      extensions: ["html"],
+      baseConfig: {
+        settings: options.settings,
+        rules: Object.assign(
+          {
+            "no-console": 2,
+          },
+          options.rules
+        ),
+        globals: options.globals,
+        env: options.env,
+        parserOptions: options.parserOptions,
+        parser: options.parser,
+        plugins: options.plugins,
+      },
+      ignore: false,
+      useEslintrc: false,
+      fix: options.fix,
+      reportUnusedDisableDirectives:
+        options.reportUnusedDisableDirectives || null,
+    }
   }
 
   let results
   if (eslint.ESLint) {
-    eslintOptions.baseConfig.plugins = options.plugins
     const instance = new eslint.ESLint(eslintOptions)
     results = (await instance.lintFiles(files))[0]
   } else if (eslint.CLIEngine) {
@@ -794,10 +832,21 @@ describe("scope sharing", () => {
 
 // For some reason @html-eslint is not compatible with ESLint < 5
 ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
+  const BASE_HTML_ESLINT_CONFIG = matchVersion(">= 9")
+    ? {
+        plugins: {
+          "@html-eslint": require("@html-eslint/eslint-plugin"),
+        },
+        parser: require("@html-eslint/parser"),
+      }
+    : {
+        plugins: ["@html-eslint/eslint-plugin"],
+        parser: "@html-eslint/parser",
+      }
+
   it("check", async () => {
     const messages = await execute("other-html-plugins-compatibility.html", {
-      plugins: ["@html-eslint/eslint-plugin"],
-      parser: "@html-eslint/parser",
+      ...BASE_HTML_ESLINT_CONFIG,
       rules: {
         "@html-eslint/require-img-alt": ["error"],
       },
@@ -843,8 +892,7 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
 
   it("fix", async () => {
     const result = await execute("other-html-plugins-compatibility.html", {
-      plugins: ["@html-eslint/eslint-plugin"],
-      parser: "@html-eslint/parser",
+      ...BASE_HTML_ESLINT_CONFIG,
       rules: {
         "@html-eslint/quotes": ["error", "single"],
         quotes: ["error", "single"],

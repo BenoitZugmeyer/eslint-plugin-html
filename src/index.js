@@ -2,6 +2,9 @@
 
 const path = require("path")
 const { createVerifyPatch } = require("./verifyPatch")
+const {
+  createVerifyWithFlatConfigPatch,
+} = require("./verifyWithFlatConfigPatch")
 
 const LINTER_ISPATCHED_PROPERTY_NAME =
   "__eslint-plugin-html-verify-function-is-patched"
@@ -105,15 +108,20 @@ In the report, please include *all* those informations:
 }
 
 function patch(Linter) {
-  const verifyMethodName = Linter.prototype._verifyWithoutProcessors
-    ? "_verifyWithoutProcessors" // ESLint 6+
-    : "verify" // ESLint 5-
-  const verify = Linter.prototype[verifyMethodName]
-
   // ignore if verify function is already been patched sometime before
   if (Linter[LINTER_ISPATCHED_PROPERTY_NAME] === true) {
     return
   }
   Linter[LINTER_ISPATCHED_PROPERTY_NAME] = true
+
+  const verifyMethodName = Linter.prototype._verifyWithoutProcessors
+    ? "_verifyWithoutProcessors" // ESLint 6+
+    : "verify" // ESLint 5-
+  const verify = Linter.prototype[verifyMethodName]
   Linter.prototype[verifyMethodName] = createVerifyPatch(verify)
+
+  const verifyWithFlatConfig =
+    Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors
+  Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors =
+    createVerifyWithFlatConfigPatch(verifyWithFlatConfig)
 }

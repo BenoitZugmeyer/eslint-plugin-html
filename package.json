@@ -16,6 +16,9 @@
     "html"
   ],
   "main": "src/index.js",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
     "htmlparser2": "^9.1.0"
   },

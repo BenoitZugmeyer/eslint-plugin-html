@@ -1,3 +1,8 @@
+2024-02-09 v8.0.0
+
+- **Breaking: drop Node 12 and 14 support**
+- ESLint 9 support (flat config)
+
 2022-07-25 v7.1.0
 
 - Add support for @html-eslint and @angular-eslint/template plugins #176

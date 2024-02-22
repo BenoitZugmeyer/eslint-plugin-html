@@ -54,6 +54,8 @@ function getSettings(settings) {
     "script",
   ]
 
+  const ignoreTagsWithoutType = getSetting(settings, "ignore-tags-without-type") || false;
+
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {
     case undefined:
@@ -110,6 +112,7 @@ function getSettings(settings) {
     indent,
     reportBadIndent,
     isJavaScriptMIMEType,
+    ignoreTagsWithoutType,
   }
 }
 

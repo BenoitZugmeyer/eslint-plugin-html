@@ -13,6 +13,7 @@ function iterateScripts(code, options, onChunk) {
   const xmlMode = options.xmlMode
   const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
   const javaScriptTagNames = options.javaScriptTagNames || ["script"]
+  const ignoreTagsWithoutType = options.ignoreTagsWithoutType || false;
   let index = 0
   let inScript = false
   let cdata = []
@@ -33,7 +34,7 @@ function iterateScripts(code, options, onChunk) {
           return
         }
 
-        if (attrs.type && !isJavaScriptMIMEType(attrs.type)) {
+        if ((attrs.type || ignoreTagsWithoutType) && !isJavaScriptMIMEType(attrs.type)) {
           return
         }
 

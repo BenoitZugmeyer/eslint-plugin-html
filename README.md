@@ -19,6 +19,7 @@
   - [`html/report-bad-indent`](#htmlreport-bad-indent)
   - [`html/javascript-tag-names`](#htmljavascript-tag-names)
   - [`html/javascript-mime-types`](#htmljavascript-mime-types)
+  - [`html/ignore-tags-without-type`](#htmlignore-tags-without-type)
 - [Troubleshooting](#troubleshooting)
   - [No file linted when running `eslint` on a directory](#no-file-linted-when-running-eslint-on-a-directory)
   - [Linting templates (or PHP)](#linting-templates-or-php)
@@ -228,6 +229,20 @@ If a MIME type starts with a `/`, it will be considered as a regular expression.
     "settings": {
         "html/javascript-mime-types": ["text/javascript", "text/jsx"],  // also use script tags with a "text/jsx" type attribute
         "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/",    // same thing
+    }
+}
+```
+
+### `html/ignore-tags-without-type`
+
+By default, the plugin lints `<script>` tags which has not specified types. If you want to ignore it
+you can ignore it. Example:
+
+```javascript
+{
+    "plugins": [ "html" ],
+    "settings": {
+        "html/ignore-tags-without-type": true,
     }
 }
 ```

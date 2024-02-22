@@ -33,7 +33,7 @@ function iterateScripts(code, options, onChunk) {
           return
         }
 
-        if (!isJavaScriptMIMEType(attrs.type)) {
+        if (attrs.type && !isJavaScriptMIMEType(attrs.type)) {
           return
         }
 

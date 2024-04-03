@@ -22,6 +22,10 @@ function createVerifyWithFlatConfigPatch(verifyWithFlatConfig) {
     const pluginSettings = getSettings(providedConfig.settings || {})
     const mode = getFileMode(pluginSettings, providedOptions.filename)
 
+    if (!mode) {
+      return callOriginalVerify()
+    }
+
     let messages
     ;[messages, providedConfig] = verifyExternalHtmlPlugin(
       providedConfig,

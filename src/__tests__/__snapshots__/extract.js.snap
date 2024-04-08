@@ -190,6 +190,8 @@ exports[`keeps empty lines after the last html tags 1`] = `
 
 exports[`skips script with src attributes 1`] = `[]`;
 
+exports[`skips script without type attribute 1`] = `[]`;
+
 exports[`trim last line spaces 1`] = `
 [
   "var foo = 1;

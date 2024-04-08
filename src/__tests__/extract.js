@@ -318,6 +318,13 @@ it("skips script with src attributes", () => {
   })
 })
 
+it("skips script without type attribute", () => {
+  test({
+    input: "<script></script>",
+    ignoreTagsWithoutType: true,
+  })
+})
+
 it("extract multiple tags types", () => {
   test({
     input: `

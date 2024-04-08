@@ -1,3 +1,9 @@
+UNRELEASED v8.1.0
+
+- Introduce the `html/ignore-tags-without-type` setting #249
+- Fix files with unknown extensions being considered as XML #257
+- Update dependencies
+
 2024-02-09 v8.0.0
 
 - **Breaking: drop Node 12 and 14 support**

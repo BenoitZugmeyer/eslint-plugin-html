@@ -611,6 +611,18 @@ ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
   })
 })
 
+describe("html/ignore-tags-without-type", () => {
+  it("ignores tags without type attribute", async () => {
+    const messages = await execute("javascript-mime-types.html", {
+      settings: {
+        "html/ignore-tags-without-type": true,
+      },
+    })
+
+    expect(messages.length).toBe(2)
+  })
+})
+
 describe("html/javascript-mime-types", () => {
   it("ignores unknown mime types by default", async () => {
     const messages = await execute("javascript-mime-types.html")

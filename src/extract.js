@@ -34,10 +34,11 @@ function iterateScripts(code, options, onChunk) {
           return
         }
 
-        if (
-          (attrs.type || ignoreTagsWithoutType) &&
-          !isJavaScriptMIMEType(attrs.type)
-        ) {
+        if (attrs.type) {
+          if (!isJavaScriptMIMEType(attrs.type)) {
+            return
+          }
+        } else if (ignoreTagsWithoutType) {
           return
         }
 

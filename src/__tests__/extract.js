@@ -21,13 +21,12 @@ function dedent(str) {
 }
 
 function test(params) {
-  const infos = extract(
-    dedent(params.input),
-    params.indent,
-    params.xmlMode,
-    params.javaScriptTagNames || ["script"],
-    params.isJavaScriptMIMEType
-  )
+  const infos = extract(dedent(params.input), params.xmlMode, {
+    indent: params.indent,
+    javaScriptTagNames: params.javaScriptTagNames || ["script"],
+    isJavaScriptMIMEType: params.isJavaScriptMIMEType,
+    ignoreTagsWithoutType: params.ignoreTagsWithoutType,
+  })
   expect(infos.code.map((code) => code.toString())).toMatchSnapshot()
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }

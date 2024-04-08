@@ -27,7 +27,7 @@ async function execute(file, options = {}) {
         html: require(".."),
       },
       baseConfig: {
-        files: ["**/*.html", "**/*.xhtml"],
+        files: ["**/*.*"],
         settings: options.settings || {},
         rules: Object.assign(
           {
@@ -418,6 +418,16 @@ describe("xml support", () => {
     expect(messages[0].fatal).toBe(true)
     expect(messages[0].line).toBe(10)
     expect(messages[0].column).toBe(7)
+  })
+
+  it("consider .js files as JS", async () => {
+    const messages = await execute("javascript.js")
+
+    expect(messages.length).toBe(1)
+
+    expect(messages[0].message).toBe("Unexpected console statement.")
+    expect(messages[0].line).toBe(1)
+    expect(messages[0].column).toBe(1)
   })
 
   it("can be forced to consider .html files as XML", async () => {

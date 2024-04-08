@@ -5,4 +5,5 @@ module.exports = {
       "<rootDir>/node_modules/@eslint/eslintrc/dist/eslintrc-universal.cjs",
   },
   prettierPath: null,
+  testPathIgnorePatterns: ["/node_modules/", "/fixtures/"],
 }

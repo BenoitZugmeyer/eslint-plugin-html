@@ -54,7 +54,8 @@ function getSettings(settings) {
     "script",
   ]
 
-  const ignoreTagsWithoutType = getSetting(settings, "ignore-tags-without-type") || false;
+  const ignoreTagsWithoutType =
+    getSetting(settings, "ignore-tags-without-type") || false
 
   let reportBadIndent
   switch (getSetting(settings, "report-bad-indent")) {

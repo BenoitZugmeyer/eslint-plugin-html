@@ -235,8 +235,9 @@ If a MIME type starts with a `/`, it will be considered as a regular expression.
 
 ### `html/ignore-tags-without-type`
 
-By default, the plugin lints `<script>` tags which has not specified types. If you want to ignore it
-you can ignore it. Example:
+By default, the code between `<script>` tags is considered JavaScript if there is no `type`
+attribute. You can set this setting to `true` to ignore script tags without a `type` attribute.
+Example:
 
 ```javascript
 {

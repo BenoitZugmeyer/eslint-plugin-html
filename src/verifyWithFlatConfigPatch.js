@@ -117,7 +117,7 @@ const externalHtmlPlugins = [
 function tryRequire(name) {
   try {
     return require(name)
-  } catch (e) {
+  } catch {
     return undefined
   }
 }

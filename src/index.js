@@ -72,12 +72,12 @@ function iterateESLintModules(fn) {
     let eslintPath, eslintVersion
     try {
       eslintPath = require.resolve("eslint")
-    } catch (e) {
+    } catch {
       eslintPath = "(not found)"
     }
     try {
       eslintVersion = require("eslint/package.json").version
-    } catch (e) {
+    } catch {
       eslintVersion = "n/a"
     }
 

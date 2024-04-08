@@ -7,10 +7,9 @@ const NO_IGNORE = 0
 const IGNORE_NEXT = 1
 const IGNORE_UNTIL_ENABLE = 2
 
-function iterateScripts(code, options, onChunk) {
+function iterateScripts(code, xmlMode, options, onChunk) {
   if (!code) return
 
-  const xmlMode = options.xmlMode
   const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
   const javaScriptTagNames = options.javaScriptTagNames || ["script"]
   const ignoreTagsWithoutType = options.ignoreTagsWithoutType || false
@@ -210,57 +209,47 @@ function* dedent(indent, slice) {
   }
 }
 
-function extract(
-  code,
-  indentDescriptor,
-  xmlMode,
-  javaScriptTagNames,
-  isJavaScriptMIMEType
-) {
+function extract(code, xmlMode, options) {
   const badIndentationLines = []
   const codeParts = []
   let lineNumber = 1
   let previousHTML = ""
 
-  iterateScripts(
-    code,
-    { xmlMode, javaScriptTagNames, isJavaScriptMIMEType },
-    (chunk) => {
-      const slice = code.slice(chunk.start, chunk.end)
-      if (chunk.type === "html") {
-        const match = slice.match(/\r\n|\n|\r/g)
-        if (match) lineNumber += match.length
-        previousHTML = slice
-      } else if (chunk.type === "script") {
-        const transformedCode = new TransformableString(code)
-        let indentSlice = slice
-        for (const cdata of chunk.cdata) {
-          transformedCode.replace(cdata.start, cdata.end, "")
-          if (cdata.end === chunk.end) {
-            indentSlice = code.slice(chunk.start, cdata.start)
-          }
+  iterateScripts(code, xmlMode, options, (chunk) => {
+    const slice = code.slice(chunk.start, chunk.end)
+    if (chunk.type === "html") {
+      const match = slice.match(/\r\n|\n|\r/g)
+      if (match) lineNumber += match.length
+      previousHTML = slice
+    } else if (chunk.type === "script") {
+      const transformedCode = new TransformableString(code)
+      let indentSlice = slice
+      for (const cdata of chunk.cdata) {
+        transformedCode.replace(cdata.start, cdata.end, "")
+        if (cdata.end === chunk.end) {
+          indentSlice = code.slice(chunk.start, cdata.start)
         }
-        transformedCode.replace(0, chunk.start, "")
-        transformedCode.replace(chunk.end, code.length, "")
-        for (const action of dedent(
-          computeIndent(indentDescriptor, previousHTML, indentSlice),
-          indentSlice
-        )) {
-          lineNumber += 1
-          if (action.type === "dedent") {
-            transformedCode.replace(
-              chunk.start + action.from,
-              chunk.start + action.to,
-              ""
-            )
-          } else if (action.type === "bad-indent") {
-            badIndentationLines.push(lineNumber)
-          }
-        }
-        codeParts.push(transformedCode)
       }
+      transformedCode.replace(0, chunk.start, "")
+      transformedCode.replace(chunk.end, code.length, "")
+      for (const action of dedent(
+        computeIndent(options.indent, previousHTML, indentSlice),
+        indentSlice
+      )) {
+        lineNumber += 1
+        if (action.type === "dedent") {
+          transformedCode.replace(
+            chunk.start + action.from,
+            chunk.start + action.to,
+            ""
+          )
+        } else if (action.type === "bad-indent") {
+          badIndentationLines.push(lineNumber)
+        }
+      }
+      codeParts.push(transformedCode)
     }
-  )
+  })
 
   return {
     code: codeParts,

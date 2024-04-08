@@ -43,10 +43,8 @@ function createVerifyPatch(verify) {
 
     const extractResult = extract(
       textOrSourceCode,
-      pluginSettings.indent,
       mode === "xml",
-      pluginSettings.javaScriptTagNames,
-      pluginSettings.isJavaScriptMIMEType
+      pluginSettings
     )
 
     if (pluginSettings.reportBadIndent) {

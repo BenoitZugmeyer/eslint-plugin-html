@@ -2,6 +2,7 @@ UNRELEASED v8.1.0
 
 - Introduce the `html/ignore-tags-without-type` setting #249
 - Fix files with unknown extensions being considered as XML #257
+- Fix plugin applied even if it's not in the configuration #263
 - Update dependencies
 
 2024-02-09 v8.0.0

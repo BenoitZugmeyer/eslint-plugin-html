@@ -5,6 +5,9 @@ const { createVerifyPatch } = require("./verifyPatch")
 const {
   createVerifyWithFlatConfigPatch,
 } = require("./verifyWithFlatConfigPatch")
+const pluginReference = require("./pluginReference")
+
+module.exports = pluginReference
 
 const LINTER_ISPATCHED_PROPERTY_NAME =
   "__eslint-plugin-html-verify-function-is-patched"

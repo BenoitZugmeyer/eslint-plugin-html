@@ -4,7 +4,7 @@ const path = require("path")
 const eslint = require("eslint")
 const semver = require("semver")
 const eslintVersion = require("eslint/package.json").version
-require("..")
+const eslintPluginHtml = require("..")
 
 function matchVersion(versionSpec) {
   return semver.satisfies(eslintVersion, versionSpec, {
@@ -23,9 +23,12 @@ async function execute(file, options = {}) {
   let eslintOptions
   if (matchVersion(">= 9")) {
     eslintOptions = {
-      plugins: {
-        html: require(".."),
-      },
+      plugins:
+        options.usePlugin === false
+          ? {}
+          : {
+              html: eslintPluginHtml,
+            },
       baseConfig: {
         files: ["**/*.*"],
         settings: options.settings || {},
@@ -147,6 +150,23 @@ it("should extract and remap messages", async () => {
     expect(messages[4].endColumn).toBe(24)
   }
 })
+
+ifVersion(
+  ">= 9",
+  it,
+  "does not apply the plugin if it is not used in the configuration",
+  async () => {
+    const messages = await execute("simple.html", {
+      usePlugin: false,
+      rules: {
+        "no-console": "error",
+      },
+    })
+
+    expect(messages.length).toBe(1)
+    expect(messages[0].message).toBe("Parsing error: Unexpected token <")
+  }
+)
 
 it("should report correct line numbers with crlf newlines", async () => {
   const messages = await execute("crlf-newlines.html")

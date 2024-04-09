@@ -3,6 +3,7 @@ const getFileMode = require("./getFileMode")
 const extract = require("./extract")
 const { verifyWithSharedScopes } = require("./verifyWithSharedScopes")
 const { remapMessages } = require("./remapMessages")
+const pluginReference = require("./pluginReference")
 
 const PREPARE_RULE_NAME = "__eslint-plugin-html-prepare"
 const PREPARE_PLUGIN_NAME = "__eslint-plugin-html-prepare"
@@ -18,6 +19,10 @@ function createVerifyWithFlatConfigPatch(verifyWithFlatConfig) {
         providedConfig,
         providedOptions
       )
+
+    if (!Object.values(providedConfig.plugins).includes(pluginReference)) {
+      return callOriginalVerify()
+    }
 
     const pluginSettings = getSettings(providedConfig.settings || {})
     const mode = getFileMode(pluginSettings, providedOptions.filename)

@@ -1,4 +1,4 @@
-UNRELEASED v8.1.0
+2024-04-10 v8.1.0
 
 - Introduce the `html/ignore-tags-without-type` setting #249
 - Fix files with unknown extensions being considered as XML #257

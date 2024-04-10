@@ -2,6 +2,7 @@
 const { execSync: exec } = require("child_process")
 const { readFileSync: read } = require("fs")
 const { request } = require("https")
+const { version: currentVersion } = require("../package.json")
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
 const PACKAGE_FILES = [
@@ -9,6 +10,7 @@ const PACKAGE_FILES = [
   "src/extract.js",
   "src/getFileMode.js",
   "src/index.js",
+  "src/pluginReference.js",
   "src/settings.js",
   "src/remapMessages.js",
   "src/verifyPatch.js",
@@ -115,6 +117,11 @@ function verifyPackageContent() {
 }
 
 function createVersion(version) {
+  if (version === currentVersion) {
+    console.log(`Version ${version} already exists, skipping creation`)
+    return
+  }
+
   console.log(`Creating version ${version}`)
 
   exec(`npm version ${version}`, {
@@ -144,7 +151,7 @@ async function verifyBuild() {
         console.log(`Workflow run ${run.html_url} ${run.status}`)
       }
     }
-    await new Promise((resolve) => setTimeout(resolve, 3000))
+    await new Promise((resolve) => setTimeout(resolve, 30_000))
   }
 }
 
@@ -160,11 +167,21 @@ function fetchWorkflowRuns() {
     )
     req.on("error", reject)
     req.on("response", (response) => {
+      // `${response.headers['x-ratelimit-used']}/${response.headers['x-ratelimit-limit']} (reset: ${new Date(response.headers['x-ratelimit-reset'] * 1000).toLocaleTimeString()})`
       const datum = []
       response.on("error", reject)
       response.on("data", (data) => datum.push(data))
       response.on("end", () => {
-        resolve(JSON.parse(Buffer.concat(datum)))
+        const body = JSON.parse(Buffer.concat(datum))
+        if (response.statusCode !== 200) {
+          reject(
+            new Error(
+              `HTTP ${response.statusCode}: ${body.message || response.statusMessage}`
+            )
+          )
+        } else {
+          resolve(body)
+        }
       })
     })
     req.end()

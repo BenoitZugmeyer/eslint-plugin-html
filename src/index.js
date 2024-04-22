@@ -72,40 +72,8 @@ function iterateESLintModules(fn) {
   }
 
   if (!found) {
-    let eslintPath, eslintVersion
-    try {
-      eslintPath = require.resolve("eslint")
-    } catch {
-      eslintPath = "(not found)"
-    }
-    try {
-      eslintVersion = require("eslint/package.json").version
-    } catch {
-      eslintVersion = "n/a"
-    }
-
-    const parentPaths = (module) =>
-      module ? [module.filename].concat(parentPaths(module.parent)) : []
-
-    throw new Error(
-      `eslint-plugin-html error: It seems that eslint is not loaded.
-If you think this is a bug, please file a report at https://github.com/BenoitZugmeyer/eslint-plugin-html/issues
-
-In the report, please include *all* those informations:
-
-* ESLint version: ${eslintVersion}
-* ESLint path: ${eslintPath}
-* Plugin version: ${require("../package.json").version}
-* Plugin inclusion paths: ${parentPaths(module).join(", ")}
-* NodeJS version: ${process.version}
-* CLI arguments: ${JSON.stringify(process.argv)}
-* Content of your lock file (package-lock.json or yarn.lock) or the output of \`npm list\`
-* How did you run ESLint (via the command line? an editor plugin?)
-* The following stack trace:
-    ${new Error().stack.slice(10)}
-
-
-      `
+    console.warn(
+      `⚠ eslint-plugin-html warning: ESLint is not loaded, HTML files will fail to lint. If you don't intend to lint HTML files, you can safely ignore this warning. If you think this is a bug, please file a report at https://github.com/BenoitZugmeyer/eslint-plugin-html/issues`
     )
   }
 }

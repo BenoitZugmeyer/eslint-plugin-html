@@ -1,37 +1,8 @@
 /*eslint no-sparse-arrays: 0*/
+const { it, describe } = require("node:test")
+const assert = require("assert")
 
 const extract = require("../extract")
-
-const { it, describe, context } = require("node:test")
-const assert = require("assert")
-function expect(actual) {
-  return {
-    toBe(expected) {
-      assert.strictEqual(actual, expected)
-    },
-    toEqual(expected) {
-      assert.deepStrictEqual(actual, expected)
-    },
-    toMatch(expected) {
-      assert.match(actual, expected)
-    },
-    toThrow(callback) {
-      let error = null
-      try {
-        callback()
-      } catch (e) {
-        error = e
-      }
-      assert.notStrictEqual(error, null)
-    },
-    toMatchSnapshot() {
-      console.log(context.name)
-      if (typeof actual !== "string") {
-        throw new Error("toMatchSnapshot() only works with strings")
-      }
-    },
-  }
-}
 
 function dedent(str) {
   if (str[0] === "\n") str = str.slice(1)
@@ -56,8 +27,14 @@ function test(params) {
     isJavaScriptMIMEType: params.isJavaScriptMIMEType,
     ignoreTagsWithoutType: params.ignoreTagsWithoutType,
   })
-  expect(infos.code.map((code) => code.toString())).toEqual(params.expected)
-  expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
+  assert.deepStrictEqual(
+    infos.code.map((code) => code.toString()),
+    params.expected
+  )
+  assert.deepStrictEqual(
+    infos.badIndentationLines,
+    params.badIndentationLines || []
+  )
 }
 
 it("extract simple javascript", () => {

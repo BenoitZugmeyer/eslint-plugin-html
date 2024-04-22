@@ -23,16 +23,4 @@ export default [
       },
     },
   },
-
-  {
-    files: ["**/__tests__/**/*.js"],
-    languageOptions: {
-      globals: {
-        expect: "readonly",
-        test: "readonly",
-        it: "readonly",
-        describe: "readonly",
-      },
-    },
-  },
 ]

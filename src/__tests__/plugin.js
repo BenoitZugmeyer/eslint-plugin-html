@@ -3,8 +3,24 @@
 const path = require("path")
 const eslint = require("eslint")
 const semver = require("semver")
+const { it, describe } = require("node:test")
+const assert = require("assert")
 const eslintVersion = require("eslint/package.json").version
 const eslintPluginHtml = require("..")
+
+function expect(actual) {
+  return {
+    toBe(expected) {
+      assert.strictEqual(actual, expected)
+    },
+    toEqual(expected) {
+      assert.deepStrictEqual(actual, expected)
+    },
+    toMatch(expected) {
+      assert.match(actual, expected)
+    },
+  }
+}
 
 function matchVersion(versionSpec) {
   return semver.satisfies(eslintVersion, versionSpec, {
@@ -502,8 +518,8 @@ describe("xml support", () => {
   })
 
   it("should support self closing script tags", async () => {
-    const messages = execute("self-closing-tags.xhtml")
-    await expect(messages).resolves.toEqual([])
+    const messages = await execute("self-closing-tags.xhtml")
+    expect(messages).toEqual([])
   })
 })
 
@@ -901,35 +917,33 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
         // versions of ESLint, we need to ignore these suggestions.
         suggestions: "(ignored)",
       }))
-    ).toMatchInlineSnapshot(`
-[
-  {
-    "column": 1,
-    "endColumn": 13,
-    "endLine": 1,
-    "line": 1,
-    "message": "Missing \`alt\` attribute at \`<img>\` tag",
-    "messageId": "missingAlt",
-    "nodeType": null,
-    "ruleId": "@html-eslint/require-img-alt",
-    "severity": 2,
-    "suggestions": "(ignored)",
-  },
-  {
-    "column": 3,
-    "endColumn": 14,
-    "endLine": 3,
-    "line": 3,
-    "message": "Unexpected console statement.",
-    "messageId": "unexpected",
-    "nodeType": "MemberExpression",
-    "ruleId": "no-console",
-    "severity": 2,
-    "source": "  console.log("toto")",
-    "suggestions": "(ignored)",
-  },
-]
-`)
+    ).toEqual([
+      {
+        column: 1,
+        endColumn: 13,
+        endLine: 1,
+        line: 1,
+        message: "Missing `alt` attribute at `<img>` tag",
+        messageId: "missingAlt",
+        nodeType: null,
+        ruleId: "@html-eslint/require-img-alt",
+        severity: 2,
+        suggestions: "(ignored)",
+      },
+      {
+        column: 3,
+        endColumn: 14,
+        endLine: 3,
+        line: 3,
+        message: "Unexpected console statement.",
+        messageId: "unexpected",
+        nodeType: "MemberExpression",
+        ruleId: "no-console",
+        severity: 2,
+        source: '  console.log("toto")',
+        suggestions: "(ignored)",
+      },
+    ])
   })
 
   it("fix", async () => {
@@ -941,12 +955,11 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
       },
       fix: true,
     })
-    expect(result.output).toMatchInlineSnapshot(`
-      "<img src=''>
-      <script>
-        console.log('toto')
-      </script>
-      "
-    `)
+    expect(result.output).toEqual(`\
+<img src=''>
+<script>
+  console.log('toto')
+</script>
+`)
   })
 })

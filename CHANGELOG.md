@@ -1,3 +1,9 @@
+2024-04-22 v8.1.1
+
+- Fix compatibility with @eslint/config-inspector #267
+- Drop Jest #266
+- Update dependencies
+
 2024-04-10 v8.1.0
 
 - Introduce the `html/ignore-tags-without-type` setting #249

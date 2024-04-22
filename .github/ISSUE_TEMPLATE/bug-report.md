@@ -15,7 +15,7 @@ Describe the issue precisely: what are you trying to do? what's the expected res
 - eslint-plugin-html version:
 - NodeJS version:
 - Operating System name and version:
-- ESLint configuration (.eslintrc):
+- ESLint configuration (.eslintrc/eslint.config.js):
 
 <!--
 If run from an editor plugin:

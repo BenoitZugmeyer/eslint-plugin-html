@@ -1,8 +1,37 @@
-/*eslint-env es6*/
 /*eslint no-sparse-arrays: 0*/
 
-"use strict"
 const extract = require("../extract")
+
+const { it, describe, context } = require("node:test")
+const assert = require("assert")
+function expect(actual) {
+  return {
+    toBe(expected) {
+      assert.strictEqual(actual, expected)
+    },
+    toEqual(expected) {
+      assert.deepStrictEqual(actual, expected)
+    },
+    toMatch(expected) {
+      assert.match(actual, expected)
+    },
+    toThrow(callback) {
+      let error = null
+      try {
+        callback()
+      } catch (e) {
+        error = e
+      }
+      assert.notStrictEqual(error, null)
+    },
+    toMatchSnapshot() {
+      console.log(context.name)
+      if (typeof actual !== "string") {
+        throw new Error("toMatchSnapshot() only works with strings")
+      }
+    },
+  }
+}
 
 function dedent(str) {
   if (str[0] === "\n") str = str.slice(1)
@@ -27,7 +56,7 @@ function test(params) {
     isJavaScriptMIMEType: params.isJavaScriptMIMEType,
     ignoreTagsWithoutType: params.ignoreTagsWithoutType,
   })
-  expect(infos.code.map((code) => code.toString())).toMatchSnapshot()
+  expect(infos.code.map((code) => code.toString())).toEqual(params.expected)
   expect(infos.badIndentationLines).toEqual(params.badIndentationLines || [])
 }
 
@@ -38,6 +67,7 @@ it("extract simple javascript", () => {
       <script>var foo = 1;</script>
       other
     `,
+    expected: ["var foo = 1;"],
   })
 })
 
@@ -50,6 +80,7 @@ it("extract indented javascript", () => {
       </script>
       other
     `,
+    expected: ["var foo = 1;\n"],
   })
 })
 
@@ -62,6 +93,7 @@ it("extract javascript with first line next to the script tag", () => {
       </script>
       other
     `,
+    expected: ["var foo = 1;\nvar baz = 1;\n"],
   })
 })
 
@@ -74,6 +106,7 @@ it("extract javascript with last line next to the script tag", () => {
         var baz = 1;</script>
       other
     `,
+    expected: ["var foo = 1;\nvar baz = 1;"],
   })
 })
 
@@ -89,6 +122,7 @@ it("extract multiple script tags", () => {
         var bar = 1;
       </script>
     `,
+    expected: ["var foo = 1;\n", "var bar = 1;\n"],
   })
 })
 
@@ -101,6 +135,7 @@ it("trim last line spaces", () => {
         </script>
       other
     `,
+    expected: ["var foo = 1;\n"],
   })
 })
 
@@ -114,6 +149,7 @@ it("trim last line spaces ignoring CDATA", () => {
       other
     `,
     xmlMode: true,
+    expected: ["\nvar foo = 1;\n"],
   })
 })
 
@@ -124,6 +160,7 @@ it("extract script containing 'lower than' characters correctly (#1)", () => {
         if (a < b) { doit(); }
       </script>
     `,
+    expected: ["if (a < b) { doit(); }\n"],
   })
 })
 
@@ -132,6 +169,7 @@ it("extract empty script tag (#7)", () => {
     input: `
       <script></script>
     `,
+    expected: [""],
   })
 })
 
@@ -150,6 +188,7 @@ for (const prefix of prefixes) {
           <script type="${tag}">var foo = 1;</script>
           other
         `,
+        expected: ["var foo = 1;"],
       })
     })
   }
@@ -165,6 +204,7 @@ it("collects bad indentations", () => {
       </script>
     `,
     badIndentationLines: [3, 4],
+    expected: ["a;\na;\n a;\n"],
   })
 })
 
@@ -184,6 +224,7 @@ describe("indent option", () => {
         spaces: "  ",
       },
       badIndentationLines: [3, 5],
+      expected: ["\n    a;\na;\na;\n"],
     })
   })
 
@@ -203,6 +244,7 @@ describe("indent option", () => {
         relative: true,
       },
       badIndentationLines: [4, 5],
+      expected: ["a;\n  a;\na;\n"],
     })
   })
 
@@ -221,6 +263,7 @@ describe("indent option", () => {
         spaces: "\t",
       },
       badIndentationLines: [3, 5],
+      expected: ["\n\t\ta;\na;\na;\n"],
     })
   })
 
@@ -240,6 +283,7 @@ describe("indent option", () => {
         relative: true,
       },
       badIndentationLines: [4, 5],
+      expected: ["a;\n\ta;\na;\n"],
     })
   })
 })
@@ -249,6 +293,7 @@ it("works with crlf new lines", () => {
     input:
       "<p>\r\n</p>\r\n<script>\r\n  foo;\r\nbar;\r\n    baz;\r\n</script>\r\n",
     badIndentationLines: [5],
+    expected: ["foo;\r\nbar;\r\n  baz;\r\n"],
   })
 })
 
@@ -263,6 +308,7 @@ it("works with CDATA", () => {
       c;
     </script>`,
     xmlMode: true,
+    expected: ["a;\n\nb;\n\nc;\n"],
   })
 })
 
@@ -284,6 +330,7 @@ it("handles the isJavaScriptMIMEType option", () => {
     isJavaScriptMIMEType(type) {
       return type === "foo/bar"
     },
+    expected: ["a\n", "b\n"],
   })
 })
 
@@ -296,12 +343,14 @@ it("keeps empty lines after the last html tags", () => {
 
 
     `,
+    expected: ["a\n"],
   })
 })
 
 it("handles empty input", () => {
   test({
     input: "",
+    expected: [],
   })
 })
 
@@ -309,12 +358,14 @@ it("handles self closing script tags in xhtml mode", () => {
   test({
     input: "a <script /> b",
     xmlMode: true,
+    expected: [],
   })
 })
 
 it("skips script with src attributes", () => {
   test({
     input: '<script src="foo"></script>',
+    expected: [],
   })
 })
 
@@ -322,6 +373,7 @@ it("skips script without type attribute", () => {
   test({
     input: "<script></script>",
     ignoreTagsWithoutType: true,
+    expected: [],
   })
 })
 
@@ -338,6 +390,7 @@ it("extract multiple tags types", () => {
       </customscript>
     `,
     javaScriptTagNames: ["script", "customscript"],
+    expected: ["var foo = 1;\n", "var bar = 1;\n"],
   })
 })
 
@@ -354,6 +407,7 @@ describe("disable comments", () => {
         var bar = 2;
       </script>
       `,
+      expected: ["var bar = 2;\n"],
     })
   })
 
@@ -369,6 +423,7 @@ describe("disable comments", () => {
         var bar = 2;
       </script>
       `,
+      expected: ["var bar = 2;\n"],
     })
   })
 })

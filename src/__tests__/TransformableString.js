@@ -1,6 +1,29 @@
-"use strict"
-
 const TransformableString = require("../TransformableString")
+
+const { it, describe } = require("node:test")
+const assert = require("assert")
+function expect(actual) {
+  return {
+    toBe(expected) {
+      assert.strictEqual(actual, expected)
+    },
+    toEqual(expected) {
+      assert.deepStrictEqual(actual, expected)
+    },
+    toMatch(expected) {
+      assert.match(actual, expected)
+    },
+    toThrow(callback) {
+      let error = null
+      try {
+        callback()
+      } catch (e) {
+        error = e
+      }
+      assert.notStrictEqual(error, null)
+    },
+  }
+}
 
 it("should be a function", () => {
   expect(typeof TransformableString).toBe("function")

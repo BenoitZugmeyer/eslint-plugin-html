@@ -35,15 +35,32 @@ Simply install via `npm install --save-dev eslint-plugin-html` and add the plugi
 configuration. See
 [ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
 
-Example:
+<details open>
+  <summary>Example with ESLint 9 and above (flat config)</summary>
 
 ```javascript
+import html from "eslint-plugin-html"
+
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>Example with ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [
-        "html"
-    ]
+  "plugins": ["html"]
 }
 ```
+
+</details>
 
 ## Disabling ESLint
 
@@ -91,13 +108,34 @@ option](https://eslint.org/docs/user-guide/configuring#specifying-parser-options
 if the script are modules. `eslint-plugin-html` will use this option as well to know if the scopes
 should be shared (the default) or not. To change this, just set it in your ESLint configuration:
 
+<details open>
+<summary>ESLint 9 and above (flat config)</summary>
+
+```javascript
+export default [
+  {
+    // ...
+    languageOptions: {
+      sourceType: "module",
+    },
+  },
+]
 ```
+
+</details>
+
+<details>
+<summary>ESLint 8 and below</summary>
+
+```json
 {
   "parserOptions": {
     "sourceType": "module"
   }
 }
 ```
+
+</details>
 
 To illustrate this behavior, consider this HTML extract:
 
@@ -142,28 +180,78 @@ By default, this plugin will only consider files ending with those extensions as
 `.handlebars`, `.hbs`, `.htm`, `.html`, `.mustache`, `.nunjucks`, `.php`, `.tag`, `.twig`, `.we`.
 You can set your own list of HTML extensions by using this setting. Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html", "**/*.we"],
+    plugins: { html },
+    settings: {
+      "html/html-extensions": [".html", ".we"], // consider .html and .we files as HTML
+    },
+  },
+]
+```
+
+Note: you need to specify extensions twice, which is not ideal. This should be imporved in the
+future.
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/html-extensions": [".html", ".we"],  // consider .html and .we files as HTML
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/html-extensions": [".html", ".we"] // consider .html and .we files as HTML
+  }
 }
 ```
+
+</details>
 
 ### `html/xml-extensions`
 
 By default, this plugin will only consider files ending with those extensions as XML: `.xhtml`,
 `.xml`. You can set your own list of XML extensions by using this setting. Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/xtml-extensions": [".html"], // consider .html files as XML
+    },
+  },
+]
+```
+
+Note: you need to specify extensions twice, which is not ideal. This should be imporved in the
+future.
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/xml-extensions": [".html"],  // consider .html files as XML
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/xml-extensions": [".html"] // consider .html files as XML
+  }
 }
 ```
+
+</details>
 
 ### `html/indent`
 
@@ -172,16 +260,40 @@ setting `html/indent` allows to ensure that every script tags follow an uniform 
 the `indent` rule, you can pass a number of spaces, or `"tab"` to indent with one tab. Prefix this
 value with a `+` to be relative to the `<script>` tag indentation. Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/indent": "0", // code should start at the beginning of the line (no initial indentation).
+      "html/indent": "+2", // indentation is the <script> indentation plus two spaces.
+      "html/indent": "tab", // indentation is one tab at the beginning of the line.
+    },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/indent": "0",   // code should start at the beginning of the line (no initial indentation).
-        "html/indent": "+2",  // indentation is the <script> indentation plus two spaces.
-        "html/indent": "tab", // indentation is one tab at the beginning of the line.
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/indent": "0", // code should start at the beginning of the line (no initial indentation).
+    "html/indent": "+2", // indentation is the <script> indentation plus two spaces.
+    "html/indent": "tab" // indentation is one tab at the beginning of the line.
+  }
 }
 ```
+
+</details>
 
 ### `html/report-bad-indent`
 
@@ -190,14 +302,36 @@ indented). If you want to make sure the indentation is correct, use the `html/re
 conjunction with the `indent` rule. Pass `"warn"` or `1` to display warnings, `"error"` or `2` to
 display errors. Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/report-bad-indent": "error",
+    },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/report-bad-indent": "error",
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/report-bad-indent": "error"
+  }
 }
 ```
+
+</details>
 
 ### `html/javascript-tag-names`
 
@@ -206,14 +340,36 @@ tags should be considered JavaScript by providing one or multiple tag names.
 
 Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/javascript-tag-names": ["script", "customscript"],
+    },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/javascript-tag-names": ["script", "customscript"],
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/javascript-tag-names": ["script", "customscript"]
+  }
 }
 ```
+
+</details>
 
 ### `html/javascript-mime-types`
 
@@ -223,15 +379,38 @@ By default, the code between `<script>` tags is considered as JavaScript code on
 customize the types that should be considered as JavaScript by providing one or multiple MIME types.
 If a MIME type starts with a `/`, it will be considered as a regular expression. Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/javascript-mime-types": ["text/javascript", "text/jsx"], // also use script tags with a "text/jsx" type attribute
+      "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/", // same thing
+    },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/javascript-mime-types": ["text/javascript", "text/jsx"],  // also use script tags with a "text/jsx" type attribute
-        "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/",    // same thing
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/javascript-mime-types": ["text/javascript", "text/jsx"], // also use script tags with a "text/jsx" type attribute
+    "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/" // same thing
+  }
 }
 ```
+
+</details>
 
 ### `html/ignore-tags-without-type`
 
@@ -239,14 +418,36 @@ By default, the code between `<script>` tags is considered JavaScript if there i
 attribute. You can set this setting to `true` to ignore script tags without a `type` attribute.
 Example:
 
+<details open>
+  <summary>ESLint 9 and above (flat config)</summary>
+
 ```javascript
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: { html },
+    settings: {
+      "html/ignore-tags-without-type": true,
+    },
+  },
+]
+```
+
+</details>
+
+<details>
+  <summary>ESLint 8 and below</summary>
+
+```json
 {
-    "plugins": [ "html" ],
-    "settings": {
-        "html/ignore-tags-without-type": true,
-    }
+  "plugins": ["html"],
+  "settings": {
+    "html/ignore-tags-without-type": true
+  }
 }
 ```
+
+</details>
 
 ## Troubleshooting
 

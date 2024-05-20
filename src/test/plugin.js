@@ -42,7 +42,7 @@ async function execute(file, options = {}) {
         ),
         languageOptions: {
           globals: options.globals || {},
-          sourceType: "script",
+          sourceType: options.sourceType || "script",
           parserOptions: options.parserOptions || {},
           ...("parser" in options
             ? {
@@ -78,7 +78,10 @@ async function execute(file, options = {}) {
         ),
         globals: options.globals,
         env: options.env,
-        parserOptions: options.parserOptions,
+        parserOptions: {
+          ...options.parserOptions,
+          sourceType: options.sourceType,
+        },
         parser: options.parser,
         plugins: options.plugins,
       },
@@ -787,9 +790,7 @@ describe("scope sharing", () => {
       env: {
         es6: true,
       },
-      parserOptions: {
-        sourceType: "module",
-      },
+      sourceType: "module",
     })
     assert.strictEqual(messages.length, 16)
     assert.strictEqual(messages[0].line, 8)

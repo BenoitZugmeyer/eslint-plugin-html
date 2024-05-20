@@ -98,8 +98,10 @@ function createVerifyWithFlatConfigPatch(verifyWithFlatConfig) {
       )
     }
 
-    const parserOptions = providedConfig.languageOptions.parserOptions || {}
-    if (parserOptions.sourceType === "module") {
+    const languageOptions = providedConfig.languageOptions || {}
+    const parserOptions = languageOptions.parserOptions || {}
+    const sourceType = languageOptions.sourceType || parserOptions.sourceType
+    if (sourceType === "module") {
       for (const codePart of extractResult.code) {
         verifyCodePart(codePart)
       }

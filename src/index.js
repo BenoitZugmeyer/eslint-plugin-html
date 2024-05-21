@@ -35,10 +35,6 @@ function getLinterFromModule(moduleExports) {
     : moduleExports // ESLint 5-
 }
 
-function getModuleFromRequire() {
-  return getLinterFromModule(require("eslint/lib/linter"))
-}
-
 function getModuleFromCache(key) {
   if (!needles.some((needle) => key.endsWith(needle))) return
 
@@ -55,12 +51,6 @@ function getModuleFromCache(key) {
 }
 
 function iterateESLintModules(fn) {
-  if (!require.cache || Object.keys(require.cache).length === 0) {
-    // Jest is replacing the node "require" function, and "require.cache" isn't available here.
-    fn(getModuleFromRequire())
-    return
-  }
-
   let found = false
 
   for (const key in require.cache) {

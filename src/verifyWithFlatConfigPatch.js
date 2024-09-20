@@ -10,7 +10,7 @@ const PREPARE_PLUGIN_NAME = "__eslint-plugin-html-prepare"
 
 module.exports = { createVerifyWithFlatConfigPatch }
 
-function createVerifyWithFlatConfigPatch(verifyWithFlatConfig) {
+function createVerifyWithFlatConfigPatch(eslintModule, verifyWithFlatConfig) {
   return function (textOrSourceCode, providedConfig, providedOptions) {
     const callOriginalVerify = () =>
       verifyWithFlatConfig.call(
@@ -33,6 +33,7 @@ function createVerifyWithFlatConfigPatch(verifyWithFlatConfig) {
 
     let messages
     ;[messages, providedConfig] = verifyExternalHtmlPlugin(
+      eslintModule,
       providedConfig,
       callOriginalVerify
     )
@@ -144,7 +145,7 @@ function findExternalHtmlPluginName(config) {
   }
 }
 
-function verifyExternalHtmlPlugin(config, callOriginalVerify) {
+function verifyExternalHtmlPlugin(eslintModule, config, callOriginalVerify) {
   const htmlPluginName = findExternalHtmlPluginName(config)
   if (!htmlPluginName) {
     return [[], config]
@@ -163,7 +164,7 @@ function verifyExternalHtmlPlugin(config, callOriginalVerify) {
       ...config,
       languageOptions: {
         ...config.languageOptions,
-        parser: require("espree"),
+        parser: eslintModule.require("espree"),
       },
       rules,
     },

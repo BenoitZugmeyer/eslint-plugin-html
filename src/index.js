@@ -29,34 +29,15 @@ const needles = [
 
 iterateESLintModules(patch)
 
-function getLinterFromModule(moduleExports) {
-  return moduleExports.Linter
-    ? moduleExports.Linter // ESLint 6+
-    : moduleExports // ESLint 5-
-}
-
-function getModuleFromCache(key) {
-  if (!needles.some((needle) => key.endsWith(needle))) return
-
-  const module = require.cache[key]
-  if (!module || !module.exports) return
-
-  const Linter = getLinterFromModule(module.exports)
-  if (
-    typeof Linter === "function" &&
-    typeof Linter.prototype.verify === "function"
-  ) {
-    return Linter
-  }
-}
-
 function iterateESLintModules(fn) {
   let found = false
 
   for (const key in require.cache) {
-    const Linter = getModuleFromCache(key)
-    if (Linter) {
-      fn(Linter)
+    if (!needles.some((needle) => key.endsWith(needle))) continue
+
+    const module = require.cache[key]
+    if (module && module.exports) {
+      fn(module)
       found = true
     }
   }
@@ -68,7 +49,8 @@ function iterateESLintModules(fn) {
   }
 }
 
-function patch(Linter) {
+function patch(module) {
+  const Linter = getLinterFromModule(module)
   // ignore if verify function is already been patched sometime before
   if (Linter[LINTER_ISPATCHED_PROPERTY_NAME] === true) {
     return
@@ -84,5 +66,17 @@ function patch(Linter) {
   const verifyWithFlatConfig =
     Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors
   Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors =
-    createVerifyWithFlatConfigPatch(verifyWithFlatConfig)
+    createVerifyWithFlatConfigPatch(module, verifyWithFlatConfig)
+}
+
+function getLinterFromModule(module) {
+  const Linter = module.exports.Linter
+    ? module.exports.Linter // ESLint 6+
+    : module.exports // ESLint 5-
+  if (
+    typeof Linter === "function" &&
+    typeof Linter.prototype.verify === "function"
+  ) {
+    return Linter
+  }
 }

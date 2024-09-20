@@ -25,12 +25,6 @@ async function execute(file, options = {}) {
   let eslintOptions
   if (matchVersion(">= 9")) {
     eslintOptions = {
-      plugins:
-        options.usePlugin === false
-          ? {}
-          : {
-              html: eslintPluginHtml,
-            },
       baseConfig: {
         files: ["**/*.*"],
         settings: options.settings || {},
@@ -58,7 +52,7 @@ async function execute(file, options = {}) {
               }
             : {}),
         },
-        plugins: options.plugins || {},
+        plugins: options.plugins || { html: eslintPluginHtml },
       },
       ignore: false,
       ignorePatterns: [],
@@ -159,7 +153,7 @@ ifVersion(
   "does not apply the plugin if it is not used in the configuration",
   async () => {
     const messages = await execute("simple.html", {
-      usePlugin: false,
+      plugins: {},
       rules: {
         "no-console": "error",
       },
@@ -882,6 +876,7 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
     ? {
         plugins: {
           "@html-eslint": require("@html-eslint/eslint-plugin"),
+          html: eslintPluginHtml,
         },
         parser: require("@html-eslint/parser"),
       }

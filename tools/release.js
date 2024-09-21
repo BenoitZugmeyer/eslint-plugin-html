@@ -91,12 +91,12 @@ function verifyPackageContent() {
     line = line.replace(/^npm notice /, "").trim()
     switch (state) {
       case STATE_INIT:
-        if (line === "=== Tarball Contents ===") {
+        if (line === "Tarball Contents") {
           state = STATE_TARBALL_CONTENTS
         }
         break
       case STATE_TARBALL_CONTENTS:
-        if (line === "=== Tarball Details ===") {
+        if (line === "Tarball Details") {
           state = STATE_TARBALL_DETAILS
         } else {
           content.add(line.match(/.*?\s+(.*)$/)[1])

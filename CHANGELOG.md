@@ -1,3 +1,8 @@
+2024-09-21 v8.1.2
+
+- Fix sourceType config for ESLint 9
+- Don't require espree directly #271
+
 2024-04-22 v8.1.1
 
 - Fix compatibility with @eslint/config-inspector #267

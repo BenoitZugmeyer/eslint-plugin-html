@@ -1,8 +1,7 @@
-"use strict"
-const { execSync: exec } = require("child_process")
-const { readFileSync: read } = require("fs")
-const { request } = require("https")
-const { version: currentVersion } = require("../package.json")
+import { execSync as exec } from "child_process"
+import { readFileSync as read } from "fs"
+import { request } from "https"
+import pkg from "../package.json" with { type: "json" }
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
 const PACKAGE_FILES = [
@@ -17,7 +16,7 @@ const PACKAGE_FILES = [
   "src/verifyPatch.js",
   "src/verifyWithSharedScopes.js",
   "src/verifyWithFlatConfigPatch.js",
-  "src/TransformableString.js",
+  "src/transformableString.js",
   "src/utils.js",
   "package.json",
   "CHANGELOG.md",
@@ -118,7 +117,7 @@ function verifyPackageContent() {
 }
 
 function createVersion(version) {
-  if (version === currentVersion) {
+  if (version === pkg.version) {
     console.log(`Version ${version} already exists, skipping creation`)
     return
   }

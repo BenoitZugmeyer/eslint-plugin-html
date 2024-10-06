@@ -1,4 +1,4 @@
-const { readFileSync: read, writeFileSync: write } = require("fs")
+import { readFileSync as read, writeFileSync as write } from "node:fs"
 
 const action = process.argv[2]
 

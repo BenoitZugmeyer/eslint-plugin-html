@@ -1,44 +1,8 @@
 "use strict"
 
-const lineEndingsRe = /\r\n|\r|\n/g
-function lineStarts(str) {
-  const result = [0]
-  lineEndingsRe.lastIndex = 0
-  while (true) {
-    const match = lineEndingsRe.exec(str)
-    if (!match) break
-    result.push(lineEndingsRe.lastIndex)
-  }
-  return result
-}
+const LINE_ENDING_RE = /\r\n|\r|\n/g
 
-function locationToIndex(location, lineStarts) {
-  if (
-    !location.line ||
-    location.line < 0 ||
-    !location.column ||
-    location.column < 0
-  ) {
-    throw new Error("Invalid location")
-  }
-  return lineStarts[location.line - 1] + location.column - 1
-}
-
-function indexToLocation(index, lineStarts) {
-  if (index < 0) throw new Error("Invalid index")
-
-  let line = 0
-  while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
-    line += 1
-  }
-
-  return {
-    line: line + 1,
-    column: index - lineStarts[line] + 1,
-  }
-}
-
-module.exports = class TransformableString {
+export default class TransformableString {
   constructor(original) {
     this._original = original
     this._blocks = []
@@ -69,7 +33,7 @@ module.exports = class TransformableString {
     }
     return this._original
       .slice(this._lineStarts[n - 1], this._lineStarts[n])
-      .replace(lineEndingsRe, "")
+      .replace(LINE_ENDING_RE, "")
   }
 
   toString() {
@@ -123,5 +87,42 @@ module.exports = class TransformableString {
     if (originalIndex !== undefined) {
       return indexToLocation(originalIndex, this._lineStarts)
     }
+  }
+}
+
+function lineStarts(str) {
+  const result = [0]
+  LINE_ENDING_RE.lastIndex = 0
+  while (true) {
+    const match = LINE_ENDING_RE.exec(str)
+    if (!match) break
+    result.push(LINE_ENDING_RE.lastIndex)
+  }
+  return result
+}
+
+function locationToIndex(location, lineStarts) {
+  if (
+    !location.line ||
+    location.line < 0 ||
+    !location.column ||
+    location.column < 0
+  ) {
+    throw new Error("Invalid location")
+  }
+  return lineStarts[location.line - 1] + location.column - 1
+}
+
+function indexToLocation(index, lineStarts) {
+  if (index < 0) throw new Error("Invalid index")
+
+  let line = 0
+  while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
+    line += 1
+  }
+
+  return {
+    line: line + 1,
+    column: index - lineStarts[line] + 1,
   }
 }

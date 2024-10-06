@@ -25,14 +25,25 @@ console.log(1)
 </script>
 EOF
 
-if [[ $ESLINT_VERSION == 4.7 ]]; then
-  cat << EOF > .eslintrc.js
-module.exports = {
-  plugins: ["html"],
-  rules: {
-    "no-console": "error",
+if [[ $ESLINT_VERSION == 9.0 ]]; then # v9.0 doesn't expose TS types
+  cat << EOF > eslint.config.mjs
+import html from "eslint-plugin-html";
+
+export default [
+  {
+    files: ["**/*.html"],
+    plugins: {
+      html,
+    },
+    processor: "html/html",
   },
-}
+  {
+    files: ["**/*.html/*.js"],
+    rules: {
+      "no-console": "error",
+    }
+  }
+];
 EOF
 
 else
@@ -46,6 +57,10 @@ export default defineConfig([
     plugins: {
       html,
     },
+    processor: "html/html",
+  },
+  {
+    files: ["**/*.html/*.js"],
     rules: {
       "no-console": "error",
     }

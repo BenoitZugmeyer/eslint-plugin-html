@@ -1,109 +1,159 @@
-"use strict"
-
-const htmlparser = require("htmlparser2")
-const TransformableString = require("./TransformableString")
+import { Parser } from "htmlparser2"
+import TransformableString from "./transformableString.js"
 
 const NO_IGNORE = 0
 const IGNORE_NEXT = 1
 const IGNORE_UNTIL_ENABLE = 2
 
-function iterateScripts(code, xmlMode, options, onChunk) {
-  if (!code) return
+export function extract(html, xmlMode, options) {
+  const badIndentationLines = []
+  const scripts = []
+  let lineNumber = 1
+  let previousHTML = ""
 
-  const isJavaScriptMIMEType = options.isJavaScriptMIMEType || (() => true)
-  const javaScriptTagNames = options.javaScriptTagNames || ["script"]
-  const ignoreTagsWithoutType = options.ignoreTagsWithoutType || false
-  let index = 0
-  let inScript = false
-  let cdata = []
-  let ignoreState = NO_IGNORE
+  const chunks = parseHtml(html, xmlMode, options)
 
-  const chunks = []
-  function pushChunk(type, end) {
-    chunks.push({ type, start: index, end, cdata })
-    cdata = []
-    index = end
+  for (const chunk of chunks) {
+    const slice = html.slice(chunk.start, chunk.end)
+    if (chunk.type === "html") {
+      const match = slice.match(/\r\n|\n|\r/g)
+      if (match) lineNumber += match.length
+      previousHTML = slice
+    } else if (chunk.type === "script") {
+      const transformedCode = new TransformableString(html)
+      let indentSlice = slice
+      for (const cdata of chunk.cdata) {
+        transformedCode.replace(cdata.start, cdata.end, "")
+        if (cdata.end === chunk.end) {
+          indentSlice = html.slice(chunk.start, cdata.start)
+        }
+      }
+      transformedCode.replace(0, chunk.start, "")
+      transformedCode.replace(chunk.end, html.length, "")
+      for (const action of dedent(
+        computeIndent(options.indent, previousHTML, indentSlice),
+        indentSlice
+      )) {
+        lineNumber += 1
+        if (action.type === "dedent") {
+          transformedCode.replace(
+            chunk.start + action.from,
+            chunk.start + action.to,
+            ""
+          )
+        } else if (action.type === "bad-indent") {
+          badIndentationLines.push(lineNumber)
+        }
+      }
+      scripts.push({
+        code: transformedCode,
+        module: chunk.module,
+      })
+    }
   }
 
-  const parser = new htmlparser.Parser(
+  return {
+    scripts,
+    badIndentationLines,
+    hasBOM: html.startsWith("\uFEFF"),
+  }
+}
+
+function parseHtml(html, xmlMode, options) {
+  if (!html) return []
+
+  const chunks = [
     {
-      onopentag(name, attrs) {
-        // Test if current tag is a valid <script> tag.
-        if (!javaScriptTagNames.includes(name)) {
+      type: "html",
+      start: 0,
+      ignore: NO_IGNORE,
+      end: undefined,
+    },
+  ]
+
+  const parser = new Parser(
+    {
+      onopentag(tagName, attributes) {
+        const currentChunk = chunks.at(-1)
+        if (currentChunk.type !== "html") return
+
+        const node = { tagName, attributes }
+        const scriptType = options.getScriptType(node)
+        if (!scriptType) {
           return
         }
 
-        if (attrs.type) {
-          if (!isJavaScriptMIMEType(attrs.type)) {
-            return
-          }
-        } else if (ignoreTagsWithoutType) {
+        if (currentChunk.ignore === IGNORE_NEXT) {
+          currentChunk.ignore = NO_IGNORE
           return
         }
 
-        if (attrs.src) {
+        if (currentChunk.ignore === IGNORE_UNTIL_ENABLE) {
           return
         }
 
-        if (ignoreState === IGNORE_NEXT) {
-          ignoreState = NO_IGNORE
-          return
-        }
-
-        if (ignoreState === IGNORE_UNTIL_ENABLE) {
-          return
-        }
-
-        inScript = true
-        pushChunk("html", parser.endIndex + 1)
+        currentChunk.end = parser.endIndex + 1
+        chunks.push({
+          type: "script",
+          start: parser.endIndex + 1,
+          end: undefined,
+          module: scriptType === "module",
+          tagName,
+          cdata: [],
+        })
       },
 
       oncdatastart() {
-        cdata.push(
-          {
-            start: parser.startIndex,
-            end: parser.startIndex + 9,
-          },
-          {
-            start: parser.endIndex - 2,
-            end: parser.endIndex + 1,
-          }
-        )
+        const currentChunk = chunks.at(-1)
+        if (currentChunk.type === "script") {
+          currentChunk.cdata.push(
+            {
+              start: parser.startIndex,
+              end: parser.startIndex + 9,
+            },
+            {
+              start: parser.endIndex - 2,
+              end: parser.endIndex + 1,
+            }
+          )
+        }
       },
 
       onclosetag(name) {
-        if (!javaScriptTagNames.includes(name) || !inScript) {
+        const currentChunk = chunks.at(-1)
+        if (currentChunk.type !== "script") return
+        if (currentChunk.tagName !== name) return
+
+        // With Self-Closing tags in XML mode, the parser doesn't move its index after the previous
+        // chunk emited. Just ignore those script.
+        if (parser.startIndex < currentChunk.start) {
+          chunks.pop()
           return
         }
 
-        inScript = false
-
-        if (parser.startIndex < chunks[chunks.length - 1].end) {
-          // The parser didn't move its index after the previous chunk emited. It occurs on
-          // self-closing tags (xml mode). Just ignore this script.
-          return
-        }
-
-        pushChunk("script", parser.startIndex)
-      },
-
-      ontext() {
-        if (!inScript) {
-          return
-        }
-
-        pushChunk("script", parser.endIndex + 1)
+        currentChunk.end = parser.startIndex
+        chunks.push({
+          type: "html",
+          start: parser.startIndex,
+          ignore: NO_IGNORE,
+          end: undefined,
+        })
       },
 
       oncomment(comment) {
+        const currentChunk = chunks.at(-1)
         comment = comment.trim()
         if (comment === "eslint-disable") {
-          ignoreState = IGNORE_UNTIL_ENABLE
+          currentChunk.ignore = IGNORE_UNTIL_ENABLE
         } else if (comment === "eslint-enable") {
-          ignoreState = NO_IGNORE
+          currentChunk.ignore = NO_IGNORE
         } else if (comment === "eslint-disable-next-script") {
-          ignoreState = IGNORE_NEXT
+          currentChunk.ignore = IGNORE_NEXT
         }
+      },
+
+      onend() {
+        chunks.at(-1).end = parser.endIndex + 1
       },
     },
     {
@@ -111,33 +161,9 @@ function iterateScripts(code, xmlMode, options, onChunk) {
     }
   )
 
-  parser.parseComplete(code)
+  parser.parseComplete(html)
 
-  pushChunk("html", parser.endIndex + 1)
-
-  {
-    const emitChunk = () => {
-      const cdata = []
-      for (let i = startChunkIndex; i < index; i += 1) {
-        cdata.push.apply(cdata, chunks[i].cdata)
-      }
-      onChunk({
-        type: chunks[startChunkIndex].type,
-        start: chunks[startChunkIndex].start,
-        end: chunks[index - 1].end,
-        cdata,
-      })
-    }
-    let startChunkIndex = 0
-    let index
-    for (index = 1; index < chunks.length; index += 1) {
-      if (chunks[startChunkIndex].type === chunks[index].type) continue
-      emitChunk()
-      startChunkIndex = index
-    }
-
-    emitChunk()
-  }
+  return chunks
 }
 
 function computeIndent(descriptor, previousHTML, slice) {
@@ -208,54 +234,3 @@ function* dedent(indent, slice) {
     }
   }
 }
-
-function extract(code, xmlMode, options) {
-  const badIndentationLines = []
-  const codeParts = []
-  let lineNumber = 1
-  let previousHTML = ""
-
-  iterateScripts(code, xmlMode, options, (chunk) => {
-    const slice = code.slice(chunk.start, chunk.end)
-    if (chunk.type === "html") {
-      const match = slice.match(/\r\n|\n|\r/g)
-      if (match) lineNumber += match.length
-      previousHTML = slice
-    } else if (chunk.type === "script") {
-      const transformedCode = new TransformableString(code)
-      let indentSlice = slice
-      for (const cdata of chunk.cdata) {
-        transformedCode.replace(cdata.start, cdata.end, "")
-        if (cdata.end === chunk.end) {
-          indentSlice = code.slice(chunk.start, cdata.start)
-        }
-      }
-      transformedCode.replace(0, chunk.start, "")
-      transformedCode.replace(chunk.end, code.length, "")
-      for (const action of dedent(
-        computeIndent(options.indent, previousHTML, indentSlice),
-        indentSlice
-      )) {
-        lineNumber += 1
-        if (action.type === "dedent") {
-          transformedCode.replace(
-            chunk.start + action.from,
-            chunk.start + action.to,
-            ""
-          )
-        } else if (action.type === "bad-indent") {
-          badIndentationLines.push(lineNumber)
-        }
-      }
-      codeParts.push(transformedCode)
-    }
-  })
-
-  return {
-    code: codeParts,
-    badIndentationLines,
-    hasBOM: code.startsWith("\uFEFF"),
-  }
-}
-
-module.exports = extract

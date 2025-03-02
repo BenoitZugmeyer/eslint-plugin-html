@@ -228,7 +228,7 @@ export default [
     files: ["**/*.html"],
     plugins: { html },
     settings: {
-      "html/xtml-extensions": [".html"], // consider .html files as XML
+      "html/xml-extensions": [".html"], // consider .html files as XML
     },
   },
 ]

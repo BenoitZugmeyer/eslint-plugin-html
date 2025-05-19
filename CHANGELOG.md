@@ -1,3 +1,8 @@
+2025-05-19 v8.1.3
+
+- Fix compatibility with ESLint 9.27.0 #300
+- Update dependencies
+
 2024-09-21 v8.1.2
 
 - Fix sourceType config for ESLint 9

@@ -79,13 +79,12 @@ function createVerifyWithFlatConfigPatch(eslintModule, verifyWithFlatConfig) {
       const localMessages = verifyWithFlatConfig.call(
         this,
         sourceCodes.get(codePart) || String(codePart),
-        {
-          ...providedConfig,
-          rules: Object.assign(
-            { [`${PREPARE_PLUGIN_NAME}/${PREPARE_RULE_NAME}`]: "error" },
-            !ignoreRules && providedConfig.rules
-          ),
-        },
+        createNewConfig(providedConfig, {
+          rules: {
+            [`${PREPARE_PLUGIN_NAME}/${PREPARE_RULE_NAME}`]: "error",
+            ...(!ignoreRules && providedConfig.rules),
+          },
+        }),
         ignoreRules
           ? {
               ...providedOptions,
@@ -160,13 +159,20 @@ function verifyExternalHtmlPlugin(eslintModule, config, callOriginalVerify) {
 
   return [
     callOriginalVerify(),
-    {
-      ...config,
+    createNewConfig(config, {
       languageOptions: {
         ...config.languageOptions,
         parser: eslintModule.require("espree"),
       },
       rules,
-    },
+    }),
   ]
+}
+
+/**
+ * Creates a clone of the provided config object so it can be modified without affecting the
+ * original.
+ */
+function createNewConfig(originalConfig, overrides) {
+  return Object.setPrototypeOf(overrides, originalConfig)
 }

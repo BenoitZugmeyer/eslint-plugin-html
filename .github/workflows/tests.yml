@@ -50,22 +50,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        node: [18, 20]
+        node: [18, 20, 22, 24]
         eslint: [latest]
         include:
           # ESLint 4.7 support: lowest version supported
           - os: ubuntu-latest
-            node: 20
+            node: 24
             eslint: "4.7"
 
           # ESLint 5 support: lowest version we can use to test external html plugins support
           - os: ubuntu-latest
-            node: 20
+            node: 24
             eslint: "5.0"
 
           # Upcoming ESLint major version support
           - os: ubuntu-latest
-            node: 20
+            node: 24
             eslint: next
 
             # Node 16 support: use ESLint v8 becacuse they dropped node 16 support in v9. Will be
@@ -76,7 +76,7 @@ jobs:
 
           # Windows support
           - os: windows-latest
-            node: 20
+            node: 24
             eslint: latest
     steps:
       - uses: actions/checkout@v4

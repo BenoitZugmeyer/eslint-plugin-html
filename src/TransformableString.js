@@ -25,7 +25,7 @@ function locationToIndex(location, lineStarts) {
 }
 
 function indexToLocation(index, lineStarts) {
-  if (index < 0) throw new Error("Invalid index")
+  if (index < 0) return
 
   let line = 0
   while (line + 1 < lineStarts.length && lineStarts[line + 1] <= index) {
@@ -106,7 +106,7 @@ module.exports = class TransformableString {
       }
     }
     if (index < 0 || index > this._original.length) {
-      throw new Error("Invalid index")
+      return
     }
     if (index == this._original.length) {
       if (block.to && block.to === this._original.length) {

@@ -36,7 +36,6 @@ This caused many issues:
   [`max-len`](http://eslint.org/docs/rules/max-len))&nbsp;;
 
 - When run in the browser, each inline script gets its own context. Two main issues come from this:
-
   - If you are using `"use strict"` in an inline script, the strict mode only applies in this
     script. Since the [`strict`](http://eslint.org/docs/rules/strict) rule with the `"global"`
     option is executed only once, [it only applies on the first inline script of the

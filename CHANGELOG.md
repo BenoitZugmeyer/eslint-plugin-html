@@ -1,3 +1,8 @@
+2026-01-23 v8.1.4
+
+- Fix compatibility with ESLint 10
+- Update dependencies
+
 2025-05-19 v8.1.3
 
 - Fix compatibility with ESLint 9.27.0 #300

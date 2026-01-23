@@ -3,6 +3,7 @@
   "version": "8.1.2",
   "description": "A ESLint plugin to lint and fix inline scripts contained in HTML files.",
   "license": "ISC",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/BenoitZugmeyer/eslint-plugin-html"
@@ -20,6 +21,8 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
+    "eslint-scope": "^9.1.0",
+    "espree": "^11.1.0",
     "htmlparser2": "^9.1.0"
   },
   "devDependencies": {

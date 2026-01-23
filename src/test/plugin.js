@@ -892,42 +892,36 @@ ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
         "@html-eslint/require-img-alt": ["error"],
       },
     })
-    assert.deepStrictEqual(
-      messages.map((message) => ({
-        ...message,
-
-        // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
-        // versions of ESLint, we need to ignore these suggestions.
-        suggestions: "(ignored)",
-      })),
-      [
-        {
-          column: 1,
-          endColumn: 13,
-          endLine: 1,
-          line: 1,
-          message: "Missing `alt` attribute at `<img>` tag",
-          messageId: "missingAlt",
-          nodeType: null,
-          ruleId: "@html-eslint/require-img-alt",
-          severity: 2,
-          suggestions: "(ignored)",
-        },
-        {
-          column: 3,
-          endColumn: 14,
-          endLine: 3,
-          line: 3,
-          message: "Unexpected console statement.",
-          messageId: "unexpected",
-          nodeType: "MemberExpression",
-          ruleId: "no-console",
-          severity: 2,
-          source: '  console.log("toto")',
-          suggestions: "(ignored)",
-        },
-      ]
-    )
+    for (const message of messages) {
+      // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
+      // versions of ESLint, we need to ignore these suggestions.
+      delete message.suggestions
+      // ESLint v10.0 removed the nodeType property
+      delete message.nodeType
+    }
+    assert.deepStrictEqual(messages, [
+      {
+        column: 1,
+        endColumn: 13,
+        endLine: 1,
+        line: 1,
+        message: "Missing `alt` attribute at `<img>` tag",
+        messageId: "missingAlt",
+        ruleId: "@html-eslint/require-img-alt",
+        severity: 2,
+      },
+      {
+        column: 3,
+        endColumn: 14,
+        endLine: 3,
+        line: 3,
+        message: "Unexpected console statement.",
+        messageId: "unexpected",
+        ruleId: "no-console",
+        severity: 2,
+        source: '  console.log("toto")',
+      },
+    ])
   })
 
   it("fix", async () => {

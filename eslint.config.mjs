@@ -20,6 +20,7 @@ export default [
         Buffer: "readonly",
         __dirname: "readonly",
         setTimeout: "readonly",
+        URL: "readonly",
       },
     },
   },

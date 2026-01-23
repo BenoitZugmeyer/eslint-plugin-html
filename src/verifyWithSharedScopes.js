@@ -62,7 +62,7 @@ function verifyWithSharedScopes(codeParts, verifyCodePart, parserOptions) {
 }
 
 function markGlobalVariableAsUsed(context, program, name) {
-  const sourceCode = context.getSourceCode()
+  const sourceCode = context.sourceCode || context.getSourceCode()
 
   if (sourceCode.markVariableAsUsed) {
     sourceCode.markVariableAsUsed(name, program)
@@ -72,7 +72,7 @@ function markGlobalVariableAsUsed(context, program, name) {
 }
 
 function getGlobalScope(context, program) {
-  const sourceCode = context.getSourceCode()
+  const sourceCode = context.sourceCode || context.getSourceCode()
   if (sourceCode.getScope) {
     // eslint 9+
     return sourceCode.getScope(program)

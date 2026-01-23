@@ -57,16 +57,21 @@ function patch(module) {
   }
   Linter[LINTER_ISPATCHED_PROPERTY_NAME] = true
 
-  const verifyMethodName = Linter.prototype._verifyWithoutProcessors
-    ? "_verifyWithoutProcessors" // ESLint 6+
-    : "verify" // ESLint 5-
-  const verify = Linter.prototype[verifyMethodName]
-  Linter.prototype[verifyMethodName] = createVerifyPatch(verify)
+  // ESLint >= 8.4.0
+  if (Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors) {
+    Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors =
+      createVerifyWithFlatConfigPatch(
+        module,
+        Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors
+      )
+  }
 
-  const verifyWithFlatConfig =
-    Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors
-  Linter.prototype._verifyWithFlatConfigArrayAndWithoutProcessors =
-    createVerifyWithFlatConfigPatch(module, verifyWithFlatConfig)
+  // ESLint >= 4.7.0 .. < 10.0
+  if (Linter.prototype._verifyWithoutProcessors) {
+    Linter.prototype._verifyWithoutProcessors = createVerifyPatch(
+      Linter.prototype._verifyWithoutProcessors
+    )
+  }
 }
 
 function getLinterFromModule(module) {

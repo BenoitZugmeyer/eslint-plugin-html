@@ -63,7 +63,10 @@ function createVerifyWithFlatConfigPatch(eslintModule, verifyWithFlatConfig) {
         rules: {
           [PREPARE_RULE_NAME]: {
             create(context) {
-              sourceCodes.set(codePart, context.getSourceCode())
+              sourceCodes.set(
+                codePart,
+                context.sourceCode || context.getSourceCode()
+              )
               return {
                 Program(program) {
                   if (prepare) {

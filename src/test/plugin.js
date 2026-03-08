@@ -6,7 +6,6 @@ import { createRequire } from "node:module"
 
 import eslintPluginHtml, {
   processor as eslintPluginHtmlProcessor,
-  processor,
 } from "../index.js"
 
 const require = createRequire(import.meta.url)
@@ -606,72 +605,51 @@ ifVersion(">= 4.8.0", describe, "reportUnusedDisableDirectives", () => {
   })
 })
 
-describe("html/ignore-tags-without-type", () => {
-  it("ignores tags without type attribute", async () => {
-    const messages = await execute("javascript-mime-types.html", {
-      baseConfig: [
-        {
-          ...DEFAULT_HTML_CONFIG,
-          processor: eslintPluginHtmlProcessor({ ignoreTagsWithoutType: true }),
-        },
-        DEFAULT_JS_CONFIG,
-      ],
-    })
-    assert.strictEqual(messages.length, 2)
+it("ignores tags without type attribute", async () => {
+  const messages = await execute("javascript-mime-types.html", {
+    baseConfig: [
+      {
+        ...DEFAULT_HTML_CONFIG,
+        processor: eslintPluginHtmlProcessor({
+          rules: [
+            {
+              match: "script[type]",
+            },
+          ],
+        }),
+      },
+      DEFAULT_JS_CONFIG,
+    ],
   })
+  assert.strictEqual(messages.length, 4)
 })
 
-describe("html/javascript-mime-types", () => {
-  it("ignores unknown mime types by default", async () => {
-    const messages = await execute("javascript-mime-types.html")
-    assert.strictEqual(messages.length, 3)
-    assert.strictEqual(messages[0].ruleId, "no-console")
-    assert.strictEqual(messages[0].line, 8)
-    assert.strictEqual(messages[1].ruleId, "no-console")
-    assert.strictEqual(messages[1].line, 12)
-    assert.strictEqual(messages[2].ruleId, "no-console")
-    assert.strictEqual(messages[2].line, 16)
-  })
+it("ignores unknown mime types by default", async () => {
+  const messages = await execute("javascript-mime-types.html")
+  assert.strictEqual(messages.length, 3)
+  assert.strictEqual(messages[0].ruleId, "no-console")
+  assert.strictEqual(messages[0].line, 8)
+  assert.strictEqual(messages[1].ruleId, "no-console")
+  assert.strictEqual(messages[1].line, 12)
+  assert.strictEqual(messages[2].ruleId, "no-console")
+  assert.strictEqual(messages[2].line, 16)
+})
 
-  it("specifies a list of valid mime types", async () => {
-    const messages = await execute("javascript-mime-types.html", {
-      baseConfig: [
-        {
-          ...DEFAULT_HTML_CONFIG,
-          processor: eslintPluginHtmlProcessor({
-            javaScriptMIMETypes: ["text/foo"],
-          }),
-        },
-        DEFAULT_JS_CONFIG,
-      ],
-    })
-    assert.strictEqual(messages.length, 2)
-    assert.strictEqual(messages[0].ruleId, "no-console")
-    assert.strictEqual(messages[0].line, 8)
-    assert.strictEqual(messages[1].ruleId, "no-console")
-    assert.strictEqual(messages[1].line, 20)
+it("specifies a list of valid mime types", async () => {
+  const messages = await execute("javascript-mime-types.html", {
+    baseConfig: [
+      {
+        ...DEFAULT_HTML_CONFIG,
+        processor: eslintPluginHtmlProcessor({
+          rules: [{ match: "[type='text/foo']" }],
+        }),
+      },
+      DEFAULT_JS_CONFIG,
+    ],
   })
-
-  it("specifies a regexp of valid mime types", async () => {
-    const messages = await execute("javascript-mime-types.html", {
-      baseConfig: [
-        {
-          ...DEFAULT_HTML_CONFIG,
-          processor: eslintPluginHtmlProcessor({
-            javaScriptMIMETypes: [/^(application|text)\/foo$/],
-          }),
-        },
-        DEFAULT_JS_CONFIG,
-      ],
-    })
-    assert.strictEqual(messages.length, 3)
-    assert.strictEqual(messages[0].ruleId, "no-console")
-    assert.strictEqual(messages[0].line, 8)
-    assert.strictEqual(messages[1].ruleId, "no-console")
-    assert.strictEqual(messages[1].line, 20)
-    assert.strictEqual(messages[2].ruleId, "no-console")
-    assert.strictEqual(messages[2].line, 24)
-  })
+  assert.strictEqual(messages.length, 1)
+  assert.strictEqual(messages[0].ruleId, "no-console")
+  assert.strictEqual(messages[0].line, 20)
 })
 
 it("should report correct eol-last message position", async () => {
@@ -692,7 +670,7 @@ it("should report correct eol-last message position", async () => {
   assert.strictEqual(messages[0].column, 42)
 })
 
-describe.only("scope sharing", () => {
+describe("scope sharing", () => {
   it("should export global variables between script scopes", async () => {
     const messages = await execute("scope-sharing.html", {
       baseConfig: [
@@ -703,9 +681,7 @@ describe.only("scope sharing", () => {
             "no-undef": "error",
           },
           languageOptions: {
-            globals: {
-              console: false,
-            },
+            sourceType: "script",
           },
         },
       ],
@@ -743,12 +719,7 @@ describe.only("scope sharing", () => {
             "no-unused-vars": "error",
           },
           languageOptions: {
-            globals: {
-              console: false,
-            },
-          },
-          env: {
-            es6: true,
+            sourceType: "script",
           },
         },
       ],
@@ -776,29 +747,7 @@ describe.only("scope sharing", () => {
     )
   })
 
-  it("should not be influenced by the ECMA feature 'globalReturn'", async () => {
-    const messages = await execute("scope-sharing.html", {
-      rules: {
-        "no-console": "off",
-        "no-undef": "error",
-        "no-unused-vars": "error",
-      },
-      globals: {
-        console: false,
-      },
-      env: {
-        es6: true,
-      },
-      parserOptions: {
-        ecmaFeatures: {
-          globalReturn: true,
-        },
-      },
-    })
-    assert.strictEqual(messages.length, 8)
-  })
-
-  it.only("should not share the global scope if sourceType is 'module'", async () => {
+  it("ECMA feature 'globalReturn'", async () => {
     const messages = await execute("scope-sharing.html", {
       baseConfig: [
         DEFAULT_HTML_CONFIG,
@@ -809,9 +758,95 @@ describe.only("scope sharing", () => {
             "no-unused-vars": "error",
           },
           languageOptions: {
-            globals: {
-              console: false,
+            sourceType: "module",
+            parserOptions: {
+              ecmaFeatures: {
+                globalReturn: true,
+              },
             },
+          },
+        },
+      ],
+    })
+    assert.strictEqual(messages.length, 12)
+    assert.strictEqual(messages[0].line, 8)
+    assert.strictEqual(
+      messages[0].message,
+      "'varGloballyDeclared' is assigned a value but never used."
+    )
+    assert.strictEqual(messages[1].line, 9)
+    assert.strictEqual(
+      messages[1].message,
+      "'letGloballyDeclared' is assigned a value but never used."
+    )
+    assert.strictEqual(messages[2].line, 10)
+    assert.strictEqual(
+      messages[2].message,
+      "'functionGloballyDeclared' is defined but never used."
+    )
+    assert.strictEqual(messages[3].line, 11)
+    assert.strictEqual(
+      messages[3].message,
+      "'ClassGloballyDeclared' is defined but never used."
+    )
+    assert.strictEqual(messages[4].line, 13)
+    assert.strictEqual(
+      messages[4].message,
+      "'varNotYetGloballyDeclared' is not defined."
+    )
+    assert.strictEqual(messages[5].line, 14)
+    assert.strictEqual(
+      messages[5].message,
+      "'letNotYetGloballyDeclared' is not defined."
+    )
+    assert.strictEqual(messages[6].line, 15)
+    assert.strictEqual(
+      messages[6].message,
+      "'functionNotYetGloballyDeclared' is not defined."
+    )
+    assert.strictEqual(messages[7].line, 16)
+    assert.strictEqual(
+      messages[7].message,
+      "'ClassNotYetGloballyDeclared' is not defined."
+    )
+    assert.strictEqual(messages[8].line, 20)
+    assert.strictEqual(
+      messages[8].message,
+      "'varNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    assert.strictEqual(messages[9].line, 21)
+    assert.strictEqual(
+      messages[9].message,
+      "'letNotYetGloballyDeclared' is assigned a value but never used."
+    )
+    assert.strictEqual(messages[10].line, 22)
+    assert.strictEqual(
+      messages[10].message,
+      "'functionNotYetGloballyDeclared' is defined but never used."
+    )
+    assert.strictEqual(messages[11].line, 23)
+    assert.strictEqual(
+      messages[11].message,
+      "'ClassNotYetGloballyDeclared' is defined but never used."
+    )
+  })
+
+  it.only("should not share the global scope if sourceType is 'module'", async () => {
+    const messages = await execute("scope-sharing.html", {
+      baseConfig: [
+        {
+          ...DEFAULT_HTML_CONFIG,
+          processor: eslintPluginHtmlProcessor({
+            rules: [{ match: "script", module: true }],
+          }),
+        },
+        {
+          ...DEFAULT_JS_CONFIG,
+          rules: {
+            "no-undef": "error",
+            "no-unused-vars": "error",
+          },
+          languageOptions: {
             sourceType: "module",
           },
         },
@@ -902,84 +937,101 @@ describe.only("scope sharing", () => {
 })
 
 // For some reason @html-eslint is not compatible with ESLint < 5
-ifVersion(">= 5", describe, "compatibility with external HTML plugins", () => {
-  const BASE_HTML_ESLINT_CONFIG = {
-    plugins: {
-      "@html-eslint": require("@html-eslint/eslint-plugin"),
-      html: eslintPluginHtml,
-    },
-    parser: require("@html-eslint/parser"),
-  }
-
-  it("check", async () => {
-    const messages = await execute("other-html-plugins-compatibility.html", {
-      ...BASE_HTML_ESLINT_CONFIG,
-      rules: {
-        "@html-eslint/require-img-alt": ["error"],
+ifVersion(
+  ">= 5",
+  describe.only,
+  "compatibility with external HTML plugins",
+  () => {
+    const BASE_HTML_ESLINT_CONFIG = {
+      plugins: {
+        "@html-eslint": require("@html-eslint/eslint-plugin"),
+        html: eslintPluginHtml,
       },
-    })
-    assert.deepStrictEqual(
-      messages.map((message) => ({
-        ...message,
+      parser: require("@html-eslint/parser"),
+    }
 
-        // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
-        // versions of ESLint, we need to ignore these suggestions.
-        suggestions: "(ignored)",
-      })),
-      [
-        {
-          column: 1,
-          endColumn: 13,
-          endLine: 1,
-          line: 1,
-          message: "Missing `alt` attribute at `<img>` tag",
-          messageId: "missingAlt",
-          nodeType: null,
-          ruleId: "@html-eslint/require-img-alt",
-          severity: 2,
+    it.only("check", async () => {
+      const messages = await execute("other-html-plugins-compatibility.html", {
+        baseConfig: [
+          {
+            files: ["**/*.html"],
+            //...DEFAULT_HTML_CONFIG,
+            plugins: {
+              //...DEFAULT_HTML_CONFIG.plugins,
+              "@html-eslint": require("@html-eslint/eslint-plugin"),
+            },
+            language: "@html-eslint/html",
+            rules: {
+              "@html-eslint/require-img-alt": "error",
+            },
+          },
+          DEFAULT_HTML_CONFIG,
+          DEFAULT_JS_CONFIG,
+        ],
+      })
+      assert.deepStrictEqual(
+        messages.map((message) => ({
+          ...message,
+
+          // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
+          // versions of ESLint, we need to ignore these suggestions.
           suggestions: "(ignored)",
-        },
-        {
-          column: 3,
-          endColumn: 14,
-          endLine: 3,
-          line: 3,
-          message: "Unexpected console statement.",
-          messageId: "unexpected",
-          nodeType: "MemberExpression",
-          ruleId: "no-console",
-          severity: 2,
-          source: '  console.log("toto")',
-          suggestions: "(ignored)",
-        },
-      ]
-    )
-  })
-
-  it("fix", async () => {
-    const result = await execute("other-html-plugins-compatibility.html", {
-      baseConfig: [
-        {
-          files: ["**/*.html"],
-
-          //TODO
-        },
-      ],
-      ...BASE_HTML_ESLINT_CONFIG,
-      rules: {
-        "@html-eslint/quotes": ["error", "single"],
-        quotes: ["error", "single"],
-      },
-      fix: true,
+        })),
+        [
+          {
+            column: 1,
+            endColumn: 13,
+            endLine: 1,
+            line: 1,
+            message: "Missing `alt` attribute at `<img>` tag",
+            messageId: "missingAlt",
+            nodeType: null,
+            ruleId: "@html-eslint/require-img-alt",
+            severity: 2,
+            suggestions: "(ignored)",
+          },
+          {
+            column: 3,
+            endColumn: 14,
+            endLine: 3,
+            line: 3,
+            message: "Unexpected console statement.",
+            messageId: "unexpected",
+            nodeType: "MemberExpression",
+            ruleId: "no-console",
+            severity: 2,
+            source: '  console.log("toto")',
+            suggestions: "(ignored)",
+          },
+        ]
+      )
     })
-    assert.deepStrictEqual(
-      result.output,
-      `\
+
+    it("fix", async () => {
+      const result = await execute("other-html-plugins-compatibility.html", {
+        baseConfig: [
+          {
+            files: ["**/*.html"],
+
+            //TODO
+          },
+        ],
+        ...BASE_HTML_ESLINT_CONFIG,
+        rules: {
+          "@html-eslint/quotes": ["error", "single"],
+          quotes: ["error", "single"],
+        },
+        fix: true,
+      })
+      assert.deepStrictEqual(
+        result.output,
+        `\
 <img src=''>
 <script>
   console.log('toto')
 </script>
 `
-    )
-  })
-})
+      )
+    })
+  }
+)

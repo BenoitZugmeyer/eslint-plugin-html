@@ -2,41 +2,50 @@ import * as espree from "espree"
 import * as eslintScope from "eslint-scope"
 import { extract } from "./extract.js"
 import { remapMessages } from "./remapMessages.js"
+import { parseCssSelector } from "./cssSelector.js"
 
 export default function ({
   reportBadIndent = false,
-  ignoreTagsWithoutType = false,
-  javaScriptMIMETypes = [
-    /^(application|text)\/(x-)?(javascript|babel|ecmascript-6)$/i,
-    /^module$/i,
+  rules = [
+    {
+      match: 'script[type="text/javascript"], script:not([type])',
+      module: false,
+    },
+    {
+      match: 'script[type="module"]',
+      module: true,
+    },
   ],
   indent = undefined,
   xml = false,
 } = {}) {
   const preprocessResults = new Map()
+  const parsedRules = rules.map((rule) => ({
+    ...rule,
+    match: parseCssSelector(rule.match).match,
+  }))
   return {
     supportsAutofix: true,
     preprocess: (text, filename) => {
-      const { code, badIndentationLines, hasBOM } = extract(text, xml, {
+      const { scripts, badIndentationLines, hasBOM } = extract(text, xml, {
         indent: parseIndent(indent),
-        ignoreTagsWithoutType,
-        isJavaScriptMIMEType: parseJavaScriptMIMETypes(javaScriptMIMETypes),
+        rules: parsedRules,
       })
-      preprocessResults.set(filename, { code, badIndentationLines, hasBOM })
-      shareScopes(code)
-      return code.map((part, index) => ({
-        text: part.toString(),
+      preprocessResults.set(filename, { scripts, badIndentationLines, hasBOM })
+      shareScopes(scripts)
+      return scripts.map((script, index) => ({
+        text: script.code.toString(),
         filename: `part-${index}.js`,
       }))
     },
 
     postprocess: (messages, filename) => {
-      const { code, badIndentationLines, hasBOM } =
+      const { scripts, badIndentationLines, hasBOM } =
         preprocessResults.get(filename)
       preprocessResults.delete(filename)
 
       messages = messages.map((messages, fileIndex) => {
-        return remapMessages(messages, hasBOM, code[fileIndex])
+        return remapMessages(messages, hasBOM, scripts[fileIndex].code)
       })
 
       if (reportBadIndent) {
@@ -56,22 +65,23 @@ export default function ({
   }
 }
 
-function shareScopes(parts) {
-  if (parts.length <= 1) return
-  const isSharedScope = false
-  const scopes = parts.map((part) => {
+function shareScopes(scripts) {
+  if (scripts.length <= 1) return
+  const isSharedScope = true
+  const scopes = scripts.map((script) => {
     const ecmaVersion = "latest"
+    const sourceType = script.module ? "module" : "script"
     let ast
     try {
-      ast = espree.parse(part.toString(), { ecmaVersion })
+      ast = espree.parse(script.code.toString(), { ecmaVersion, sourceType })
     } catch (error) {
-      console.log(error)
       // TODO report error
-      throw new Error("TODO")
+      throw new Error("TODO", { cause: error })
     }
     const scope = eslintScope.analyze(ast, {
-      ecmaVersion,
+      ecmaVersion: 2026,
       jsx: true, // TODO add a test?
+      sourceType,
     })
     return {
       declaredGlobals: isSharedScope
@@ -101,7 +111,7 @@ function shareScopes(parts) {
     if (exported.size)
       line += `/* exported ${Array.from(exported).join(", ")} */`
     line += "\n"
-    parts[i].replace(0, 0, line)
+    scripts[i].code.replace(0, 0, line)
   }
 }
 
@@ -133,16 +143,4 @@ function parseIndent(indent) {
       spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
     }
   )
-}
-
-function parseJavaScriptMIMETypes(rawJavaScriptMIMETypes) {
-  const javaScriptMIMETypes = Array.isArray(rawJavaScriptMIMETypes)
-    ? rawJavaScriptMIMETypes
-    : [rawJavaScriptMIMETypes]
-
-  return function isJavaScriptMIMEType(type) {
-    return javaScriptMIMETypes.some((o) =>
-      typeof o === "string" ? type === o : o.test(type)
-    )
-  }
 }

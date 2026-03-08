@@ -23,12 +23,12 @@ function dedent(str) {
 function test(params) {
   const infos = extract(dedent(params.input), params.xmlMode, {
     indent: params.indent,
-    javaScriptTagNames: params.javaScriptTagNames || ["script"],
-    isJavaScriptMIMEType: params.isJavaScriptMIMEType,
-    ignoreTagsWithoutType: params.ignoreTagsWithoutType,
+    rules: [
+      { match: params.match || (({ tagName }) => tagName === "script" && {}) },
+    ],
   })
   assert.deepStrictEqual(
-    infos.code.map((code) => code.toString()),
+    infos.scripts.map((script) => script.code.toString()),
     params.expected
   )
   assert.deepStrictEqual(
@@ -289,7 +289,7 @@ it("works with CDATA", () => {
   })
 })
 
-it("handles the isJavaScriptMIMEType option", () => {
+it("custom type", () => {
   test({
     input: `
     <script>
@@ -304,9 +304,9 @@ it("handles the isJavaScriptMIMEType option", () => {
       c
     </script>
     `,
-    isJavaScriptMIMEType(type) {
-      return type === "foo/bar"
-    },
+    match: ({ tagName, attributes }) =>
+      tagName === "script" &&
+      (!attributes.type || attributes.type === "foo/bar"),
     expected: ["a\n", "b\n"],
   })
 })
@@ -342,6 +342,8 @@ it("handles self closing script tags in xhtml mode", () => {
 it("skips script with src attributes", () => {
   test({
     input: '<script src="foo"></script>',
+    match: ({ tagName, attributes }) =>
+      tagName === "script" && !attributes.src && {},
     expected: [],
   })
 })
@@ -349,7 +351,8 @@ it("skips script with src attributes", () => {
 it("skips script without type attribute", () => {
   test({
     input: "<script></script>",
-    ignoreTagsWithoutType: true,
+    match: ({ tagName, attributes }) =>
+      tagName === "script" && attributes.type && {},
     expected: [],
   })
 })
@@ -366,7 +369,7 @@ it("extract multiple tags types", () => {
         var bar = 1;
       </customscript>
     `,
-    javaScriptTagNames: ["script", "customscript"],
+    match: ({ tagName }) => tagName === "script" || tagName === "customscript",
     expected: ["var foo = 1;\n", "var bar = 1;\n"],
   })
 })

@@ -92,7 +92,7 @@ use this to disable script tags containing template syntax.
 
 This plugin focuses on applying ESLint rules on inline scripts contained in HTML. It does not
 provide any rule related to HTML. For that, you can use other plugins like
-[`@eslint-html`](https://yeonjuan.github.io/html-eslint/) or
+[@html-eslint](https://html-eslint.org) or
 [@angular-eslint](https://github.com/angular-eslint/angular-eslint). `eslint-plugin-html` is
 compatible with those plugins and can be used along them.
 

@@ -166,7 +166,7 @@ This plugin parses HTML and XML markup slightly differently, mainly when conside
 sections:
 
 - in XML, any data inside a `CDATA` section will be considered as raw text (not XML) and the `CDATA`
-  delimiter will be droped ;
+  delimiter will be dropped ;
 - in HTML, there is no such thing for `<script>` tags: the `CDATA` delimiter is considered as normal
   text and thus, part of the script.
 
@@ -195,7 +195,7 @@ export default [
 ]
 ```
 
-Note: you need to specify extensions twice, which is not ideal. This should be imporved in the
+Note: you need to specify extensions twice, which is not ideal. This should be improved in the
 future.
 
 </details>
@@ -234,7 +234,7 @@ export default [
 ]
 ```
 
-Note: you need to specify extensions twice, which is not ideal. This should be imporved in the
+Note: you need to specify extensions twice, which is not ideal. This should be improved in the
 future.
 
 </details>
@@ -494,7 +494,7 @@ exclusively and remove `eslint-plugin-html` from your dependencies if you still 
 ### To v4
 
 `eslint-plugin-html` v4 requires at least ESLint v4.7. This is because a lot of internal changes
-occured in ESLint v4.7, including a [new API to support autofixing in
+occurred in ESLint v4.7, including a [new API to support autofixing in
 preprocessors](https://eslint.org/docs/developer-guide/working-with-plugins#processors-in-plugins).
 If you are still using an older version of ESLint, please consider upgrading, or keep using
 `eslint-plugin-html` v3.

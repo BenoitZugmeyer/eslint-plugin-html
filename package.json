@@ -20,7 +20,7 @@
     "node": ">=16.0.0"
   },
   "dependencies": {
-    "htmlparser2": "^10.0.0"
+    "htmlparser2": "^12.0.0"
   },
   "devDependencies": {
     "@html-eslint/eslint-plugin": "^0.53.0",

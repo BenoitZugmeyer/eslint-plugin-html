@@ -9,6 +9,8 @@
 - [Usage](#usage)
 - [Disabling ESLint](#disabling-eslint)
 - [Linting HTML](#linting-html)
+  - [Manual configuration](#manual-configuration)
+  - [Use two configuration files](#use-two-configuration-files)
 - [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
   - [History](#history)
 - [XML support](#xml-support)
@@ -93,8 +95,52 @@ use this to disable script tags containing template syntax.
 This plugin focuses on applying ESLint rules on inline scripts contained in HTML. It does not
 provide any rule related to HTML. For that, you can use other plugins like
 [@html-eslint](https://html-eslint.org) or
-[@angular-eslint](https://github.com/angular-eslint/angular-eslint). `eslint-plugin-html` is
-compatible with those plugins and can be used along them.
+[@angular-eslint](https://github.com/angular-eslint/angular-eslint). This plugin is not compatible
+with the ESLint `language` option (this is an ESLint limitation). To lint both HTML and JS within
+script tags, you have two alternatives:
+
+### Manual configuration
+
+Provide the [`html-eslint`](https://html-eslint.org/) plugin option manually, without relying on the
+`language` option:
+
+```javascript
+import { defineConfig } from "eslint/config"
+import parserHtml from "@html-eslint/parser"
+import pluginHtml from "@html-eslint/eslint-plugin"
+import pluginJs from "@eslint/js"
+import pluginJsInHtml from "eslint-plugin-html"
+
+export default defineConfig([
+  {
+    files: ["**/*.html"],
+    plugins: {
+      html: pluginHtml,
+      jsInHtml: pluginJsInHtml,
+      js: pluginJs,
+    },
+    languageOptions: {
+      parser: parserHtml,
+    },
+    extends: ["js/recommended", "html/recommended"],
+  },
+])
+```
+
+### Use two configuration files
+
+`eslint.config.js` with the `eslint-plugin-html` plugin to lint all JavaScript code and
+`eslint.config-html.js` with the [`html-eslint`](https://html-eslint.org/) plugin for HTML rules.
+
+Run ESLint once with each configuration:
+
+```sh
+eslint .                              # lints JS
+eslint -c eslint.config-html.js .     # lints HTML
+```
+
+This alternative works well in CI and hooks, but might be limited in text editors where only one
+config is applied.
 
 ## Multiple scripts tags in a HTML file
 

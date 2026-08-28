@@ -1,6 +1,7 @@
-UNRELEASED
+2026-08-28 v8.2.0
 
 - Add typescript types
+- Update dependencies
 
 2026-01-23 v8.1.4
 

@@ -1,3 +1,7 @@
+UNRELEASED
+
+- Add typescript types
+
 2026-01-23 v8.1.4
 
 - Fix compatibility with ESLint 10

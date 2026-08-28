@@ -10,6 +10,7 @@ const PACKAGE_FILES = [
   "src/extract.js",
   "src/getFileMode.js",
   "src/index.js",
+  "src/index.d.ts",
   "src/pluginReference.js",
   "src/settings.js",
   "src/remapMessages.js",

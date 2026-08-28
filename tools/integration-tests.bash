@@ -17,7 +17,7 @@ PACKAGE_PATH=$(realpath $(npm pack))
 set -x
 cd $ROOT
 npm init -y
-npm install --save-dev eslint@$ESLINT_VERSION "$PACKAGE_PATH"
+npm install --save-dev eslint@$ESLINT_VERSION "$PACKAGE_PATH" typescript
 
 cat << EOF > index.html
 <script>
@@ -25,7 +25,8 @@ console.log(1)
 </script>
 EOF
 
-cat << EOF > .eslintrc.js
+if [[ $ESLINT_VERSION == 4.7 ]]; then
+  cat << EOF > .eslintrc.js
 module.exports = {
   plugins: ["html"],
   rules: {
@@ -34,10 +35,12 @@ module.exports = {
 }
 EOF
 
-cat << EOF > eslint.config.mjs
+else
+  cat << EOF > eslint.config.mjs
+import { defineConfig } from "eslint/config"
 import html from "eslint-plugin-html";
 
-export default [
+export default defineConfig([
   {
     files: ["**/*.html"],
     plugins: {
@@ -47,8 +50,11 @@ export default [
       "no-console": "error",
     }
   }
-];
+]);
 EOF
+
+  npx tsc --checkJs --noEmit ./eslint.config.mjs
+fi
 
 npx eslint index.html > actual_output 2>&1 || true
 

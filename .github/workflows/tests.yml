@@ -21,9 +21,7 @@ jobs:
       - run: npm run lint
       - run: npm run format
       - run: node tools/toc.js check
-      # markdown-link-check disabled until https://github.com/tcort/markdown-link-check/issues/304
-      # is fixed
-      # - run: npx markdown-link-check -p README.md
+      - run: npx markdown-link-check -p README.md --config ./markdown-link-check.config.json
 
   integration:
     runs-on: ${{ matrix.os }}

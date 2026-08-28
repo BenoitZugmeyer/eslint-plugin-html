@@ -146,8 +146,8 @@ config is applied.
 
 When linting a HTML with multiple script tags, this plugin tries to emulate the browser behavior by
 sharing the global scope between scripts by default. This behavior doesn't apply to "module"
-scripts (ie: `<script type="module">` and most transpiled code), where [each script tag gets its own
-top-level scope](http://exploringjs.com/es6/ch_modules.html#_modules).
+scripts (ie: `<script type="module">` and most transpiled code), where each script tag gets its own
+top-level scope.
 
 ESLint has already [an
 option](https://eslint.org/docs/user-guide/configuring#specifying-parser-options) to tell the parser

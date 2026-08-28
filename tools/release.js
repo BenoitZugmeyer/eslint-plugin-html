@@ -1,5 +1,5 @@
 "use strict"
-const { execSync: exec } = require("child_process")
+const { execSync: exec, execFileSync } = require("child_process")
 const { readFileSync: read } = require("fs")
 const { request } = require("https")
 const { version: currentVersion } = require("../package.json")
@@ -125,7 +125,7 @@ function createVersion(version) {
 
   console.log(`Creating version ${version}`)
 
-  exec(`npm version ${version}`, {
+  execFileSync("npm", ["version", version], {
     stdio: "inherit",
   })
 
@@ -192,7 +192,7 @@ function fetchWorkflowRuns() {
 function releaseVersion(version, channel) {
   console.log(`Publishing ${version} to channel ${channel}`)
 
-  exec(`npm publish --tag ${channel}`, {
+  execFileSync("npm", ["publish", "--tag", channel], {
     stdio: "inherit",
   })
   exec("git push --tags", {

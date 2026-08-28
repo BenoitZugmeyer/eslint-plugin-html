@@ -12,12 +12,12 @@ trap finish EXIT
 
 REPO_PATH=$(pwd)
 ESLINT_VERSION=${1:-latest}
+PACKAGE_PATH=$(realpath $(npm pack))
 
 set -x
 cd $ROOT
 npm init -y
-npm install --save-dev eslint@$ESLINT_VERSION
-ln -s $REPO_PATH node_modules/eslint-plugin-html
+npm install --save-dev eslint@$ESLINT_VERSION "$PACKAGE_PATH"
 
 cat << EOF > index.html
 <script>

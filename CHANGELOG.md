@@ -1,3 +1,7 @@
+UNRELEASED v8.2.1
+
+- Fix compatibility with ESLint 10.11.0 #342
+
 2026-08-28 v8.2.0
 
 - Add typescript types

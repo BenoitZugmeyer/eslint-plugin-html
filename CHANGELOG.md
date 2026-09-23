@@ -1,4 +1,4 @@
-UNRELEASED v8.2.1
+2026-09-23 v8.2.1
 
 - Fix compatibility with ESLint 10.11.0 #342
 

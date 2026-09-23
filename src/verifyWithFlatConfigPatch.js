@@ -177,5 +177,10 @@ function verifyExternalHtmlPlugin(eslintModule, config, callOriginalVerify) {
  * original.
  */
 function createNewConfig(originalConfig, overrides) {
-  return Object.setPrototypeOf(overrides, originalConfig)
+  const options = originalConfig.toJSON()
+  options.plugins = originalConfig.plugins
+  options.languageOptions = originalConfig.languageOptions
+  if (!options.processor) delete options.processor
+  Object.assign(options, overrides)
+  return new originalConfig.constructor(options)
 }

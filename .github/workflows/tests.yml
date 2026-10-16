@@ -34,7 +34,8 @@ jobs:
         node: [24]
         eslint: ["9.0", latest, next]
         include:
-          # Node.js 20 support: the tests need type stripping, so only the built package runs there
+          # Node.js 20 support: the build and the tests need Node.js 22.18+, so only the built
+          # package runs there
           - os: ubuntu-latest
             node: 20
             eslint: latest
@@ -47,9 +48,15 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 24
           cache: npm
       - run: npm ci
+      - name: Build the package
+        shell: bash
+        run: echo "PACKAGE_PATH=$(realpath "$(npm pack --silent | tail -n 1)")" >> "$GITHUB_ENV"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
       - run: bash tools/integration-tests.bash ${{ matrix.eslint }}
 
   test:

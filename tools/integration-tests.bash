@@ -12,8 +12,9 @@ trap finish EXIT
 
 REPO_PATH=$(pwd)
 ESLINT_VERSION=${1:-latest}
-# The last line is the tarball name, after the output of the build
-PACKAGE_PATH=$(realpath "$(npm pack --silent | tail -n 1)")
+# A package built beforehand can be given, as the build needs Node.js 22.18+. The last line of
+# `npm pack` is the tarball name, after the output of the build.
+PACKAGE_PATH=${PACKAGE_PATH:-$(realpath "$(npm pack --silent | tail -n 1)")}
 
 set -x
 cd $ROOT

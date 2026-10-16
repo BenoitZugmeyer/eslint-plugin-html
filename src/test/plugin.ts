@@ -1496,6 +1496,60 @@ it("should lint HTML code blocks of Markdown files", async () => {
   ])
 })
 
+it("should indent fixes in HTML code blocks of Markdown lists", async () => {
+  const fence = "```"
+  const result = await executeText(
+    [
+      "- item",
+      "",
+      `  ${fence}html`,
+      "  <div>",
+      "    <script>",
+      "      var a = {b: 1}",
+      "    </script>",
+      "  </div>",
+      `  ${fence}`,
+      "",
+    ].join("\n"),
+    {
+      baseConfig: [
+        {
+          files: ["**/*.md"],
+          plugins: { markdown },
+          processor: "markdown/markdown",
+        },
+        ...eslintPluginHtml.configs.recommended,
+        {
+          files: ["**/*.js"],
+          rules: {
+            indent: ["error", 2],
+            "object-curly-newline": ["error", "always"],
+          },
+        },
+      ],
+      fix: true,
+    },
+    "virtual.md"
+  )
+  assert.strictEqual(
+    result.output,
+    [
+      "- item",
+      "",
+      `  ${fence}html`,
+      "  <div>",
+      "    <script>",
+      "      var a = {",
+      "        b: 1",
+      "      }",
+      "    </script>",
+      "  </div>",
+      `  ${fence}`,
+      "",
+    ].join("\n")
+  )
+})
+
 it("should give processors with different options different cache ids", () => {
   const version = eslintPluginHtmlProcessor().meta?.version
   assert.ok(version)

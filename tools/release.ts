@@ -1,5 +1,5 @@
 import { execSync as exec } from "node:child_process"
-import { readdirSync, readFileSync as read } from "node:fs"
+import { readFileSync as read } from "node:fs"
 import { request } from "node:https"
 
 interface WorkflowRun {
@@ -14,20 +14,18 @@ const { version: currentVersion }: { version: string } = JSON.parse(
 )
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
-// Each source file is built to a module and its types
-const BUILT_FILES = readdirSync(new URL("../src", import.meta.url))
-  .filter((file) => file.endsWith(".ts"))
-  .flatMap((file) => [
-    `dist/${file.replace(/\.ts$/, ".js")}`,
-    `dist/${file.replace(/\.ts$/, ".d.ts")}`,
-  ])
 const PACKAGE_FILES = [
   "LICENSE",
-  ...BUILT_FILES,
+  "dist/index.d.ts",
+  "dist/index.js",
+  "dist/main.d.ts",
+  "dist/main.js",
   "package.json",
   "CHANGELOG.md",
   "README.md",
 ]
+// The bundler names the chunks shared by the entries
+const SHARED_CHUNK_RE = /^dist\/shared\/[^/]+\.(?:js|d\.ts)$/
 
 main().catch((error) => {
   console.log(error)
@@ -119,7 +117,7 @@ function verifyPackageContent() {
     if (!content.has(file)) error(`Missing ${file} in package content`)
   }
   for (const file of content) {
-    if (!expectedContent.has(file))
+    if (!expectedContent.has(file) && !SHARED_CHUNK_RE.test(file))
       error(`Unexpected ${file} in package content`)
   }
 }

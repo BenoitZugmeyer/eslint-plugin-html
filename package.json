@@ -62,12 +62,13 @@
     "markdown-link-check": "^3.15.0",
     "prettier": "^3.9.10",
     "semver": "^7.8.5",
+    "tsdown": "^0.23.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2"
   },
   "scripts": {
     "validate": "npm run lint && npm run typecheck && npm run test",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsdown",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test",
     "lint": "eslint .",

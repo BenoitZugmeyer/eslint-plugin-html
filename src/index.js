@@ -22,6 +22,9 @@ const plugin = {
     "scope-sharing": scopeSharingRule,
   },
   configs: {},
+  // Also here for CommonJS, where `require()` returns the plugin
+  parser,
+  processor,
 }
 
 plugin.configs.recommended = [
@@ -51,6 +54,7 @@ plugin.configs.recommended = [
   },
 ]
 
-export { parser, processor }
+// `require()` returns the plugin instead of the module namespace
+export { parser, processor, plugin as "module.exports" }
 
 export default plugin

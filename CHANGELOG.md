@@ -5,9 +5,14 @@ Unreleased v9.0.0
 - **Breaking: drop ESLint 8 and older, and Node.js 16 and 18**
 - Lint `<script type="module">` tags as modules and other scripts as classic scripts, in the same file
 - Support html-eslint's `language` option, with the `lintMarkup` processor option #312 #338
+- Report when the plugin's parser is not used for scripts, as global variables of previous scripts can't be shared then
 - Fix suggestions applied at the wrong place
-- Fix crash on fixes inserting text at the start of a script #305
-- Fix lines added by fixes not indented like the rest of the script #131
+- Fix crash and wrong ranges on fixes inserting text at the start of a line #305
+- Fix fixes adding or joining lines breaking the indentation of the script #131
+- Fix crash on Unicode line separators in scripts
+- Fix the blank lines at the start of a script counted once too often, and their removal moving the code to the `<script>` line
+- Fix assignments to variables of previous scripts reported by `no-implicit-globals`
+- Fix variables used by later scripts reported as unused when a browser global has the same name
 - Fix this plugin's HTML comments reported as unused directives, and emptied by `--fix`, when linting the HTML
 
 2026-09-23 v8.2.1

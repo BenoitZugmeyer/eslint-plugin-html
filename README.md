@@ -21,6 +21,7 @@
 - [Troubleshooting](#troubleshooting)
   - [My rules don't apply to module scripts](#my-rules-dont-apply-to-module-scripts)
   - [Type-aware linting fails on scripts](#type-aware-linting-fails-on-scripts)
+  - [Scripts are not linted with the `Linter` API](#scripts-are-not-linted-with-the-linter-api)
   - [Prettier doesn't format scripts](#prettier-doesnt-format-scripts)
   - [Linting templates (or PHP)](#linting-templates-or-php)
   - [Linting VUE files](#linting-vue-files)
@@ -125,7 +126,7 @@ selector and a `module` flag (`false` by default). The first matching rule wins.
 selectors: tag names, `*`, `#id`, `.class`, attributes (with the `i` and `s` flags) and `:not()`.
 
 By default, the content of `<script>` tags without a `src` attribute is linted if they don't have a
-`type` attribute, or if it's `module` or matches
+`type` attribute, or if it's empty, `module` or matches
 `(application|text)/(x-)?(javascript|babel|ecmascript-6)` (case-insensitive). Examples:
 
 ```javascript
@@ -282,7 +283,11 @@ This needs two parts, both enabled by the recommended configuration:
   ```
 
 - the `html/scope-sharing` rule, which marks the global variables used by the next scripts as used.
-  It never reports anything.
+  It only reports when the plugin's parser is not used.
+
+Configurations that set a parser for all files, like typescript-eslint's, replace the plugin's
+parser if they come after the recommended configuration. Put them before it, or set their parser in
+`parserOptions.parser`.
 
 Which scripts are modules is decided by the [`rules`](#rules) option, not by the `sourceType`
 language option.
@@ -321,11 +326,22 @@ Scripts are virtual files, so they are not part of any TypeScript project. Disab
 linting for them, for example with typescript-eslint:
 
 ```javascript
-{
-  files: ["**/*.html/*.js", "**/*.html/*.mjs"],
-  extends: [tseslint.configs.disableTypeChecked],
-}
+export default defineConfig([
+  tseslint.configs.recommendedTypeChecked,
+  // After typescript-eslint's configurations, so that its parser doesn't replace the plugin's one
+  html.configs.recommended,
+  {
+    files: ["**/*.html/*.js", "**/*.html/*.mjs"],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
+])
 ```
+
+### Scripts are not linted with the `Linter` API
+
+`Linter#verify()` only lints `.js` code blocks by default, so it skips module scripts (`.mjs`) and
+the markup (with `lintMarkup`). Pass a `filterCodeBlock` option that accepts them. The `ESLint`
+class and the CLI don't have this limitation.
 
 ### Prettier doesn't format scripts
 
@@ -368,7 +384,8 @@ exclusively and remove `eslint-plugin-html` from your dependencies if you still 
 ### To v9
 
 `eslint-plugin-html` v9 is a processor: it doesn't change ESLint internals anymore. It requires
-ESLint 9 or newer and Node.js 20.19 or newer.
+ESLint 9 or newer and Node.js 20.19 or newer. It's an ES module, but `require("eslint-plugin-html")`
+still returns the plugin, with `processor` and `parser` as properties.
 
 - Start from the [recommended configuration](#usage). Adding the plugin to `plugins` is not enough
   anymore.

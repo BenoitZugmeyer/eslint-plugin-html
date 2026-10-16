@@ -66,6 +66,10 @@ declare const plugin: ESLint.Plugin & {
   configs: {
     recommended: Linter.Config[]
   }
+  parser: typeof parser
+  processor: typeof processor
 }
+
+export { plugin as "module.exports" }
 
 export default plugin

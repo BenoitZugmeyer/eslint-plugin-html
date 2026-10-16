@@ -126,7 +126,7 @@ it("trim last line spaces ignoring CDATA", () => {
       other
     `,
     xmlMode: true,
-    expected: ["\nvar foo = 1;\n"],
+    expected: ["var foo = 1;\n"],
   })
 })
 
@@ -201,7 +201,7 @@ describe("indent option", () => {
         spaces: "  ",
       },
       badIndentationLines: [3, 5],
-      expected: ["\n    a;\na;\na;\n"],
+      expected: ["    a;\na;\na;\n"],
     })
   })
 
@@ -240,7 +240,7 @@ describe("indent option", () => {
         spaces: "\t",
       },
       badIndentationLines: [3, 5],
-      expected: ["\n\t\ta;\na;\na;\n"],
+      expected: ["\t\ta;\na;\na;\n"],
     })
   })
 

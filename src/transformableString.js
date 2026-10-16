@@ -1,6 +1,7 @@
 "use strict"
 
-const LINE_ENDING_RE = /\r\n|\r|\n/g
+// Same line breaks as ESLint
+const LINE_ENDING_RE = /\r\n|[\r\n\u2028\u2029]/g
 
 export default class TransformableString {
   constructor(original) {
@@ -90,7 +91,7 @@ export default class TransformableString {
   }
 }
 
-function lineStarts(str) {
+export function lineStarts(str) {
   const result = [0]
   LINE_ENDING_RE.lastIndex = 0
   while (true) {
@@ -113,7 +114,7 @@ function locationToIndex(location, lineStarts) {
   return lineStarts[location.line - 1] + location.column - 1
 }
 
-function indexToLocation(index, lineStarts) {
+export function indexToLocation(index, lineStarts) {
   if (index < 0) throw new Error("Invalid index")
 
   let line = 0

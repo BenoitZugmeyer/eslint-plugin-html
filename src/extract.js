@@ -1,9 +1,15 @@
 import { Parser } from "htmlparser2"
-import TransformableString from "./transformableString.js"
+import TransformableString, {
+  indexToLocation,
+  lineStarts,
+} from "./transformableString.js"
 
 const NO_IGNORE = 0
 const IGNORE_NEXT = 1
 const IGNORE_UNTIL_ENABLE = 2
+
+const BLANK_LINE_START_RE = /^[ \t]*(?:\r\n|\n|\r)/
+const INDENTATION_OR_EMPTY_RE = /^[ \t]*$/
 
 const DIRECTIVE_COMMENTS = new Map([
   ["eslint-disable", IGNORE_UNTIL_ENABLE],
@@ -14,16 +20,14 @@ const DIRECTIVE_COMMENTS = new Map([
 export function extract(html, xmlMode, options) {
   const badIndentationLines = []
   const scripts = []
-  let lineNumber = 1
   let previousHTML = ""
+  let htmlLineStarts
 
   const { chunks, directiveComments } = parseHtml(html, xmlMode, options)
 
   for (const chunk of chunks) {
     const slice = html.slice(chunk.start, chunk.end)
     if (chunk.type === "html") {
-      const match = slice.match(/\r\n|\n|\r/g)
-      if (match) lineNumber += match.length
       previousHTML = slice
     } else if (chunk.type === "script") {
       const transformedCode = new TransformableString(html)
@@ -37,22 +41,34 @@ export function extract(html, xmlMode, options) {
       transformedCode.replace(0, chunk.start, "")
       transformedCode.replace(chunk.end, html.length, "")
       const indent = computeIndent(options.indent, previousHTML, indentSlice)
-      for (const action of dedent(indent, indentSlice)) {
-        lineNumber += 1
-        if (action.type === "dedent") {
+      const blankTagLineStart = getBlankTagLineStart(indentSlice, chunk)
+      let baseLineStart
+      for (const action of dedent(indent, indentSlice, blankTagLineStart)) {
+        if (action.from !== undefined) {
           transformedCode.replace(
             chunk.start + action.from,
             chunk.start + action.to,
             ""
           )
+        }
+        if (action.type === "dedent") {
+          if (blankTagLineStart === undefined && action.isFirstNonEmptyLine) {
+            baseLineStart = chunk.start + action.to
+          }
         } else if (action.type === "bad-indent") {
-          badIndentationLines.push(lineNumber)
+          htmlLineStarts ||= lineStarts(html)
+          badIndentationLines.push(
+            indexToLocation(chunk.start + action.index, htmlLineStarts).line
+          )
         }
       }
       scripts.push({
         code: transformedCode,
         module: chunk.module,
         indent,
+        // Where the line that gives its indentation to the script starts, when the code starts on
+        // the tag line
+        baseLineStart,
       })
     }
   }
@@ -187,14 +203,33 @@ function computeIndent(descriptor, previousHTML, slice) {
   return descriptor.spaces
 }
 
-function* dedent(indent, slice) {
+/**
+ * Where the content of the tag line starts (after a CDATA start in XML) when it is blank, so it can be
+ * left out of the script
+ */
+function getBlankTagLineStart(slice, chunk) {
+  const cdataStart = chunk.cdata.find((cdata) =>
+    INDENTATION_OR_EMPTY_RE.test(slice.slice(0, cdata.start - chunk.start))
+  )
+  const start = cdataStart ? cdataStart.end - chunk.start : 0
+  return BLANK_LINE_START_RE.test(slice.slice(start)) ? start : undefined
+}
+
+function* dedent(indent, slice, blankTagLineStart) {
   let hadNonEmptyLine = false
   const re = /(\r\n|\n|\r)([ \t]*)(.*)/g
   let lastIndex = 0
+  let isTagLineBlank = blankTagLineStart !== undefined
 
   while (true) {
     const match = re.exec(slice)
     if (!match) break
+
+    // The tag line is not part of the script when it's blank
+    const tagLine = isTagLineBlank
+      ? { from: blankTagLineStart, to: match.index + match[1].length }
+      : {}
+    isTagLineBlank = false
 
     const newLine = match[1]
     const lineIndent = match[2]
@@ -211,20 +246,22 @@ function* dedent(indent, slice) {
 
     if (!badIndentation) {
       lastIndex = match.index + newLine.length + indent.length
-      // Remove the first line if it is empty
-      const fromIndex = match.index === 0 ? 0 : match.index + newLine.length
       yield {
         type: "dedent",
-        from: fromIndex,
+        from: tagLine.from ?? match.index + newLine.length,
         to: lastIndex,
+        isFirstNonEmptyLine,
       }
     } else if (isEmptyLine) {
       yield {
         type: "empty",
+        ...tagLine,
       }
     } else {
       yield {
         type: "bad-indent",
+        index: match.index + newLine.length,
+        ...tagLine,
       }
     }
 

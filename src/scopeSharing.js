@@ -22,6 +22,7 @@ export const setFileScripts = (filename, scripts) => {
       parse: undefined,
     })),
     parserOptions: undefined,
+    reportedParser: false,
   })
 }
 
@@ -226,6 +227,12 @@ export const parser = {
   },
 }
 
+// By name, in case the plugin is loaded more than once
+const isPluginParser = (configuredParser) =>
+  configuredParser != null &&
+  configuredParser.meta != null &&
+  configuredParser.meta.name === parser.meta.name
+
 export const scopeSharingRule = {
   meta: {
     type: "problem",
@@ -235,18 +242,38 @@ export const scopeSharingRule = {
       url: "https://github.com/BenoitZugmeyer/eslint-plugin-html#multiple-scripts-tags-in-a-html-file",
     },
     schema: [],
+    messages: {
+      parserNotUsed:
+        "The parser of eslint-plugin-html is not used for this script, so it doesn't see the global variables of the previous scripts. Set it in `languageOptions.parser`, and your parser in `parserOptions.parser`.",
+    },
   },
 
   create(context) {
     const scriptContext = getScriptContext(context.filename)
-    if (scriptContext == null || scriptContext.script.module) {
+    if (scriptContext == null) {
       return {}
     }
 
     const { file, index, script } = scriptContext
     const { languageOptions, sourceCode } = context
-    // When another parser is configured, the previous scripts are not shared, but the next ones
-    // still are
+    // Once per file, for the first script that could use globals of previous scripts
+    const reportsParserNotUsed =
+      !file.reportedParser &&
+      !isPluginParser(languageOptions.parser) &&
+      file.scripts.slice(0, index).some((previous) => !previous.module)
+    if (reportsParserNotUsed) {
+      file.reportedParser = true
+    }
+    const reportParserNotUsed = (node) => {
+      if (reportsParserNotUsed) {
+        context.report({ node, messageId: "parserNotUsed" })
+      }
+    }
+    if (script.module) {
+      return { Program: reportParserNotUsed }
+    }
+
+    // When another parser is configured, the next scripts are still shared
     file.parserOptions ||= {
       ...languageOptions.parserOptions,
       ecmaVersion: languageOptions.ecmaVersion,
@@ -256,6 +283,7 @@ export const scopeSharingRule = {
 
     return {
       Program(node) {
+        reportParserNotUsed(node)
         new Set(
           file.scripts
             .slice(index + 1)

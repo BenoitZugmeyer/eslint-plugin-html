@@ -1025,6 +1025,26 @@ describe("scope sharing", () => {
     )
   })
 
+  it("should report when the parser of the plugin is not used", async () => {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+      },
+      languageOptions: {
+        sourceType: "script",
+        parser: espree,
+      },
+    })
+    assert.deepStrictEqual(
+      toLocatedMessages(
+        messages.filter((message) => message.ruleId === "html/scope-sharing")
+      ),
+      [
+        "20:7 html/scope-sharing The parser of eslint-plugin-html is not used for this script, so it doesn't see the global variables of the previous scripts. Set it in `languageOptions.parser`, and your parser in `parserOptions.parser`.",
+      ]
+    )
+  })
+
   it("should keep sharing the scope of other scripts when one fails to parse", async () => {
     const messages = await executeText(
       "<script>\nvar a = 1\n</script>\n<script>\na(\n</script>\n<script>\na\n</script>\n",
@@ -1266,11 +1286,111 @@ describe("remapping", () => {
   })
 })
 
+describe("edge cases", () => {
+  const fixWith = (text, rules) =>
+    executeText(text, {
+      baseConfig: [DEFAULT_HTML_CONFIG, { ...DEFAULT_JS_CONFIG, rules }],
+      fix: true,
+    })
+
+  it("should not leave the indentation in lines joined by a fix", async () => {
+    const { output } = await fixWith(
+      "<div>\n  <script>\n    function foo()\n    {\n      return 1\n    }\n  </script>\n</div>\n",
+      { "brace-style": "error" }
+    )
+    assert.strictEqual(
+      output,
+      "<div>\n  <script>\n    function foo() {\n      return 1\n    }\n  </script>\n</div>\n"
+    )
+  })
+
+  it("should keep the code on its own line when blank lines before it are removed", async () => {
+    const { output } = await fixWith(
+      "<div>\n  <script>\n\n\n    foo()\n  </script>\n</div>\n",
+      { "no-multiple-empty-lines": ["error", { max: 1, maxBOF: 0 }] }
+    )
+    assert.strictEqual(
+      output,
+      "<div>\n  <script>\n    foo()\n  </script>\n</div>\n"
+    )
+  })
+
+  it("should not indent again and again a script starting on its tag line", async () => {
+    const text =
+      "<div>\n<script>foo(function () {\n          bar()\n        baz()\n})\n</script>\n</div>\n"
+    const result = await fixWith(text, { indent: ["error", 2] })
+    assert.strictEqual(
+      result.output,
+      "<div>\n<script>foo(function () {\n          bar()\n  baz()\n})\n</script>\n</div>\n"
+    )
+    assert.deepStrictEqual(toLocatedMessages(result.messages), [
+      "3:11 indent Expected indentation of 2 spaces but found 0.",
+    ])
+  })
+
+  it("should count line separators as line breaks, like ESLint", async () => {
+    const lineSeparator = String.fromCharCode(0x2028)
+    const messages = await executeText(
+      `<script>\n  var a = "x${lineSeparator}y"; console.log(a)\n  console.log("z")\n</script>\n`
+    )
+    assert.deepStrictEqual(toLocatedMessages(messages), [
+      "3:5 no-console Unexpected console statement.",
+      "4:3 no-console Unexpected console statement.",
+    ])
+  })
+
+  it("should not report assignments to variables of previous scripts as leaks", async () => {
+    const messages = await executeText(
+      "<script>\n  let a = 1\n</script>\n<script>\n  a = 2\n</script>\n",
+      {
+        baseConfig: [
+          DEFAULT_HTML_CONFIG,
+          SCOPE_SHARING_CONFIG,
+          {
+            ...DEFAULT_JS_CONFIG,
+            rules: { "no-implicit-globals": "error", "no-undef": "error" },
+            languageOptions: { sourceType: "script" },
+          },
+        ],
+      }
+    )
+    assert.deepStrictEqual(messages, [])
+  })
+
+  it("should mark variables used by later scripts even when a global has the same name", async () => {
+    const messages = await executeText(
+      "<script>\n  var name = 1\n</script>\n<script>\n  name\n</script>\n",
+      {
+        baseConfig: [
+          DEFAULT_HTML_CONFIG,
+          SCOPE_SHARING_CONFIG,
+          {
+            ...DEFAULT_JS_CONFIG,
+            rules: { "no-unused-vars": "error" },
+            languageOptions: {
+              sourceType: "script",
+              globals: { name: "readonly" },
+            },
+          },
+        ],
+      }
+    )
+    assert.deepStrictEqual(messages, [])
+  })
+
+  it("should return the plugin from require()", () => {
+    const required = require("../index.js")
+    assert.strictEqual(required, eslintPluginHtml)
+    assert.strictEqual(required.processor, eslintPluginHtmlProcessor)
+    assert.strictEqual(required.parser, eslintPluginHtmlParser)
+  })
+})
+
 it("should lint scripts with the default types only", async () => {
   const messages = await execute("default-script-types.html")
   assert.deepStrictEqual(
     messages.map(({ line }) => line),
-    [2, 5, 8, 11, 14]
+    [2, 5, 8, 11, 14, 23]
   )
 })
 

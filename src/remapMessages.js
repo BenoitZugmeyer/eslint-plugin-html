@@ -1,6 +1,8 @@
 const LINE_BREAK_CHAR_RE = /[\r\n]/
 const INNER_LINE_BREAK_RE = /(\r\n|\r|\n)(?=[^\r\n])/g
 const TRAILING_LINE_BREAK_RE = /(?:\r\n|\r|\n)$/
+const INDENTATION_RE = /^[ \t]+$/
+const INDENTATION_OR_EMPTY_RE = /^[ \t]*$/
 
 // `context`: the original `html` and its `hasBOM`, and the `script` (its `code` and removed `indent`)
 export function remapMessages(messages, context) {
@@ -42,14 +44,19 @@ function remapMessage(message, context) {
   message.source = codePart.getOriginalLine(location.line)
 
   if (message.fix && message.fix.range) {
-    message.fix = remapFix(message.fix, context)
+    const fix = remapFix(message.fix, context)
+    if (fix) {
+      message.fix = fix
+    } else {
+      delete message.fix
+    }
   }
 
   if (message.suggestions) {
-    message.suggestions = message.suggestions.map((suggestion) => ({
-      ...suggestion,
-      fix: remapFix(suggestion.fix, context),
-    }))
+    message.suggestions = message.suggestions.flatMap((suggestion) => {
+      const fix = remapFix(suggestion.fix, context)
+      return fix ? [{ ...suggestion, fix }] : []
+    })
   }
 
   // Map end location
@@ -71,11 +78,25 @@ const remapFix = (fix, { html, hasBOM, script }) => {
   const { code: codePart, indent } = script
   const [start, end] = fix.range
   const originalStart = codePart.originalIndex(start)
-  // The range end is exclusive, meaning it should replace all characters with indexes from start
-  // to end - 1. We have to get the original index of the last targeted character. Insertions
-  // (empty ranges) keep an empty range.
+  // Indenting the base line of a script starting on its tag line would only move the base
+  // indentation, so the fix would apply again and again
+  if (
+    start === end &&
+    originalStart === script.baseLineStart &&
+    INDENTATION_RE.test(fix.text)
+  ) {
+    return
+  }
+
+  const virtualText = codePart.toString()
+  // Whether the text after the range continues the line of the replacement, or starts a line
+  const joinsLines = fix.text
+    ? !TRAILING_LINE_BREAK_RE.test(fix.text)
+    : start > 0 && !LINE_BREAK_CHAR_RE.test(virtualText[start - 1])
   const originalEnd =
-    end > start ? codePart.originalIndex(end - 1) + 1 : originalStart
+    end > start
+      ? remapRangeEnd(end, codePart, html, virtualText.length, joinsLines)
+      : originalStart
   const bomOffset = hasBOM ? -1 : 0
 
   return {
@@ -89,11 +110,30 @@ const remapFix = (fix, { html, hasBOM, script }) => {
             isInsideScriptLine(
               html,
               originalEnd,
-              codePart.originalIndex(codePart.toString().length)
+              codePart.originalIndex(virtualText.length)
             )
         )
       : fix.text,
   }
+}
+
+/**
+ * The range end is exclusive, so it's mapped from the last targeted character. When the next
+ * character starts a line that lost its indentation and the fix joins it to the previous line, the
+ * indentation is replaced too, so that it doesn't stay in the middle of the line.
+ */
+const remapRangeEnd = (end, codePart, html, virtualLength, joinsLines) => {
+  const afterLastCharacter = codePart.originalIndex(end - 1) + 1
+  if (!joinsLines || end >= virtualLength) {
+    return afterLastCharacter
+  }
+
+  const nextCharacter = codePart.originalIndex(end)
+  return INDENTATION_OR_EMPTY_RE.test(
+    html.slice(afterLastCharacter, nextCharacter)
+  )
+    ? nextCharacter
+    : afterLastCharacter
 }
 
 // Lines added by a fix need the indentation that was removed from the script. Empty lines stay empty.

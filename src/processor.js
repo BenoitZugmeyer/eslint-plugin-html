@@ -4,13 +4,14 @@ import { parseCssSelector } from "./cssSelector.js"
 import { extract } from "./extract.js"
 import { PACKAGE_META } from "./packageMeta.js"
 import { remapMessages } from "./remapMessages.js"
+import { lineStarts as getLineStarts } from "./transformableString.js"
 import {
   deleteFileScripts,
   getScriptFilename,
   setFileScripts,
 } from "./scopeSharing.js"
 
-// Same as eslint-plugin-html v8: (application|text)/(x-)?(javascript|babel|ecmascript-6)
+// Same as eslint-plugin-html v8: no type, an empty type, or (application|text)/(x-)?(javascript|babel|ecmascript-6)
 const CLASSIC_SCRIPT_TYPES = Object.freeze(
   ["application", "text"].flatMap((prefix) =>
     ["", "x-"].flatMap((variant) =>
@@ -25,6 +26,7 @@ const DEFAULT_RULES = Object.freeze([
   Object.freeze({
     match: [
       "script:not([type]):not([src])",
+      'script[type=""]:not([src])',
       ...CLASSIC_SCRIPT_TYPES.map(
         (type) => `script[type="${type}" i]:not([src])`
       ),
@@ -35,7 +37,6 @@ const DEFAULT_RULES = Object.freeze([
 ])
 
 const BAD_INDENT_SEVERITIES = Object.freeze({ warn: 1, error: 2 })
-const LINE_BREAK_RE = /\r\n|\r|\n/g
 
 export default function ({
   reportBadIndent = false,
@@ -139,13 +140,7 @@ const omitDirectiveCommentMessages = (
     return messages
   }
 
-  const lineStarts = [
-    0,
-    ...Array.from(
-      text.matchAll(LINE_BREAK_RE),
-      (match) => match.index + match[0].length
-    ),
-  ]
+  const lineStarts = getLineStarts(text)
   return messages.filter((message) => {
     if (message.ruleId != null || !message.line || !message.column) {
       return true

@@ -117,6 +117,33 @@ describe("cssSelector", () => {
     )
   })
 
+  it("matches [attribute=value i] case-insensitively", () => {
+    assert(
+      parseCssSelector('[type="text/javascript" i]').match({
+        tagName: "div",
+        attributes: { type: "TEXT/JavaScript" },
+      })
+    )
+    assert(
+      parseCssSelector('[type^="Text/" i]').match({
+        tagName: "div",
+        attributes: { type: "text/javascript" },
+      })
+    )
+    assert(
+      !parseCssSelector('[type="text/javascript"]').match({
+        tagName: "div",
+        attributes: { type: "TEXT/JavaScript" },
+      })
+    )
+    assert(
+      !parseCssSelector('[type="text/javascript" s]').match({
+        tagName: "div",
+        attributes: { type: "TEXT/JavaScript" },
+      })
+    )
+  })
+
   it("matches #id", () => {
     assert(
       parseCssSelector("#foo").match({

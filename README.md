@@ -7,67 +7,181 @@
 </div>
 
 - [Usage](#usage)
+- [Processor options](#processor-options)
+  - [`rules`](#rules)
+  - [`indent`](#indent)
+  - [`reportBadIndent`](#reportbadindent)
+  - [`xml`](#xml)
+  - [`lintMarkup`](#lintmarkup)
 - [Disabling ESLint](#disabling-eslint)
 - [Linting HTML](#linting-html)
-  - [Manual configuration](#manual-configuration)
-  - [Use two configuration files](#use-two-configuration-files)
 - [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
   - [History](#history)
 - [XML support](#xml-support)
-- [Settings](#settings)
-  - [`html/html-extensions`](#htmlhtml-extensions)
-  - [`html/xml-extensions`](#htmlxml-extensions)
-  - [`html/indent`](#htmlindent)
-  - [`html/report-bad-indent`](#htmlreport-bad-indent)
-  - [`html/javascript-tag-names`](#htmljavascript-tag-names)
-  - [`html/javascript-mime-types`](#htmljavascript-mime-types)
-  - [`html/ignore-tags-without-type`](#htmlignore-tags-without-type)
 - [Troubleshooting](#troubleshooting)
-  - [No file linted when running `eslint` on a directory](#no-file-linted-when-running-eslint-on-a-directory)
+  - [My rules don't apply to module scripts](#my-rules-dont-apply-to-module-scripts)
+  - [Type-aware linting fails on scripts](#type-aware-linting-fails-on-scripts)
   - [Linting templates (or PHP)](#linting-templates-or-php)
   - [Linting VUE files](#linting-vue-files)
 - [Migration from older versions](#migration-from-older-versions)
+  - [To v9](#to-v9)
   - [To v4](#to-v4)
   - [To v3](#to-v3)
 - [Credits](#credits)
 
 ## Usage
 
-Simply install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
-configuration. See
-[ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
-
-<details open>
-  <summary>Example with ESLint 9 and above (flat config)</summary>
+Install it with `npm install --save-dev eslint-plugin-html` and add the recommended configuration to
+your ESLint configuration:
 
 ```javascript
+import { defineConfig } from "eslint/config"
 import html from "eslint-plugin-html"
 
-export default [
+export default defineConfig([
+  html.configs.recommended,
+  // Your other configurations
+])
+```
+
+The plugin is a [processor](https://eslint.org/docs/latest/use/configure/plugins#specify-a-processor):
+it extracts each script of an HTML file as a virtual JavaScript file, named after the HTML file.
+For example, the scripts of `index.html` are linted as `index.html/0_part-0.js`,
+`index.html/1_part-1.mjs`, and so on. Classic scripts get a `.js` name, and module scripts
+(`<script type="module">`) get a `.mjs` name.
+
+ESLint lints those files with the configurations matching their names, so your configurations for
+`**/*.js` and `**/*.mjs` files also apply to the scripts. To configure the scripts of HTML files
+only, use `**/*.html/*.js` and `**/*.html/*.mjs`:
+
+```javascript
+import globals from "globals"
+
+export default defineConfig([
+  html.configs.recommended,
+  {
+    files: ["**/*.html/*.js", "**/*.html/*.mjs"],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+])
+```
+
+The recommended configuration:
+
+- applies the `html/html` processor to `*.html` and `*.htm` files, and the `html/xml` processor to
+  `*.xhtml` files ;
+- sets the plugin's parser and enables the `html/scope-sharing` rule for their scripts, to
+  [share global variables between scripts](#multiple-scripts-tags-in-a-html-file) ;
+- sets `sourceType` to `"script"` for classic scripts. Module scripts keep ESLint's default, `"module"`.
+
+To lint files with other extensions, add your own configurations:
+
+```javascript
+import html, { parser } from "eslint-plugin-html"
+
+export default defineConfig([
+  html.configs.recommended,
+  {
+    files: ["**/*.php"],
+    plugins: { html },
+    processor: "html/html",
+  },
+  {
+    files: ["**/*.php/*.js", "**/*.php/*.mjs"],
+    plugins: { html },
+    languageOptions: { parser },
+    rules: { "html/scope-sharing": "error" },
+  },
+  {
+    files: ["**/*.php/*.js"],
+    languageOptions: { sourceType: "script" },
+  },
+])
+```
+
+## Processor options
+
+To change how scripts are extracted, create a processor with the `processor` function:
+
+```javascript
+import html, { processor } from "eslint-plugin-html"
+
+export default defineConfig([
+  html.configs.recommended,
   {
     files: ["**/*.html"],
-    plugins: { html },
+    processor: processor({ indent: "+2", reportBadIndent: "error" }),
   },
-]
+])
 ```
 
-</details>
+### `rules`
 
-<details>
-  <summary>Example with ESLint 8 and below</summary>
+Which tags contain scripts, and which of them are module scripts. Each rule has a `match` CSS
+selector and a `module` flag (`false` by default). The first matching rule wins. Supported
+selectors: tag names, `*`, `#id`, `.class`, attributes (with the `i` and `s` flags) and `:not()`.
 
-```json
-{
-  "plugins": ["html"]
-}
+By default, the content of `<script>` tags without a `src` attribute is linted if they don't have a
+`type` attribute, or if it's `module` or matches
+`(application|text)/(x-)?(javascript|babel|ecmascript-6)` (case-insensitive). Examples:
+
+```javascript
+// Also lint <customscript> tags as classic scripts
+processor({
+  rules: [
+    { match: 'script[type="module" i]:not([src])', module: true },
+    { match: "script:not([src]), customscript" },
+  ],
+})
+
+// Only lint scripts with a JavaScript type, like ignore-tags-without-type in v8
+processor({
+  rules: [
+    { match: 'script[type="text/javascript" i]' },
+    { match: 'script[type="module" i]', module: true },
+  ],
+})
+
+// Treat every script as a module: scripts don't share global variables anymore
+processor({
+  rules: [{ match: "script", module: true }],
+})
 ```
 
-</details>
+### `indent`
+
+By default, the code between `<script>` tags is dedented according to the first non-empty line. The
+`indent` option allows to ensure that every script tag follows a uniform indentation. Like the
+`indent` rule, you can pass a number of spaces, or `"tab"` to indent with one tab. Prefix this value
+with a `+` to be relative to the `<script>` tag indentation. Examples:
+
+```javascript
+processor({ indent: 0 }) // code should start at the beginning of the line (no initial indentation).
+processor({ indent: "+2" }) // indentation is the <script> indentation plus two spaces.
+processor({ indent: "tab" }) // indentation is one tab at the beginning of the line.
+```
+
+### `reportBadIndent`
+
+By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
+indented). If you want to make sure the indentation is correct, use `reportBadIndent` in conjunction
+with the `indent` rule. Pass `"warn"` to display warnings, `"error"` or `true` to display errors.
+
+### `xml`
+
+Parse files as XML. See [XML support](#xml-support). The `html/xml` processor uses this option.
+
+### `lintMarkup`
+
+Also lint the whole file with its own configuration, without this processor. Use it with an HTML
+parser or language. See [Linting HTML](#linting-html).
 
 ## Disabling ESLint
 
 To temporarily disable ESLint, use the `<!-- eslint-disable -->` HTML comment. Re-enable it with
-`<!-- eslint enable -->`. Example:
+`<!-- eslint-enable -->`. Example:
 
 ```html
 <!-- eslint-disable -->
@@ -95,93 +209,42 @@ use this to disable script tags containing template syntax.
 This plugin focuses on applying ESLint rules on inline scripts contained in HTML. It does not
 provide any rule related to HTML. For that, you can use other plugins like
 [@html-eslint](https://html-eslint.org) or
-[@angular-eslint](https://github.com/angular-eslint/angular-eslint). This plugin is not compatible
-with the ESLint `language` option (this is an ESLint limitation). To lint both HTML and JS within
-script tags, you have two alternatives:
+[@angular-eslint](https://github.com/angular-eslint/angular-eslint).
 
-### Manual configuration
-
-Provide the [`html-eslint`](https://html-eslint.org/) plugin option manually, without relying on the
-`language` option:
+To lint both the HTML and its scripts, set the `lintMarkup` option: the processor then also returns
+the whole file, which ESLint lints with the configuration of the HTML file, `language` and parser
+included. For example, with html-eslint:
 
 ```javascript
 import { defineConfig } from "eslint/config"
-import parserHtml from "@html-eslint/parser"
-import pluginHtml from "@html-eslint/eslint-plugin"
-import pluginJs from "@eslint/js"
-import pluginJsInHtml from "eslint-plugin-html"
+import htmlEslint from "@html-eslint/eslint-plugin"
+import html, { processor } from "eslint-plugin-html"
 
 export default defineConfig([
+  html.configs.recommended,
   {
     files: ["**/*.html"],
-    plugins: {
-      html: pluginHtml,
-      jsInHtml: pluginJsInHtml,
-      js: pluginJs,
+    plugins: { "@html-eslint": htmlEslint },
+    language: "@html-eslint/html",
+    processor: processor({ lintMarkup: true }),
+    rules: {
+      "@html-eslint/require-img-alt": "error",
     },
-    languageOptions: {
-      parser: parserHtml,
-    },
-    extends: ["js/recommended", "html/recommended"],
   },
 ])
 ```
 
-### Use two configuration files
-
-`eslint.config.js` with the `eslint-plugin-html` plugin to lint all JavaScript code and
-`eslint.config-html.js` with the [`html-eslint`](https://html-eslint.org/) plugin for HTML rules.
-
-Run ESLint once with each configuration:
-
-```sh
-eslint .                              # lints JS
-eslint -c eslint.config-html.js .     # lints HTML
-```
-
-This alternative works well in CI and hooks, but might be limited in text editors where only one
-config is applied.
+Both plugins use `html` as their default name, so register html-eslint under another name, like
+`@html-eslint` (its `flat/recommended` configuration does this).
 
 ## Multiple scripts tags in a HTML file
 
-When linting a HTML with multiple script tags, this plugin tries to emulate the browser behavior by
-sharing the global scope between scripts by default. This behavior doesn't apply to "module"
-scripts (ie: `<script type="module">` and most transpiled code), where each script tag gets its own
-top-level scope.
+When linting a HTML with multiple script tags, this plugin emulates the browser behavior:
 
-ESLint has already [an
-option](https://eslint.org/docs/user-guide/configuring#specifying-parser-options) to tell the parser
-if the script are modules. `eslint-plugin-html` will use this option as well to know if the scopes
-should be shared (the default) or not. To change this, just set it in your ESLint configuration:
-
-<details open>
-<summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    // ...
-    languageOptions: {
-      sourceType: "module",
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-<summary>ESLint 8 and below</summary>
-
-```json
-{
-  "parserOptions": {
-    "sourceType": "module"
-  }
-}
-```
-
-</details>
+- classic scripts share the global scope: a script can use the global variables declared by the
+  previous classic scripts ;
+- module scripts (`<script type="module">`) can use the global variables declared by the previous
+  classic scripts, but their own declarations stay in their module scope.
 
 To illustrate this behavior, consider this HTML extract:
 
@@ -195,9 +258,29 @@ To illustrate this behavior, consider this HTML extract:
 </script>
 ```
 
-This is perfectly valid by default, and the ESLint rules `no-unused-vars` and `no-undef` shouldn't
-complain. But if those scripts are considerated as ES modules, `no-unused-vars` should report an
-error in the first script, and `no-undef` should report an error in the second script.
+This is perfectly valid, and the ESLint rules `no-unused-vars` and `no-undef` shouldn't complain.
+But if those scripts were modules, `no-unused-vars` should report an error in the first script, and
+`no-undef` should report an error in the second script.
+
+This needs two parts, both enabled by the recommended configuration:
+
+- the plugin's `parser`, which declares the global variables of the previous classic scripts. It
+  wraps the parser set in `parserOptions.parser`, or espree by default:
+
+  ```javascript
+  {
+    files: ["**/*.html/*.js", "**/*.html/*.mjs"],
+    languageOptions: {
+      parserOptions: { parser: babelParser },
+    },
+  }
+  ```
+
+- the `html/scope-sharing` rule, which marks the global variables used by the next scripts as used.
+  It never reports anything.
+
+Which scripts are modules is decided by the [`rules`](#rules) option, not by the `sourceType`
+language option.
 
 ### History
 
@@ -205,6 +288,7 @@ In `eslint-plugin-html` v1 and v2, script code were concatenated and linted in a
 the scope were always shared. This caused [some issues](MIGRATION_TO_V3.md), so in v3 all scripts
 were linted separately, and scopes were never shared. In v4, the plugin still lint scripts
 separately, but makes sure global variables are declared and used correctly in the non-module case.
+In v9, the plugin became a processor, and module scripts are detected for each tag.
 
 ## XML support
 
@@ -216,293 +300,27 @@ sections:
 - in HTML, there is no such thing for `<script>` tags: the `CDATA` delimiter is considered as normal
   text and thus, part of the script.
 
-## Settings
-
-> Note: all settings can be written either as `"html/key": value` or in a nested object `"html": { "key": value }`
-
-### `html/html-extensions`
-
-By default, this plugin will only consider files ending with those extensions as HTML: `.erb`,
-`.handlebars`, `.hbs`, `.htm`, `.html`, `.mustache`, `.nunjucks`, `.php`, `.tag`, `.twig`, `.we`.
-You can set your own list of HTML extensions by using this setting. Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html", "**/*.we"],
-    plugins: { html },
-    settings: {
-      "html/html-extensions": [".html", ".we"], // consider .html and .we files as HTML
-    },
-  },
-]
-```
-
-Note: you need to specify extensions twice, which is not ideal. This should be improved in the
-future.
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/html-extensions": [".html", ".we"] // consider .html and .we files as HTML
-  }
-}
-```
-
-</details>
-
-### `html/xml-extensions`
-
-By default, this plugin will only consider files ending with those extensions as XML: `.xhtml`,
-`.xml`. You can set your own list of XML extensions by using this setting. Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/xml-extensions": [".html"], // consider .html files as XML
-    },
-  },
-]
-```
-
-Note: you need to specify extensions twice, which is not ideal. This should be improved in the
-future.
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/xml-extensions": [".html"] // consider .html files as XML
-  }
-}
-```
-
-</details>
-
-### `html/indent`
-
-By default, the code between `<script>` tags is dedented according to the first non-empty line. The
-setting `html/indent` allows to ensure that every script tags follow an uniform indentation. Like
-the `indent` rule, you can pass a number of spaces, or `"tab"` to indent with one tab. Prefix this
-value with a `+` to be relative to the `<script>` tag indentation. Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/indent": "0", // code should start at the beginning of the line (no initial indentation).
-      "html/indent": "+2", // indentation is the <script> indentation plus two spaces.
-      "html/indent": "tab", // indentation is one tab at the beginning of the line.
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/indent": "0", // code should start at the beginning of the line (no initial indentation).
-    "html/indent": "+2", // indentation is the <script> indentation plus two spaces.
-    "html/indent": "tab" // indentation is one tab at the beginning of the line.
-  }
-}
-```
-
-</details>
-
-### `html/report-bad-indent`
-
-By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
-indented). If you want to make sure the indentation is correct, use the `html/report-bad-indent` in
-conjunction with the `indent` rule. Pass `"warn"` or `1` to display warnings, `"error"` or `2` to
-display errors. Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/report-bad-indent": "error",
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/report-bad-indent": "error"
-  }
-}
-```
-
-</details>
-
-### `html/javascript-tag-names`
-
-By default, the code between `<script>` tags is considered as JavaScript. You can customize which
-tags should be considered JavaScript by providing one or multiple tag names.
-
-Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/javascript-tag-names": ["script", "customscript"],
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/javascript-tag-names": ["script", "customscript"]
-  }
-}
-```
-
-</details>
-
-### `html/javascript-mime-types`
-
-By default, the code between `<script>` tags is considered as JavaScript code only if there is no
-`type` attribute or if its value matches the pattern
-`(application|text)/(x-)?(javascript|babel|ecmascript-6)` or `module` (case insensitive). You can
-customize the types that should be considered as JavaScript by providing one or multiple MIME types.
-If a MIME type starts with a `/`, it will be considered as a regular expression. Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/javascript-mime-types": ["text/javascript", "text/jsx"], // also use script tags with a "text/jsx" type attribute
-      "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/", // same thing
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/javascript-mime-types": ["text/javascript", "text/jsx"], // also use script tags with a "text/jsx" type attribute
-    "html/javascript-mime-types": "/^text\\/(javascript|jsx)$/" // same thing
-  }
-}
-```
-
-</details>
-
-### `html/ignore-tags-without-type`
-
-By default, the code between `<script>` tags is considered JavaScript if there is no `type`
-attribute. You can set this setting to `true` to ignore script tags without a `type` attribute.
-Example:
-
-<details open>
-  <summary>ESLint 9 and above (flat config)</summary>
-
-```javascript
-export default [
-  {
-    files: ["**/*.html"],
-    plugins: { html },
-    settings: {
-      "html/ignore-tags-without-type": true,
-    },
-  },
-]
-```
-
-</details>
-
-<details>
-  <summary>ESLint 8 and below</summary>
-
-```json
-{
-  "plugins": ["html"],
-  "settings": {
-    "html/ignore-tags-without-type": true
-  }
-}
-```
-
-</details>
+Use the `html/xml` processor (or the `xml` option) for XML files. The recommended configuration
+uses it for `*.xhtml` files.
 
 ## Troubleshooting
 
-### No file linted when running `eslint` on a directory
+### My rules don't apply to module scripts
 
-By default, when executing the `eslint` command on a directory, only `.js` files will be linted. You
-will have to specify extra extensions with the `--ext` option. Example: `eslint --ext .html,.js src`
-will lint both `.html` and `.js` files in the `src` directory. See [ESLint
-documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
+Module scripts are linted as `.mjs` files. Make sure that your configurations match
+`**/*.mjs` files too, for example with `files: ["**/*.js", "**/*.mjs"]`.
+
+### Type-aware linting fails on scripts
+
+Scripts are virtual files, so they are not part of any TypeScript project. Disable type-aware
+linting for them, for example with typescript-eslint:
+
+```javascript
+{
+  files: ["**/*.html/*.js", "**/*.html/*.mjs"],
+  extends: [tseslint.configs.disableTypeChecked],
+}
+```
 
 ### Linting templates (or PHP)
 
@@ -536,6 +354,31 @@ own parser, so it is _incompatible_ with `eslint-plugin-html`. You should use `e
 exclusively and remove `eslint-plugin-html` from your dependencies if you still have it.
 
 ## Migration from older versions
+
+### To v9
+
+`eslint-plugin-html` v9 is a processor: it doesn't change ESLint internals anymore. It requires
+ESLint 9 or newer and Node.js 20.19 or newer.
+
+- Start from the [recommended configuration](#usage). Adding the plugin to `plugins` is not enough
+  anymore.
+- Rules set in a configuration for `**/*.html` files don't apply to scripts anymore. Use
+  `**/*.html/*.js` and `**/*.html/*.mjs` (or `**/*.js` and `**/*.mjs`) instead.
+- Settings are replaced by [processor options](#processor-options):
+
+  | v8 setting                      | v9                                                         |
+  | ------------------------------- | ---------------------------------------------------------- |
+  | `html/html-extensions`          | `files` of a configuration using the `html/html` processor |
+  | `html/xml-extensions`           | `files` of a configuration using the `html/xml` processor  |
+  | `html/indent`                   | `indent` option                                            |
+  | `html/report-bad-indent`        | `reportBadIndent` option (`true` now means `"error"`)      |
+  | `html/javascript-tag-names`     | `rules` option                                             |
+  | `html/javascript-mime-types`    | `rules` option                                             |
+  | `html/ignore-tags-without-type` | `rules` option                                             |
+
+- `sourceType: "module"` doesn't stop scripts from sharing global variables anymore: use the
+  [`rules`](#rules) option to treat scripts as modules.
+- To lint HTML with html-eslint, use the [`lintMarkup`](#lintmarkup) option.
 
 ### To v4
 

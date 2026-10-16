@@ -25,34 +25,28 @@ console.log(1)
 </script>
 EOF
 
-if [[ $ESLINT_VERSION == 4.7 ]]; then
-  cat << EOF > .eslintrc.js
-module.exports = {
-  plugins: ["html"],
-  rules: {
-    "no-console": "error",
-  },
-}
-EOF
+# No \`defineConfig\`: it only exists since ESLint 9.22
+cat << EOF > eslint.config.mjs
+import html, { processor } from "eslint-plugin-html"
 
-else
-  cat << EOF > eslint.config.mjs
-import { defineConfig } from "eslint/config"
-import html from "eslint-plugin-html";
-
-export default defineConfig([
+/** @type {import("eslint").Linter.Config[]} */
+export default [
+  ...html.configs.recommended,
   {
     files: ["**/*.html"],
-    plugins: {
-      html,
-    },
+    processor: processor({ reportBadIndent: "warn" }),
+  },
+  {
+    files: ["**/*.js", "**/*.mjs"],
     rules: {
       "no-console": "error",
-    }
-  }
-]);
+    },
+  },
+]
 EOF
 
+# ESLint only ships its types since 9.10
+if [[ -f node_modules/eslint/lib/types/index.d.ts ]]; then
   npx tsc --checkJs --noEmit ./eslint.config.mjs
 fi
 

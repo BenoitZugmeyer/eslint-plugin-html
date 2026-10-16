@@ -34,15 +34,15 @@ function remapMessage(message, hasBOM, codePart) {
   Object.assign(message, location)
   message.source = codePart.getOriginalLine(location.line)
 
-  // Map fix range
   if (message.fix && message.fix.range) {
-    const bomOffset = hasBOM ? -1 : 0
-    message.fix.range = [
-      codePart.originalIndex(message.fix.range[0]) + bomOffset,
-      // The range end is exclusive, meaning it should replace all characters  with indexes from
-      // start to end - 1. We have to get the original index of the last targeted character.
-      codePart.originalIndex(message.fix.range[1] - 1) + 1 + bomOffset,
-    ]
+    message.fix = remapFix(message.fix, hasBOM, codePart)
+  }
+
+  if (message.suggestions) {
+    message.suggestions = message.suggestions.map((suggestion) => ({
+      ...suggestion,
+      fix: remapFix(suggestion.fix, hasBOM, codePart),
+    }))
   }
 
   // Map end location
@@ -58,4 +58,22 @@ function remapMessage(message, hasBOM, codePart) {
   }
 
   return true
+}
+
+const remapFix = (fix, hasBOM, codePart) => {
+  const bomOffset = hasBOM ? -1 : 0
+  const [start, end] = fix.range
+  const originalStart = codePart.originalIndex(start) + bomOffset
+  return {
+    ...fix,
+    range: [
+      originalStart,
+      // The range end is exclusive, meaning it should replace all characters  with indexes from
+      // start to end - 1. We have to get the original index of the last targeted character.
+      // Insertions (empty ranges) keep an empty range.
+      end > start
+        ? codePart.originalIndex(end - 1) + 1 + bomOffset
+        : originalStart,
+    ],
+  }
 }

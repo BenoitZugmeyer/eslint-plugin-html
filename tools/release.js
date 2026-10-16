@@ -1,24 +1,23 @@
-"use strict"
-const { execSync: exec } = require("child_process")
-const { readFileSync: read } = require("fs")
-const { request } = require("https")
-const { version: currentVersion } = require("../package.json")
+import { execSync as exec } from "node:child_process"
+import { readFileSync as read } from "node:fs"
+import { request } from "node:https"
+
+const { version: currentVersion } = JSON.parse(
+  read(new URL("../package.json", import.meta.url), "utf8")
+)
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
 const PACKAGE_FILES = [
   "LICENSE",
+  "src/cssSelector.js",
   "src/extract.js",
-  "src/getFileMode.js",
-  "src/index.js",
   "src/index.d.ts",
-  "src/pluginReference.js",
-  "src/settings.js",
+  "src/index.js",
+  "src/packageMeta.js",
+  "src/processor.js",
   "src/remapMessages.js",
-  "src/verifyPatch.js",
-  "src/verifyWithSharedScopes.js",
-  "src/verifyWithFlatConfigPatch.js",
-  "src/TransformableString.js",
-  "src/utils.js",
+  "src/scopeSharing.js",
+  "src/transformableString.js",
   "package.json",
   "CHANGELOG.md",
   "README.md",

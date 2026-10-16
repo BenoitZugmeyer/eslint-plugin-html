@@ -3,8 +3,12 @@ import * as semver from "semver"
 import { it, describe } from "node:test"
 import * as assert from "node:assert"
 import { createRequire } from "node:module"
+import { fileURLToPath } from "node:url"
+import markdown from "@eslint/markdown"
+import * as espree from "espree"
 
 import eslintPluginHtml, {
+  parser as eslintPluginHtmlParser,
   processor as eslintPluginHtmlProcessor,
 } from "../index.js"
 
@@ -20,9 +24,22 @@ const DEFAULT_HTML_CONFIG = {
 }
 
 const DEFAULT_JS_CONFIG = {
-  files: ["**/*.js"],
+  files: ["**/*.js", "**/*.mjs"],
   rules: {
     "no-console": "error",
+  },
+}
+
+const SCOPE_SHARING_CONFIG = {
+  files: ["**/*.html/*.js", "**/*.html/*.mjs"],
+  plugins: {
+    html: eslintPluginHtml,
+  },
+  languageOptions: {
+    parser: eslintPluginHtmlParser,
+  },
+  rules: {
+    "html/scope-sharing": "error",
   },
 }
 
@@ -37,22 +54,44 @@ function ifVersion(versionSpec, fn, ...args) {
   execFn(...args)
 }
 
-async function execute(file, eslintOptions = {}) {
-  const instance = new eslint.ESLint({
+const getFixturePath = (file) =>
+  fileURLToPath(new URL(`fixtures/${file}`, import.meta.url))
+
+const createESLint = (eslintOptions) =>
+  new eslint.ESLint({
     baseConfig: [DEFAULT_HTML_CONFIG, DEFAULT_JS_CONFIG],
     ignore: false,
     ignorePatterns: [],
     overrideConfigFile: true,
     ...eslintOptions,
   })
+
+async function execute(file, eslintOptions = {}) {
   const results = (
-    await instance.lintFiles([
-      new URL(`fixtures/${file}`, import.meta.url).pathname,
-    ])
+    await createESLint(eslintOptions).lintFiles([getFixturePath(file)])
   )[0]
 
   return eslintOptions.fix ? results : results && results.messages
 }
+
+// Lints the text as if it was a file of the fixtures directory
+const executeText = async (
+  text,
+  eslintOptions = {},
+  filename = "virtual.html"
+) => {
+  const [result] = await createESLint(eslintOptions).lintText(text, {
+    filePath: getFixturePath(filename),
+  })
+
+  return eslintOptions.fix ? result : result.messages
+}
+
+const toLocatedMessages = (messages) =>
+  messages.map(
+    ({ ruleId, line, column, message }) =>
+      `${line}:${column} ${ruleId} ${message}`
+  )
 
 it("should extract and remap messages", async () => {
   const messages = await execute("simple.html")
@@ -671,20 +710,34 @@ it("should report correct eol-last message position", async () => {
 })
 
 describe("scope sharing", () => {
-  it("should export global variables between script scopes", async () => {
-    const messages = await execute("scope-sharing.html", {
+  const executeWithScopeSharing = (file, jsConfig, htmlConfig) =>
+    execute(file, {
       baseConfig: [
-        DEFAULT_HTML_CONFIG,
-        {
-          ...DEFAULT_JS_CONFIG,
-          rules: {
-            "no-undef": "error",
-          },
-          languageOptions: {
-            sourceType: "script",
-          },
-        },
+        htmlConfig || DEFAULT_HTML_CONFIG,
+        SCOPE_SHARING_CONFIG,
+        { ...DEFAULT_JS_CONFIG, ...jsConfig },
       ],
+    })
+
+  const NOT_YET_DECLARED_MESSAGES = Object.freeze([
+    "13:7 no-undef 'varNotYetGloballyDeclared' is not defined.",
+    "14:7 no-undef 'letNotYetGloballyDeclared' is not defined.",
+    "15:7 no-undef 'functionNotYetGloballyDeclared' is not defined.",
+    "16:7 no-undef 'ClassNotYetGloballyDeclared' is not defined.",
+    "20:11 no-unused-vars 'varNotYetGloballyDeclared' is assigned a value but never used.",
+    "21:11 no-unused-vars 'letNotYetGloballyDeclared' is assigned a value but never used.",
+    "22:16 no-unused-vars 'functionNotYetGloballyDeclared' is defined but never used.",
+    "23:13 no-unused-vars 'ClassNotYetGloballyDeclared' is defined but never used.",
+  ])
+
+  it("should export global variables between script scopes", async () => {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+      },
+      languageOptions: {
+        sourceType: "script",
+      },
     })
     assert.strictEqual(messages.length, 4)
     assert.strictEqual(messages[0].line, 13)
@@ -710,19 +763,13 @@ describe("scope sharing", () => {
   })
 
   it("should mark variable as used when the variable is used in another tag", async () => {
-    const messages = await execute("scope-sharing.html", {
-      baseConfig: [
-        DEFAULT_HTML_CONFIG,
-        {
-          ...DEFAULT_JS_CONFIG,
-          rules: {
-            "no-unused-vars": "error",
-          },
-          languageOptions: {
-            sourceType: "script",
-          },
-        },
-      ],
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-unused-vars": "error",
+      },
+      languageOptions: {
+        sourceType: "script",
+      },
     })
     assert.strictEqual(messages.length, 4)
     assert.strictEqual(messages[0].line, 20)
@@ -747,111 +794,59 @@ describe("scope sharing", () => {
     )
   })
 
-  it("ECMA feature 'globalReturn'", async () => {
-    const messages = await execute("scope-sharing.html", {
-      baseConfig: [
-        DEFAULT_HTML_CONFIG,
-        {
-          ...DEFAULT_JS_CONFIG,
-          rules: {
-            "no-undef": "error",
-            "no-unused-vars": "error",
-          },
-          languageOptions: {
-            sourceType: "module",
-            parserOptions: {
-              ecmaFeatures: {
-                globalReturn: true,
-              },
-            },
+  it("should not be influenced by the ECMA feature 'globalReturn'", async () => {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      languageOptions: {
+        sourceType: "script",
+        parserOptions: {
+          ecmaFeatures: {
+            globalReturn: true,
           },
         },
-      ],
+      },
     })
-    assert.strictEqual(messages.length, 12)
-    assert.strictEqual(messages[0].line, 8)
-    assert.strictEqual(
-      messages[0].message,
-      "'varGloballyDeclared' is assigned a value but never used."
-    )
-    assert.strictEqual(messages[1].line, 9)
-    assert.strictEqual(
-      messages[1].message,
-      "'letGloballyDeclared' is assigned a value but never used."
-    )
-    assert.strictEqual(messages[2].line, 10)
-    assert.strictEqual(
-      messages[2].message,
-      "'functionGloballyDeclared' is defined but never used."
-    )
-    assert.strictEqual(messages[3].line, 11)
-    assert.strictEqual(
-      messages[3].message,
-      "'ClassGloballyDeclared' is defined but never used."
-    )
-    assert.strictEqual(messages[4].line, 13)
-    assert.strictEqual(
-      messages[4].message,
-      "'varNotYetGloballyDeclared' is not defined."
-    )
-    assert.strictEqual(messages[5].line, 14)
-    assert.strictEqual(
-      messages[5].message,
-      "'letNotYetGloballyDeclared' is not defined."
-    )
-    assert.strictEqual(messages[6].line, 15)
-    assert.strictEqual(
-      messages[6].message,
-      "'functionNotYetGloballyDeclared' is not defined."
-    )
-    assert.strictEqual(messages[7].line, 16)
-    assert.strictEqual(
-      messages[7].message,
-      "'ClassNotYetGloballyDeclared' is not defined."
-    )
-    assert.strictEqual(messages[8].line, 20)
-    assert.strictEqual(
-      messages[8].message,
-      "'varNotYetGloballyDeclared' is assigned a value but never used."
-    )
-    assert.strictEqual(messages[9].line, 21)
-    assert.strictEqual(
-      messages[9].message,
-      "'letNotYetGloballyDeclared' is assigned a value but never used."
-    )
-    assert.strictEqual(messages[10].line, 22)
-    assert.strictEqual(
-      messages[10].message,
-      "'functionNotYetGloballyDeclared' is defined but never used."
-    )
-    assert.strictEqual(messages[11].line, 23)
-    assert.strictEqual(
-      messages[11].message,
-      "'ClassNotYetGloballyDeclared' is defined but never used."
+    assert.deepStrictEqual(
+      toLocatedMessages(messages),
+      NOT_YET_DECLARED_MESSAGES
     )
   })
 
-  it.only("should not share the global scope if sourceType is 'module'", async () => {
-    const messages = await execute("scope-sharing.html", {
-      baseConfig: [
-        {
-          ...DEFAULT_HTML_CONFIG,
-          processor: eslintPluginHtmlProcessor({
-            rules: [{ match: "script", module: true }],
-          }),
-        },
-        {
-          ...DEFAULT_JS_CONFIG,
-          rules: {
-            "no-undef": "error",
-            "no-unused-vars": "error",
-          },
-          languageOptions: {
-            sourceType: "module",
-          },
-        },
-      ],
+  it("should share the scope of classic scripts parsed as modules", async () => {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      languageOptions: {
+        sourceType: "module",
+      },
     })
+    assert.deepStrictEqual(
+      toLocatedMessages(messages),
+      NOT_YET_DECLARED_MESSAGES
+    )
+  })
+
+  it("should not share the global scope between module scripts", async () => {
+    const messages = await executeWithScopeSharing(
+      "scope-sharing.html",
+      {
+        rules: {
+          "no-undef": "error",
+          "no-unused-vars": "error",
+        },
+      },
+      {
+        ...DEFAULT_HTML_CONFIG,
+        processor: eslintPluginHtmlProcessor({
+          rules: [{ match: "script", module: true }],
+        }),
+      }
+    )
     assert.strictEqual(messages.length, 16)
     assert.strictEqual(messages[0].line, 8)
     assert.strictEqual(
@@ -934,104 +929,319 @@ describe("scope sharing", () => {
       "'ClassGloballyDeclared' is not defined."
     )
   })
-})
 
-// For some reason @html-eslint is not compatible with ESLint < 5
-ifVersion(
-  ">= 5",
-  describe.only,
-  "compatibility with external HTML plugins",
-  () => {
-    const BASE_HTML_ESLINT_CONFIG = {
-      plugins: {
-        "@html-eslint": require("@html-eslint/eslint-plugin"),
-        html: eslintPluginHtml,
+  it("should let module scripts use the globals of previous classic scripts", async () => {
+    const messages = await executeWithScopeSharing(
+      "scope-sharing-modules.html",
+      {
+        rules: {
+          "no-undef": "error",
+          "no-unused-vars": "error",
+        },
+      }
+    )
+    assert.deepStrictEqual(toLocatedMessages(messages), [
+      "9:11 no-unused-vars 'moduleVariable' is assigned a value but never used.",
+      "13:7 no-undef 'moduleVariable' is not defined.",
+    ])
+  })
+
+  it("should not depend on inline configuration", async () => {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "error",
       },
-      parser: require("@html-eslint/parser"),
+      languageOptions: {
+        sourceType: "script",
+      },
+      linterOptions: {
+        noInlineConfig: true,
+      },
+    })
+    assert.deepStrictEqual(
+      toLocatedMessages(messages),
+      NOT_YET_DECLARED_MESSAGES
+    )
+  })
+
+  it("should not change the code of scripts", async () => {
+    const baseConfig = (rules) => [
+      DEFAULT_HTML_CONFIG,
+      SCOPE_SHARING_CONFIG,
+      { ...DEFAULT_JS_CONFIG, rules },
+    ]
+
+    assert.deepStrictEqual(
+      await executeText(
+        "<script>\nvar a = 1\n</script>\n<script>\na\n</script>\n",
+        { baseConfig: baseConfig({ "max-lines": ["error", 1] }) }
+      ),
+      []
+    )
+    assert.deepStrictEqual(
+      toLocatedMessages(
+        await executeText(
+          "<script>\n\n\nvar a = 1\n</script>\n<script>\na\n</script>\n",
+          {
+            baseConfig: baseConfig({
+              "no-multiple-empty-lines": ["error", { max: 5, maxBOF: 0 }],
+            }),
+          }
+        )
+      ),
+      [
+        "2:1 no-multiple-empty-lines Too many blank lines at the beginning of file. Max of 0 allowed.",
+      ]
+    )
+  })
+
+  it("should parse each script once, with the configured parser", async () => {
+    let parseCount = 0
+    const countingParser = {
+      meta: { name: "counting-espree" },
+      parse: (code, options) => {
+        parseCount += 1
+        return espree.parse(code, options)
+      },
     }
 
-    it.only("check", async () => {
-      const messages = await execute("other-html-plugins-compatibility.html", {
+    const messages = await executeWithScopeSharing("scope-sharing.html", {
+      rules: {
+        "no-undef": "error",
+        "no-unused-vars": "error",
+      },
+      languageOptions: {
+        sourceType: "script",
+        parserOptions: {
+          parser: countingParser,
+        },
+      },
+    })
+    assert.strictEqual(parseCount, 2)
+    assert.deepStrictEqual(
+      toLocatedMessages(messages),
+      NOT_YET_DECLARED_MESSAGES
+    )
+  })
+
+  it("should keep sharing the scope of other scripts when one fails to parse", async () => {
+    const messages = await executeText(
+      "<script>\nvar a = 1\n</script>\n<script>\na(\n</script>\n<script>\na\n</script>\n",
+      {
         baseConfig: [
+          DEFAULT_HTML_CONFIG,
+          SCOPE_SHARING_CONFIG,
+          {
+            ...DEFAULT_JS_CONFIG,
+            rules: {
+              "no-undef": "error",
+              "no-unused-vars": "error",
+            },
+            languageOptions: {
+              sourceType: "script",
+            },
+          },
+        ],
+      }
+    )
+    assert.strictEqual(messages.length, 1)
+    assert.strictEqual(messages[0].fatal, true)
+  })
+})
+
+describe("compatibility with external HTML plugins", () => {
+  const htmlEslintPlugin = require("@html-eslint/eslint-plugin")
+  const HTML_ESLINT_SETUPS = Object.freeze({
+    // The `language` option exists since ESLint 9.7
+    language: {
+      eslintVersion: ">= 9.7",
+      config: { language: "@html-eslint/html" },
+    },
+    parser: {
+      eslintVersion: "*",
+      config: { languageOptions: { parser: require("@html-eslint/parser") } },
+    },
+  })
+  const isHtmlEslintRule = (name) => name.startsWith("@html-eslint/")
+  const pickRules = (rules, predicate) =>
+    Object.fromEntries(
+      Object.entries(rules).filter(([name]) => predicate(name))
+    )
+
+  for (const [
+    setupName,
+    { eslintVersion: setupEslintVersion, config: htmlEslintSetup },
+  ] of Object.entries(HTML_ESLINT_SETUPS)) {
+    ifVersion(
+      setupEslintVersion,
+      describe,
+      `with html-eslint's ${setupName}`,
+      () => {
+        const baseConfig = (rules) => [
           {
             files: ["**/*.html"],
-            //...DEFAULT_HTML_CONFIG,
             plugins: {
-              //...DEFAULT_HTML_CONFIG.plugins,
-              "@html-eslint": require("@html-eslint/eslint-plugin"),
+              "@html-eslint": htmlEslintPlugin,
+              html: eslintPluginHtml,
             },
-            language: "@html-eslint/html",
-            rules: {
-              "@html-eslint/require-img-alt": "error",
-            },
-          },
-          DEFAULT_HTML_CONFIG,
-          DEFAULT_JS_CONFIG,
-        ],
-      })
-      assert.deepStrictEqual(
-        messages.map((message) => ({
-          ...message,
-
-          // ESLint v8.54.0 adds suggestions for the no-console rule. As we are running tests on older
-          // versions of ESLint, we need to ignore these suggestions.
-          suggestions: "(ignored)",
-        })),
-        [
-          {
-            column: 1,
-            endColumn: 13,
-            endLine: 1,
-            line: 1,
-            message: "Missing `alt` attribute at `<img>` tag",
-            messageId: "missingAlt",
-            nodeType: null,
-            ruleId: "@html-eslint/require-img-alt",
-            severity: 2,
-            suggestions: "(ignored)",
+            ...htmlEslintSetup,
+            processor: eslintPluginHtmlProcessor({ lintMarkup: true }),
+            rules: pickRules(rules, isHtmlEslintRule),
           },
           {
-            column: 3,
-            endColumn: 14,
-            endLine: 3,
-            line: 3,
-            message: "Unexpected console statement.",
-            messageId: "unexpected",
-            nodeType: "MemberExpression",
-            ruleId: "no-console",
-            severity: 2,
-            source: '  console.log("toto")',
-            suggestions: "(ignored)",
+            ...DEFAULT_JS_CONFIG,
+            rules: pickRules(rules, (name) => !isHtmlEslintRule(name)),
           },
         ]
-      )
-    })
 
-    it("fix", async () => {
-      const result = await execute("other-html-plugins-compatibility.html", {
-        baseConfig: [
-          {
-            files: ["**/*.html"],
+        it("check", async () => {
+          const messages = await execute(
+            "other-html-plugins-compatibility.html",
+            {
+              baseConfig: baseConfig({
+                "@html-eslint/require-img-alt": "error",
+                "no-console": "error",
+              }),
+            }
+          )
+          assert.deepStrictEqual(toLocatedMessages(messages), [
+            "1:1 @html-eslint/require-img-alt Missing `alt` attribute at `<img>` tag",
+            "3:3 no-console Unexpected console statement.",
+          ])
+        })
 
-            //TODO
-          },
-        ],
-        ...BASE_HTML_ESLINT_CONFIG,
-        rules: {
-          "@html-eslint/quotes": ["error", "single"],
-          quotes: ["error", "single"],
-        },
-        fix: true,
-      })
-      assert.deepStrictEqual(
-        result.output,
-        `\
+        it("fix", async () => {
+          const result = await execute(
+            "other-html-plugins-compatibility.html",
+            {
+              baseConfig: baseConfig({
+                "@html-eslint/quotes": ["error", "single"],
+                quotes: ["error", "single"],
+              }),
+              fix: true,
+            }
+          )
+          assert.deepStrictEqual(
+            result.output,
+            `\
 <img src=''>
 <script>
   console.log('toto')
 </script>
 `
-      )
-    })
+          )
+        })
+      }
+    )
   }
-)
+})
+
+describe("remapping", () => {
+  it("should remap suggestions", async () => {
+    const text =
+      "<div>\n  <script>\n    console.log(1);\n    foo();\n  </script>\n</div>\n"
+    const [message] = await executeText(text)
+    const { range, text: replacement } = message.suggestions[0].fix
+    assert.strictEqual(
+      text.slice(0, range[0]) + replacement + text.slice(range[1]),
+      "<div>\n  <script>\n    \n    foo();\n  </script>\n</div>\n"
+    )
+  })
+
+  it("should remap fixes inserting text at the start of a script", async () => {
+    const text = "<div>\n  <script>\n    foo()\n  </script>\n</div>\n"
+    const [message] = await executeText(text, {
+      baseConfig: [
+        DEFAULT_HTML_CONFIG,
+        { ...DEFAULT_JS_CONFIG, rules: { "unicode-bom": ["error", "always"] } },
+      ],
+    })
+    const start = text.indexOf("foo()")
+    assert.deepStrictEqual(message.fix.range, [start, start])
+  })
+})
+
+it("should lint scripts with the default types only", async () => {
+  const messages = await execute("default-script-types.html")
+  assert.deepStrictEqual(
+    messages.map(({ line }) => line),
+    [2, 5, 8, 11, 14]
+  )
+})
+
+it("should name module scripts so they are linted as modules", async () => {
+  const messages = await executeText(
+    '<script>\n  var shared = 1\n</script>\n<script type="module">\n  import value from "./value.js"\n  console.log(shared, value)\n</script>\n',
+    {
+      baseConfig: [
+        ...eslintPluginHtml.configs.recommended,
+        {
+          ...DEFAULT_JS_CONFIG,
+          rules: {
+            "no-undef": "error",
+            "no-unused-vars": "error",
+          },
+          languageOptions: {
+            globals: { console: "readonly" },
+          },
+        },
+      ],
+    }
+  )
+  assert.deepStrictEqual(messages, [])
+})
+
+it("should lint HTML code blocks of Markdown files", async () => {
+  const text = [
+    "# Title",
+    "",
+    "```html",
+    "<script>",
+    "  var shared = 1",
+    "</script>",
+    "<script>",
+    "  console.log(shared, missing)",
+    "</script>",
+    "```",
+    "",
+  ].join("\n")
+  const messages = await executeText(
+    text,
+    {
+      baseConfig: [
+        {
+          files: ["**/*.md"],
+          plugins: { markdown },
+          processor: "markdown/markdown",
+        },
+        ...eslintPluginHtml.configs.recommended,
+        {
+          ...DEFAULT_JS_CONFIG,
+          rules: {
+            "no-console": "error",
+            "no-undef": "error",
+            "no-unused-vars": "error",
+          },
+          languageOptions: {
+            globals: { console: "readonly" },
+          },
+        },
+      ],
+    },
+    "virtual.md"
+  )
+  assert.deepStrictEqual(toLocatedMessages(messages), [
+    "8:3 no-console Unexpected console statement.",
+    "8:23 no-undef 'missing' is not defined.",
+  ])
+})
+
+it("should give processors with different options different cache ids", () => {
+  const { version } = eslintPluginHtmlProcessor().meta
+  assert.strictEqual(eslintPluginHtmlProcessor().meta.version, version)
+  assert.notStrictEqual(
+    eslintPluginHtmlProcessor({ reportBadIndent: true }).meta.version,
+    version
+  )
+})

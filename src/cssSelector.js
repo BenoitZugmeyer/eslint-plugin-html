@@ -8,6 +8,7 @@ export function parseCssSelector(selector) {
       classNames: true,
       attributes: {
         operators: ["=", "~=", "|=", "^=", "$=", "*="],
+        caseSensitivityModifiers: ["i", "s"],
       },
       pseudoClasses: {
         definitions: { Selector: ["not"] },
@@ -40,7 +41,8 @@ function matchSelector(selector, node) {
             item.name,
             item.operator,
             item.value?.value,
-            node
+            node,
+            item.caseSensitivityModifier === "i"
           )
         case "PseudoClass":
           return !matchSelector(item.argument, node)
@@ -51,9 +53,10 @@ function matchSelector(selector, node) {
   })
 }
 
-function matchAttribute(name, operator, value, node) {
+function matchAttribute(name, operator, rawValue, node, caseInsensitive) {
   if (!Object.hasOwn(node.attributes, name)) return false
-  const actualValue = node.attributes[name]
+  const value = rawValue && normalizeCase(rawValue, caseInsensitive)
+  const actualValue = normalizeCase(node.attributes[name], caseInsensitive)
   switch (operator) {
     case undefined:
       return true
@@ -73,3 +76,6 @@ function matchAttribute(name, operator, value, node) {
       throw new Error(`Unsupported operator ${operator}`)
   }
 }
+
+const normalizeCase = (text, caseInsensitive) =>
+  caseInsensitive ? text.toLowerCase() : text

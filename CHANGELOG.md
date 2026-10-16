@@ -1,3 +1,13 @@
+Unreleased v9.0.0
+
+- **Breaking: rewrite the plugin as a processor**, so it doesn't patch ESLint anymore. See the [migration guide](README.md#to-v9)
+- **Breaking: replace settings with processor options**
+- **Breaking: drop ESLint 8 and older, and Node.js 16 and 18**
+- Lint `<script type="module">` tags as modules and other scripts as classic scripts, in the same file
+- Support html-eslint's `language` option, with the `lintMarkup` processor option #312 #338
+- Fix suggestions applied at the wrong place
+- Fix crash on fixes inserting text at the start of a script
+
 2026-09-23 v8.2.1
 
 - Fix compatibility with ESLint 10.11.0 #342

@@ -1,32 +1,99 @@
 import { Parser } from "htmlparser2"
+import type { TagNode } from "./cssSelector.ts"
 import TransformableString, {
   indexToLocation,
   lineStarts,
-} from "./transformableString.js"
+} from "./transformableString.ts"
 
 const NO_IGNORE = 0
 const IGNORE_NEXT = 1
 const IGNORE_UNTIL_ENABLE = 2
 
+type IgnoreState =
+  typeof NO_IGNORE | typeof IGNORE_NEXT | typeof IGNORE_UNTIL_ENABLE
+
 const BLANK_LINE_START_RE = /^[ \t]*(?:\r\n|\n|\r)/
 const INDENTATION_OR_EMPTY_RE = /^[ \t]*$/
+const TRAILING_SPACES_RE = /[ \t]*$/
 
-const DIRECTIVE_COMMENTS = new Map([
+const DIRECTIVE_COMMENTS: ReadonlyMap<string, IgnoreState> = new Map([
   ["eslint-disable", IGNORE_UNTIL_ENABLE],
   ["eslint-enable", NO_IGNORE],
   ["eslint-disable-next-script", IGNORE_NEXT],
 ])
 
-export function extract(html, xmlMode, options) {
-  const badIndentationLines = []
-  const scripts = []
+export interface IndentDescriptor {
+  relative?: boolean
+  spaces: string
+}
+
+export interface ExtractOptions {
+  indent?: IndentDescriptor | null
+  rules: ReadonlyArray<{
+    match: (node: TagNode) => unknown
+    module?: boolean
+  }>
+}
+
+export interface ExtractedScript {
+  code: TransformableString
+  module: boolean
+  // The indentation removed from the lines of the script
+  indent: string
+  // Where the line that gives its indentation to the script starts, when the code starts on the
+  // tag line
+  baseLineStart: number | undefined
+}
+
+interface Range {
+  start: number
+  end: number
+}
+
+interface HtmlChunk {
+  type: "html"
+  start: number
+  end: number | undefined
+  ignore: IgnoreState
+}
+
+interface ScriptChunk {
+  type: "script"
+  start: number
+  end: number | undefined
+  module: boolean
+  tagName: string
+  cdata: Range[]
+}
+
+type Chunk = HtmlChunk | ScriptChunk
+
+interface RemovedRange {
+  from: number
+  to: number
+}
+
+type DedentAction =
+  | { type: "dedent"; range: RemovedRange; isFirstNonEmptyLine: boolean }
+  | { type: "empty"; range: RemovedRange | undefined }
+  | { type: "bad-indent"; range: RemovedRange | undefined; index: number }
+
+export function extract(
+  html: string,
+  xmlMode: boolean,
+  options: ExtractOptions
+) {
+  const badIndentationLines: number[] = []
+  const scripts: ExtractedScript[] = []
   let previousHTML = ""
-  let htmlLineStarts
+  let htmlLineStarts: number[] | undefined
 
   const { chunks, directiveComments } = parseHtml(html, xmlMode, options)
 
   for (const chunk of chunks) {
-    const slice = html.slice(chunk.start, chunk.end)
+    // Every chunk has an end once the parsing is complete
+    const { start, end = html.length } = chunk
+    const slice = html.slice(start, end)
     if (chunk.type === "html") {
       previousHTML = slice
     } else if (chunk.type === "script") {
@@ -34,31 +101,31 @@ export function extract(html, xmlMode, options) {
       let indentSlice = slice
       for (const cdata of chunk.cdata) {
         transformedCode.replace(cdata.start, cdata.end, "")
-        if (cdata.end === chunk.end) {
-          indentSlice = html.slice(chunk.start, cdata.start)
+        if (cdata.end === end) {
+          indentSlice = html.slice(start, cdata.start)
         }
       }
-      transformedCode.replace(0, chunk.start, "")
-      transformedCode.replace(chunk.end, html.length, "")
+      transformedCode.replace(0, start, "")
+      transformedCode.replace(end, html.length, "")
       const indent = computeIndent(options.indent, previousHTML, indentSlice)
       const blankTagLineStart = getBlankTagLineStart(indentSlice, chunk)
-      let baseLineStart
+      let baseLineStart: number | undefined
       for (const action of dedent(indent, indentSlice, blankTagLineStart)) {
-        if (action.from !== undefined) {
+        if (action.range) {
           transformedCode.replace(
-            chunk.start + action.from,
-            chunk.start + action.to,
+            start + action.range.from,
+            start + action.range.to,
             ""
           )
         }
         if (action.type === "dedent") {
           if (blankTagLineStart === undefined && action.isFirstNonEmptyLine) {
-            baseLineStart = chunk.start + action.to
+            baseLineStart = start + action.range.to
           }
         } else if (action.type === "bad-indent") {
           htmlLineStarts ||= lineStarts(html)
           badIndentationLines.push(
-            indexToLocation(chunk.start + action.index, htmlLineStarts).line
+            indexToLocation(start + action.index, htmlLineStarts).line
           )
         }
       }
@@ -66,8 +133,6 @@ export function extract(html, xmlMode, options) {
         code: transformedCode,
         module: chunk.module,
         indent,
-        // Where the line that gives its indentation to the script starts, when the code starts on
-        // the tag line
         baseLineStart,
       })
     }
@@ -81,12 +146,12 @@ export function extract(html, xmlMode, options) {
   }
 }
 
-function parseHtml(html, xmlMode, options) {
+function parseHtml(html: string, xmlMode: boolean, options: ExtractOptions) {
   // Ranges of the HTML comments this plugin reacts to
-  const directiveComments = []
+  const directiveComments: Range[] = []
   if (!html) return { chunks: [], directiveComments }
 
-  const chunks = [
+  const chunks: Chunk[] = [
     {
       type: "html",
       start: 0,
@@ -94,12 +159,13 @@ function parseHtml(html, xmlMode, options) {
       end: undefined,
     },
   ]
+  const currentChunk = () => chunks[chunks.length - 1]
 
   const parser = new Parser(
     {
       onopentag(tagName, attributes) {
-        const currentChunk = chunks.at(-1)
-        if (currentChunk.type !== "html") return
+        const chunk = currentChunk()
+        if (chunk.type !== "html") return
 
         const node = { tagName, attributes }
         const matchingRule = options.rules.find((rule) => rule.match(node))
@@ -108,30 +174,30 @@ function parseHtml(html, xmlMode, options) {
           return
         }
 
-        if (currentChunk.ignore === IGNORE_NEXT) {
-          currentChunk.ignore = NO_IGNORE
+        if (chunk.ignore === IGNORE_NEXT) {
+          chunk.ignore = NO_IGNORE
           return
         }
 
-        if (currentChunk.ignore === IGNORE_UNTIL_ENABLE) {
+        if (chunk.ignore === IGNORE_UNTIL_ENABLE) {
           return
         }
 
-        currentChunk.end = parser.endIndex + 1
+        chunk.end = parser.endIndex + 1
         chunks.push({
           type: "script",
           start: parser.endIndex + 1,
           end: undefined,
-          module: matchingRule.module,
+          module: matchingRule.module === true,
           tagName,
           cdata: [],
         })
       },
 
       oncdatastart() {
-        const currentChunk = chunks.at(-1)
-        if (currentChunk.type === "script") {
-          currentChunk.cdata.push(
+        const chunk = currentChunk()
+        if (chunk.type === "script") {
+          chunk.cdata.push(
             {
               start: parser.startIndex,
               end: parser.startIndex + 9,
@@ -145,18 +211,18 @@ function parseHtml(html, xmlMode, options) {
       },
 
       onclosetag(name) {
-        const currentChunk = chunks.at(-1)
-        if (currentChunk.type !== "script") return
-        if (currentChunk.tagName !== name) return
+        const chunk = currentChunk()
+        if (chunk.type !== "script") return
+        if (chunk.tagName !== name) return
 
         // With Self-Closing tags in XML mode, the parser doesn't move its index after the previous
         // chunk emited. Just ignore those script.
-        if (parser.startIndex < currentChunk.start) {
+        if (parser.startIndex < chunk.start) {
           chunks.pop()
           return
         }
 
-        currentChunk.end = parser.startIndex
+        chunk.end = parser.startIndex
         chunks.push({
           type: "html",
           start: parser.startIndex,
@@ -166,10 +232,11 @@ function parseHtml(html, xmlMode, options) {
       },
 
       oncomment(comment) {
+        const chunk = currentChunk()
         const ignore = DIRECTIVE_COMMENTS.get(comment.trim())
-        if (ignore === undefined) return
+        if (chunk.type !== "html" || ignore === undefined) return
 
-        chunks.at(-1).ignore = ignore
+        chunk.ignore = ignore
         directiveComments.push({
           start: parser.startIndex,
           end: parser.endIndex + 1,
@@ -177,7 +244,7 @@ function parseHtml(html, xmlMode, options) {
       },
 
       onend() {
-        chunks.at(-1).end = parser.endIndex + 1
+        currentChunk().end = parser.endIndex + 1
       },
     },
     {
@@ -190,14 +257,21 @@ function parseHtml(html, xmlMode, options) {
   return { chunks, directiveComments }
 }
 
-function computeIndent(descriptor, previousHTML, slice) {
+function computeIndent(
+  descriptor: IndentDescriptor | null | undefined,
+  previousHTML: string,
+  slice: string
+) {
   if (!descriptor) {
     const indentMatch = /[\n\r]+([ \t]*)/.exec(slice)
     return indentMatch ? indentMatch[1] : ""
   }
 
   if (descriptor.relative) {
-    return previousHTML.match(/([^\n\r]*)<[^<]*$/)[1] + descriptor.spaces
+    // The previous HTML ends with the opening tag of the script
+    return (
+      (/([^\n\r]*)<[^<]*$/.exec(previousHTML)?.[1] || "") + descriptor.spaces
+    )
   }
 
   return descriptor.spaces
@@ -207,7 +281,7 @@ function computeIndent(descriptor, previousHTML, slice) {
  * Where the content of the tag line starts (after a CDATA start in XML) when it is blank, so it can be
  * left out of the script
  */
-function getBlankTagLineStart(slice, chunk) {
+function getBlankTagLineStart(slice: string, chunk: ScriptChunk) {
   const cdataStart = chunk.cdata.find((cdata) =>
     INDENTATION_OR_EMPTY_RE.test(slice.slice(0, cdata.start - chunk.start))
   )
@@ -215,21 +289,26 @@ function getBlankTagLineStart(slice, chunk) {
   return BLANK_LINE_START_RE.test(slice.slice(start)) ? start : undefined
 }
 
-function* dedent(indent, slice, blankTagLineStart) {
+function* dedent(
+  indent: string,
+  slice: string,
+  blankTagLineStart: number | undefined
+): Generator<DedentAction> {
   let hadNonEmptyLine = false
   const re = /(\r\n|\n|\r)([ \t]*)(.*)/g
   let lastIndex = 0
-  let isTagLineBlank = blankTagLineStart !== undefined
+  let isFirstLine = true
 
   while (true) {
     const match = re.exec(slice)
     if (!match) break
 
     // The tag line is not part of the script when it's blank
-    const tagLine = isTagLineBlank
-      ? { from: blankTagLineStart, to: match.index + match[1].length }
-      : {}
-    isTagLineBlank = false
+    const tagLine =
+      isFirstLine && blankTagLineStart !== undefined
+        ? { from: blankTagLineStart, to: match.index + match[1].length }
+        : undefined
+    isFirstLine = false
 
     const newLine = match[1]
     const lineIndent = match[2]
@@ -248,20 +327,22 @@ function* dedent(indent, slice, blankTagLineStart) {
       lastIndex = match.index + newLine.length + indent.length
       yield {
         type: "dedent",
-        from: tagLine.from ?? match.index + newLine.length,
-        to: lastIndex,
+        range: {
+          from: tagLine ? tagLine.from : match.index + newLine.length,
+          to: lastIndex,
+        },
         isFirstNonEmptyLine,
       }
     } else if (isEmptyLine) {
       yield {
         type: "empty",
-        ...tagLine,
+        range: tagLine,
       }
     } else {
       yield {
         type: "bad-indent",
+        range: tagLine,
         index: match.index + newLine.length,
-        ...tagLine,
       }
     }
 
@@ -270,12 +351,16 @@ function* dedent(indent, slice, blankTagLineStart) {
     }
   }
 
-  const endSpaces = slice.slice(lastIndex).match(/[ \t]*$/)[0].length
+  const tail = slice.slice(lastIndex)
+  const endSpaces = tail.length - tail.search(TRAILING_SPACES_RE)
   if (endSpaces) {
     yield {
       type: "dedent",
-      from: slice.length - endSpaces,
-      to: slice.length,
+      range: {
+        from: slice.length - endSpaces,
+        to: slice.length,
+      },
+      isFirstNonEmptyLine: false,
     }
   }
 }

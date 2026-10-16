@@ -31,14 +31,14 @@ function readReadme() {
   return read("README.md", { encoding: "utf-8" })
 }
 
-function writeReadme(content) {
+function writeReadme(content: string) {
   write("README.md", content, { encoding: "utf-8" })
 }
 
 function splitReadme() {
   const content = readReadme()
-  let startTocIndex = content.indexOf("\n\n") + 2
-  let endTocIndex = content.indexOf("\n\n", startTocIndex)
+  const startTocIndex = content.indexOf("\n\n") + 2
+  const endTocIndex = content.indexOf("\n\n", startTocIndex)
 
   return [
     content.slice(0, startTocIndex),
@@ -51,7 +51,7 @@ function generateToc() {
   return readReadme()
     .split("\n")
     .flatMap((line) => {
-      const level = line.match(/^#*/)[0].length
+      const level = line.length - line.replace(/^#*/, "").length
       if (!level) return []
 
       const title = line.slice(level + 1)

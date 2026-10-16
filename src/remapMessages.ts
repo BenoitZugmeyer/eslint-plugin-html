@@ -1,12 +1,27 @@
+import type { Linter } from "eslint"
+import type { ExtractedScript } from "./extract.ts"
+import type TransformableString from "./transformableString.ts"
+
+type Fix = NonNullable<Linter.LintMessage["fix"]>
+
 const LINE_BREAK_CHAR_RE = /[\r\n]/
 const INNER_LINE_BREAK_RE = /(\r\n|\r|\n)(?=[^\r\n])/g
 const TRAILING_LINE_BREAK_RE = /(?:\r\n|\r|\n)$/
 const INDENTATION_RE = /^[ \t]+$/
 const INDENTATION_OR_EMPTY_RE = /^[ \t]*$/
 
-// `context`: the original `html` and its `hasBOM`, and the `script` (its `code` and removed `indent`)
-export function remapMessages(messages, context) {
-  const newMessages = []
+export interface RemapContext {
+  // The original text, which the script was extracted from
+  html: string
+  hasBOM: boolean
+  script: ExtractedScript
+}
+
+export function remapMessages(
+  messages: Linter.LintMessage[],
+  context: RemapContext
+): Linter.LintMessage[] {
+  const newMessages: Linter.LintMessage[] = []
 
   for (const message of messages) {
     if (remapMessage(message, context)) {
@@ -17,7 +32,7 @@ export function remapMessages(messages, context) {
   return newMessages
 }
 
-function remapMessage(message, context) {
+function remapMessage(message: Linter.LintMessage, context: RemapContext) {
   const codePart = context.script.code
 
   if (!message.line || !message.column) {
@@ -40,8 +55,10 @@ function remapMessage(message, context) {
     return false
   }
 
-  Object.assign(message, location)
-  message.source = codePart.getOriginalLine(location.line)
+  // `source` is not set by ESLint anymore, but some formatters may still use it
+  Object.assign(message, location, {
+    source: codePart.getOriginalLine(location.line),
+  })
 
   if (message.fix && message.fix.range) {
     const fix = remapFix(message.fix, context)
@@ -74,16 +91,20 @@ function remapMessage(message, context) {
   return true
 }
 
-const remapFix = (fix, { html, hasBOM, script }) => {
+const remapFix = (
+  fix: Fix,
+  { html, hasBOM, script }: RemapContext
+): Fix | undefined => {
   const { code: codePart, indent } = script
   const [start, end] = fix.range
   const originalStart = codePart.originalIndex(start)
   // Indenting the base line of a script starting on its tag line would only move the base
   // indentation, so the fix would apply again and again
   if (
-    start === end &&
-    originalStart === script.baseLineStart &&
-    INDENTATION_RE.test(fix.text)
+    originalStart === undefined ||
+    (start === end &&
+      originalStart === script.baseLineStart &&
+      INDENTATION_RE.test(fix.text))
   ) {
     return
   }
@@ -97,8 +118,13 @@ const remapFix = (fix, { html, hasBOM, script }) => {
     end > start
       ? remapRangeEnd(end, codePart, html, virtualText.length, joinsLines)
       : originalStart
-  const bomOffset = hasBOM ? -1 : 0
+  const scriptEnd = codePart.originalIndex(virtualText.length)
+  // Only inserted text, which this plugin never adds, has no original index
+  if (originalEnd === undefined || scriptEnd === undefined) {
+    return
+  }
 
+  const bomOffset = hasBOM ? -1 : 0
   return {
     ...fix,
     range: [originalStart + bomOffset, originalEnd + bomOffset],
@@ -107,11 +133,7 @@ const remapFix = (fix, { html, hasBOM, script }) => {
           fix.text,
           indent,
           TRAILING_LINE_BREAK_RE.test(fix.text) &&
-            isInsideScriptLine(
-              html,
-              originalEnd,
-              codePart.originalIndex(virtualText.length)
-            )
+            isInsideScriptLine(html, originalEnd, scriptEnd)
         )
       : fix.text,
   }
@@ -122,27 +144,41 @@ const remapFix = (fix, { html, hasBOM, script }) => {
  * character starts a line that lost its indentation and the fix joins it to the previous line, the
  * indentation is replaced too, so that it doesn't stay in the middle of the line.
  */
-const remapRangeEnd = (end, codePart, html, virtualLength, joinsLines) => {
-  const afterLastCharacter = codePart.originalIndex(end - 1) + 1
+const remapRangeEnd = (
+  end: number,
+  codePart: TransformableString,
+  html: string,
+  virtualLength: number,
+  joinsLines: boolean
+) => {
+  const lastCharacter = codePart.originalIndex(end - 1)
+  if (lastCharacter === undefined) {
+    return
+  }
+
+  const afterLastCharacter = lastCharacter + 1
   if (!joinsLines || end >= virtualLength) {
     return afterLastCharacter
   }
 
   const nextCharacter = codePart.originalIndex(end)
-  return INDENTATION_OR_EMPTY_RE.test(
-    html.slice(afterLastCharacter, nextCharacter)
-  )
+  return nextCharacter !== undefined &&
+    INDENTATION_OR_EMPTY_RE.test(html.slice(afterLastCharacter, nextCharacter))
     ? nextCharacter
     : afterLastCharacter
 }
 
 // Lines added by a fix need the indentation that was removed from the script. Empty lines stay empty.
-const reindent = (text, indent, isFollowedByLineContent) => {
+const reindent = (
+  text: string,
+  indent: string,
+  isFollowedByLineContent: boolean
+) => {
   const reindented = text.replace(INNER_LINE_BREAK_RE, `$1${indent}`)
   return isFollowedByLineContent ? reindented + indent : reindented
 }
 
-const isInsideScriptLine = (html, index, scriptEnd) =>
+const isInsideScriptLine = (html: string, index: number, scriptEnd: number) =>
   index > 0 &&
   index < scriptEnd &&
   !LINE_BREAK_CHAR_RE.test(html[index - 1]) &&

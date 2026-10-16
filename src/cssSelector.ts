@@ -1,6 +1,11 @@
-import { createParser } from "css-selector-parser"
+import { type AstSelector, createParser } from "css-selector-parser"
 
-export function parseCssSelector(selector) {
+export interface TagNode {
+  tagName: string
+  attributes: Record<string, string>
+}
+
+export function parseCssSelector(selector: string) {
   const parse = createParser({
     syntax: {
       tag: true,
@@ -18,13 +23,13 @@ export function parseCssSelector(selector) {
 
   const astSelector = parse(selector)
   return {
-    match(node) {
+    match(node: TagNode) {
       return matchSelector(astSelector, node)
     },
   }
 }
 
-function matchSelector(selector, node) {
+function matchSelector(selector: AstSelector, node: TagNode): boolean {
   return selector.rules.some((rule) => {
     return rule.items.every((item) => {
       switch (item.type) {
@@ -40,11 +45,15 @@ function matchSelector(selector, node) {
           return matchAttribute(
             item.name,
             item.operator,
-            item.value?.value,
+            item.value?.type === "String" ? item.value.value : undefined,
             node,
             item.caseSensitivityModifier === "i"
           )
         case "PseudoClass":
+          // Only `:not()` with a selector is enabled
+          if (item.argument?.type !== "Selector") {
+            throw new Error(`Unsupported pseudo-class ${item.name}`)
+          }
           return !matchSelector(item.argument, node)
         default:
           throw new Error(`Unsupported type ${item.type}`)
@@ -53,13 +62,20 @@ function matchSelector(selector, node) {
   })
 }
 
-function matchAttribute(name, operator, rawValue, node, caseInsensitive) {
+function matchAttribute(
+  name: string,
+  operator: string | undefined,
+  rawValue: string | undefined,
+  node: TagNode,
+  caseInsensitive = false
+) {
   if (!Object.hasOwn(node.attributes, name)) return false
-  const value = rawValue && normalizeCase(rawValue, caseInsensitive)
+  if (operator === undefined) return true
+
+  // The value always comes with an operator
+  const value = normalizeCase(rawValue || "", caseInsensitive)
   const actualValue = normalizeCase(node.attributes[name], caseInsensitive)
   switch (operator) {
-    case undefined:
-      return true
     case "=":
       return value === actualValue
     case "~=":
@@ -77,5 +93,5 @@ function matchAttribute(name, operator, rawValue, node, caseInsensitive) {
   }
 }
 
-const normalizeCase = (text, caseInsensitive) =>
+const normalizeCase = (text: string, caseInsensitive: boolean) =>
   caseInsensitive ? text.toLowerCase() : text

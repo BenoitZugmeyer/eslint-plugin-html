@@ -3,6 +3,7 @@ Unreleased v9.0.0
 - **Breaking: rewrite the plugin as a processor**, so it doesn't patch ESLint anymore. See the [migration guide](README.md#to-v9)
 - **Breaking: replace settings with processor options**
 - **Breaking: drop ESLint 8 and older, and Node.js 16 and 18**
+- Rewrite the plugin in TypeScript, with types generated from the source
 - Lint `<script type="module">` tags as modules and other scripts as classic scripts, in the same file
 - Support html-eslint's `language` option, with the `lintMarkup` processor option #312 #338
 - Report when the plugin's parser is not used for scripts, as global variables of previous scripts can't be shared then

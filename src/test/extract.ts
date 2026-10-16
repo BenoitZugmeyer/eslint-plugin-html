@@ -2,9 +2,10 @@
 import { it, describe } from "node:test"
 import assert from "assert"
 
-import { extract } from "../extract.js"
+import type { TagNode } from "../cssSelector.ts"
+import { extract, type IndentDescriptor } from "../extract.ts"
 
-function dedent(str) {
+function dedent(str: string) {
   if (str[0] === "\n") str = str.slice(1)
 
   const indent = str.match(/([\t ]*)\S/)
@@ -20,8 +21,15 @@ function dedent(str) {
   return str
 }
 
-function test(params) {
-  const infos = extract(dedent(params.input), params.xmlMode, {
+function test(params: {
+  input: string
+  expected: string[]
+  xmlMode?: boolean
+  indent?: IndentDescriptor
+  match?: (node: TagNode) => unknown
+  badIndentationLines?: number[]
+}) {
+  const infos = extract(dedent(params.input), params.xmlMode === true, {
     indent: params.indent,
     rules: [
       { match: params.match || (({ tagName }) => tagName === "script" && {}) },

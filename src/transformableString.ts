@@ -1,17 +1,29 @@
-"use strict"
-
 // Same line breaks as ESLint
 const LINE_ENDING_RE = /\r\n|[\r\n\u2028\u2029]/g
 
+interface Block {
+  from: number
+  to: number
+  str: string
+}
+
+export interface Location {
+  line: number
+  column: number
+}
+
 export default class TransformableString {
-  constructor(original) {
+  private readonly _original: string
+  private readonly _blocks: Block[] = []
+  private readonly _lineStarts: number[]
+  private _cache: { lineStarts: number[]; result: string } | null = null
+
+  constructor(original: string) {
     this._original = original
-    this._blocks = []
     this._lineStarts = lineStarts(original)
-    this._cache = null
   }
 
-  _compute() {
+  private _compute() {
     if (!this._cache) {
       let result = ""
       let index = 0
@@ -28,7 +40,7 @@ export default class TransformableString {
     return this._cache
   }
 
-  getOriginalLine(n) {
+  getOriginalLine(n: number) {
     if (n < 1 || n > this._lineStarts.length) {
       throw new Error("Invalid line number")
     }
@@ -41,7 +53,7 @@ export default class TransformableString {
     return this._compute().result
   }
 
-  replace(from, to, str) {
+  replace(from: number, to: number, str: string) {
     this._cache = null
     if (from > to || from < 0 || to > this._original.length) {
       throw new Error("Invalid slice indexes")
@@ -59,8 +71,8 @@ export default class TransformableString {
     }
   }
 
-  originalIndex(index) {
-    let block
+  originalIndex(index: number) {
+    let block: Block | undefined
     for (block of this._blocks) {
       if (index < block.from) break
 
@@ -74,7 +86,7 @@ export default class TransformableString {
       throw new Error("Invalid index")
     }
     if (index == this._original.length) {
-      if (block.to && block.to === this._original.length) {
+      if (block?.to && block.to === this._original.length) {
         return block.from + block.str.length
       }
       return this._original.length
@@ -82,7 +94,7 @@ export default class TransformableString {
     return index
   }
 
-  originalLocation(location) {
+  originalLocation(location: Location) {
     const index = locationToIndex(location, this._compute().lineStarts)
     const originalIndex = this.originalIndex(index)
     if (originalIndex !== undefined) {
@@ -91,7 +103,7 @@ export default class TransformableString {
   }
 }
 
-export function lineStarts(str) {
+export function lineStarts(str: string) {
   const result = [0]
   LINE_ENDING_RE.lastIndex = 0
   while (true) {
@@ -102,7 +114,7 @@ export function lineStarts(str) {
   return result
 }
 
-function locationToIndex(location, lineStarts) {
+function locationToIndex(location: Location, lineStarts: readonly number[]) {
   if (
     !location.line ||
     location.line < 0 ||
@@ -114,7 +126,10 @@ function locationToIndex(location, lineStarts) {
   return lineStarts[location.line - 1] + location.column - 1
 }
 
-export function indexToLocation(index, lineStarts) {
+export function indexToLocation(
+  index: number,
+  lineStarts: readonly number[]
+): Location {
   if (index < 0) throw new Error("Invalid index")
 
   let line = 0

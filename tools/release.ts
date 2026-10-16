@@ -1,23 +1,29 @@
 import { execSync as exec } from "node:child_process"
-import { readFileSync as read } from "node:fs"
+import { readdirSync, readFileSync as read } from "node:fs"
 import { request } from "node:https"
 
-const { version: currentVersion } = JSON.parse(
+interface WorkflowRun {
+  head_sha: string
+  status: string
+  conclusion: string | null
+  html_url: string
+}
+
+const { version: currentVersion }: { version: string } = JSON.parse(
   read(new URL("../package.json", import.meta.url), "utf8")
 )
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
+// Each source file is built to a module and its types
+const BUILT_FILES = readdirSync(new URL("../src", import.meta.url))
+  .filter((file) => file.endsWith(".ts"))
+  .flatMap((file) => [
+    `dist/${file.replace(/\.ts$/, ".js")}`,
+    `dist/${file.replace(/\.ts$/, ".d.ts")}`,
+  ])
 const PACKAGE_FILES = [
   "LICENSE",
-  "src/cssSelector.js",
-  "src/extract.js",
-  "src/index.d.ts",
-  "src/index.js",
-  "src/packageMeta.js",
-  "src/processor.js",
-  "src/remapMessages.js",
-  "src/scopeSharing.js",
-  "src/transformableString.js",
+  ...BUILT_FILES,
   "package.json",
   "CHANGELOG.md",
   "README.md",
@@ -38,7 +44,7 @@ async function main() {
   console.log("Release successful!")
 }
 
-function error(message) {
+function error(message: string): never {
   console.error(message)
   process.exit(1)
 }
@@ -67,12 +73,13 @@ function getVersion() {
     error(`Invalid changelog date (should be ${expected})`)
   }
 
-  return [version, channel]
+  return [version, channel] as const
 }
 
 function runTests() {
   console.log("Running tests...")
   exec("npm run --silent test", { stdio: "inherit" })
+  exec("npm run --silent typecheck", { stdio: "inherit" })
   exec("npm run --silent lint", { stdio: "inherit" })
 }
 
@@ -85,7 +92,7 @@ function verifyPackageContent() {
   const STATE_TARBALL_DETAILS = 2
 
   let state = STATE_INIT
-  const content = new Set()
+  const content = new Set<string>()
 
   for (let line of packed) {
     line = line.replace(/^npm notice /, "").trim()
@@ -99,7 +106,8 @@ function verifyPackageContent() {
         if (line === "Tarball Details") {
           state = STATE_TARBALL_DETAILS
         } else {
-          content.add(line.match(/.*?\s+(.*)$/)[1])
+          const fileMatch = /.*?\s+(.*)$/.exec(line)
+          if (fileMatch) content.add(fileMatch[1])
         }
         break
     }
@@ -116,7 +124,7 @@ function verifyPackageContent() {
   }
 }
 
-function createVersion(version) {
+function createVersion(version: string) {
   if (version === currentVersion) {
     console.log(`Version ${version} already exists, skipping creation`)
     return
@@ -156,7 +164,7 @@ async function verifyBuild() {
 }
 
 function fetchWorkflowRuns() {
-  return new Promise((resolve, reject) => {
+  return new Promise<{ workflow_runs: WorkflowRun[] }>((resolve, reject) => {
     const req = request(
       `https://api.github.com/repos/${REPO}/actions/runs?event=push&branch=main`,
       {
@@ -168,11 +176,11 @@ function fetchWorkflowRuns() {
     req.on("error", reject)
     req.on("response", (response) => {
       // `${response.headers['x-ratelimit-used']}/${response.headers['x-ratelimit-limit']} (reset: ${new Date(response.headers['x-ratelimit-reset'] * 1000).toLocaleTimeString()})`
-      const datum = []
+      const datum: Buffer[] = []
       response.on("error", reject)
       response.on("data", (data) => datum.push(data))
       response.on("end", () => {
-        const body = JSON.parse(Buffer.concat(datum))
+        const body = JSON.parse(Buffer.concat(datum).toString())
         if (response.statusCode !== 200) {
           reject(
             new Error(
@@ -188,7 +196,7 @@ function fetchWorkflowRuns() {
   })
 }
 
-function releaseVersion(version, channel) {
+function releaseVersion(version: string, channel: string) {
   console.log(`Publishing ${version} to channel ${channel}`)
 
   exec(`npm publish --tag ${channel}`, {

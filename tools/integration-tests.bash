@@ -12,7 +12,8 @@ trap finish EXIT
 
 REPO_PATH=$(pwd)
 ESLINT_VERSION=${1:-latest}
-PACKAGE_PATH=$(realpath $(npm pack))
+# The last line is the tarball name, after the output of the build
+PACKAGE_PATH=$(realpath "$(npm pack --silent | tail -n 1)")
 
 set -x
 cd $ROOT

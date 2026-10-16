@@ -1,6 +1,9 @@
 import js from "@eslint/js"
+import { defineConfig } from "eslint/config"
+import tseslint from "typescript-eslint"
 
-export default [
+export default defineConfig([
+  { ignores: ["dist"] },
   js.configs.recommended,
   {
     rules: {
@@ -24,4 +27,14 @@ export default [
       },
     },
   },
-]
+  {
+    files: ["**/*.ts"],
+    extends: [tseslint.configs.recommended],
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { varsIgnorePattern: "^_", argsIgnorePattern: "^_" },
+      ],
+    },
+  },
+])

@@ -1,4 +1,4 @@
-import TransformableString from "../transformableString.js"
+import TransformableString from "../transformableString.ts"
 
 import { it, describe } from "node:test"
 import assert from "assert"

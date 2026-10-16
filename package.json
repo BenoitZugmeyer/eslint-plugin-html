@@ -16,7 +16,25 @@
     "eslint",
     "html"
   ],
-  "main": "src/index.js",
+  "main": "dist/main.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/main.js"
+      },
+      "require": {
+        "types": "./dist/main.d.ts",
+        "default": "./dist/main.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": "^20.19.0 || ^22.13.0 || >=24"
   },
@@ -36,16 +54,24 @@
     "@eslint/markdown": "^8.0.3",
     "@html-eslint/eslint-plugin": "^0.67.0",
     "@html-eslint/parser": "^0.67.0",
+    "@types/estree": "^1.0.9",
+    "@types/node": "~20.19.43",
+    "@types/semver": "^7.8.0",
     "eslint": "^10.12.0",
     "eslint-config-prettier": "^10.1.8",
     "markdown-link-check": "^3.15.0",
     "prettier": "^3.9.10",
-    "semver": "^7.8.5"
+    "semver": "^7.8.5",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2"
   },
   "scripts": {
-    "validate": "npm run lint && npm run test",
+    "validate": "npm run lint && npm run typecheck && npm run test",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "node --test",
     "lint": "eslint .",
-    "format": "prettier --check ."
+    "format": "prettier --check .",
+    "prepack": "npm run build"
   }
 }

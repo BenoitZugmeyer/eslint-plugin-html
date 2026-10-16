@@ -1,15 +1,33 @@
-import { PACKAGE_META } from "./packageMeta.js"
-import processor from "./processor.js"
-import { parser, scopeSharingRule } from "./scopeSharing.js"
+import type { ESLint, Linter, Rule } from "eslint"
+import { PACKAGE_META } from "./packageMeta.ts"
+import processor from "./processor.ts"
+import { parser, scopeSharingRule } from "./scopeSharing.ts"
+
+export type { ProcessorOptions, ScriptRule } from "./processor.ts"
+
+interface Plugin extends ESLint.Plugin {
+  processors: {
+    html: Linter.Processor
+    xml: Linter.Processor
+  }
+  rules: {
+    "scope-sharing": Rule.RuleModule
+  }
+  configs: {
+    recommended: Linter.Config[]
+  }
+  parser: typeof parser
+  processor: typeof processor
+}
 
 const HTML_FILES = Object.freeze(["**/*.html", "**/*.htm"])
 const XHTML_FILES = Object.freeze(["**/*.xhtml"])
 const MARKUP_FILES = Object.freeze([...HTML_FILES, ...XHTML_FILES])
 
-const toScriptFiles = (extension) =>
+const toScriptFiles = (extension: string) =>
   MARKUP_FILES.map((glob) => `${glob}/*.${extension}`)
 
-const plugin = {
+const plugin: Plugin = {
   meta: {
     ...PACKAGE_META,
     namespace: "html",
@@ -21,7 +39,9 @@ const plugin = {
   rules: {
     "scope-sharing": scopeSharingRule,
   },
-  configs: {},
+  configs: {
+    recommended: [],
+  },
   // Also here for CommonJS, where `require()` returns the plugin
   parser,
   processor,
@@ -54,7 +74,6 @@ plugin.configs.recommended = [
   },
 ]
 
-// `require()` returns the plugin instead of the module namespace
-export { parser, processor, plugin as "module.exports" }
+export { parser, processor }
 
 export default plugin

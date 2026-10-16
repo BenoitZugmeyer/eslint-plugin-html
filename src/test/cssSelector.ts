@@ -1,7 +1,7 @@
 import { it, describe } from "node:test"
 import assert from "node:assert/strict"
 
-import { parseCssSelector } from "../cssSelector.js"
+import { parseCssSelector } from "../cssSelector.ts"
 
 describe("cssSelector", () => {
   it("matches tag", () => {

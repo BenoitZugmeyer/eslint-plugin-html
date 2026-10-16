@@ -1,4 +1,5 @@
 import * as eslint from "eslint"
+import type { Linter, Rule } from "eslint"
 import * as semver from "semver"
 import { it, describe } from "node:test"
 import * as assert from "node:assert"
@@ -10,12 +11,12 @@ import * as espree from "espree"
 import eslintPluginHtml, {
   parser as eslintPluginHtmlParser,
   processor as eslintPluginHtmlProcessor,
-} from "../index.js"
+} from "../index.ts"
 
 const require = createRequire(import.meta.url)
-const eslintVersion = require("eslint/package.json").version
+const eslintVersion: string = require("eslint/package.json").version
 
-const DEFAULT_HTML_CONFIG = {
+const DEFAULT_HTML_CONFIG: Linter.Config = {
   files: ["**/*.html"],
   plugins: {
     html: eslintPluginHtml,
@@ -23,14 +24,14 @@ const DEFAULT_HTML_CONFIG = {
   processor: "html/html",
 }
 
-const DEFAULT_JS_CONFIG = {
+const DEFAULT_JS_CONFIG: Linter.Config = {
   files: ["**/*.js", "**/*.mjs"],
   rules: {
     "no-console": "error",
   },
 }
 
-const SCOPE_SHARING_CONFIG = {
+const SCOPE_SHARING_CONFIG: Linter.Config = {
   files: ["**/*.html/*.js", "**/*.html/*.mjs"],
   plugins: {
     html: eslintPluginHtml,
@@ -43,21 +44,26 @@ const SCOPE_SHARING_CONFIG = {
   },
 }
 
-function matchVersion(versionSpec) {
+function matchVersion(versionSpec: string) {
   return semver.satisfies(eslintVersion, versionSpec, {
     includePrerelease: true,
   })
 }
 
-function ifVersion(versionSpec, fn, ...args) {
+function ifVersion(
+  versionSpec: string,
+  fn: typeof describe,
+  name: string,
+  body: () => void
+) {
   const execFn = matchVersion(versionSpec) ? fn : fn.skip
-  execFn(...args)
+  execFn(name, body)
 }
 
-const getFixturePath = (file) =>
+const getFixturePath = (file: string) =>
   fileURLToPath(new URL(`fixtures/${file}`, import.meta.url))
 
-const createESLint = (eslintOptions) =>
+const createESLint = (eslintOptions: eslint.ESLint.Options) =>
   new eslint.ESLint({
     baseConfig: [DEFAULT_HTML_CONFIG, DEFAULT_JS_CONFIG],
     ignore: false,
@@ -66,7 +72,18 @@ const createESLint = (eslintOptions) =>
     ...eslintOptions,
   })
 
-async function execute(file, eslintOptions = {}) {
+async function execute(
+  file: string,
+  eslintOptions: eslint.ESLint.Options & { fix: true }
+): Promise<eslint.ESLint.LintResult>
+async function execute(
+  file: string,
+  eslintOptions?: eslint.ESLint.Options
+): Promise<Linter.LintMessage[]>
+async function execute(
+  file: string,
+  eslintOptions: eslint.ESLint.Options = {}
+) {
   const results = (
     await createESLint(eslintOptions).lintFiles([getFixturePath(file)])
   )[0]
@@ -75,11 +92,21 @@ async function execute(file, eslintOptions = {}) {
 }
 
 // Lints the text as if it was a file of the fixtures directory
-const executeText = async (
-  text,
-  eslintOptions = {},
+async function executeText(
+  text: string,
+  eslintOptions: eslint.ESLint.Options & { fix: true },
+  filename?: string
+): Promise<eslint.ESLint.LintResult>
+async function executeText(
+  text: string,
+  eslintOptions?: eslint.ESLint.Options,
+  filename?: string
+): Promise<Linter.LintMessage[]>
+async function executeText(
+  text: string,
+  eslintOptions: eslint.ESLint.Options = {},
   filename = "virtual.html"
-) => {
+) {
   const [result] = await createESLint(eslintOptions).lintText(text, {
     filePath: getFixturePath(filename),
   })
@@ -87,7 +114,7 @@ const executeText = async (
   return eslintOptions.fix ? result : result.messages
 }
 
-const toLocatedMessages = (messages) =>
+const toLocatedMessages = (messages: Linter.LintMessage[]) =>
   messages.map(
     ({ ruleId, line, column, message }) =>
       `${line}:${column} ${ruleId} ${message}`
@@ -493,7 +520,7 @@ describe("fix", () => {
         },
       ],
     })
-    assert.deepStrictEqual(messages[0].fix.range, [53, 55])
+    assert.deepStrictEqual(messages[0].fix?.range, [53, 55])
   })
 
   it("should fix errors", async () => {
@@ -710,7 +737,11 @@ it("should report correct eol-last message position", async () => {
 })
 
 describe("scope sharing", () => {
-  const executeWithScopeSharing = (file, jsConfig, htmlConfig) =>
+  const executeWithScopeSharing = (
+    file: string,
+    jsConfig: Linter.Config,
+    htmlConfig?: Linter.Config
+  ) =>
     execute(file, {
       baseConfig: [
         htmlConfig || DEFAULT_HTML_CONFIG,
@@ -966,7 +997,7 @@ describe("scope sharing", () => {
   })
 
   it("should not change the code of scripts", async () => {
-    const baseConfig = (rules) => [
+    const baseConfig = (rules: Linter.RulesRecord) => [
       DEFAULT_HTML_CONFIG,
       SCOPE_SHARING_CONFIG,
       { ...DEFAULT_JS_CONFIG, rules },
@@ -1000,7 +1031,7 @@ describe("scope sharing", () => {
     let parseCount = 0
     const countingParser = {
       meta: { name: "counting-espree" },
-      parse: (code, options) => {
+      parse: (code: string, options: espree.Options) => {
         parseCount += 1
         return espree.parse(code, options)
       },
@@ -1076,15 +1107,20 @@ describe("compatibility with external HTML plugins", () => {
     // The `language` option exists since ESLint 9.7
     language: {
       eslintVersion: ">= 9.7",
-      config: { language: "@html-eslint/html" },
+      config: { language: "@html-eslint/html" } satisfies Linter.Config,
     },
     parser: {
       eslintVersion: "*",
-      config: { languageOptions: { parser: require("@html-eslint/parser") } },
+      config: {
+        languageOptions: { parser: require("@html-eslint/parser") },
+      } satisfies Linter.Config,
     },
   })
-  const isHtmlEslintRule = (name) => name.startsWith("@html-eslint/")
-  const pickRules = (rules, predicate) =>
+  const isHtmlEslintRule = (name: string) => name.startsWith("@html-eslint/")
+  const pickRules = (
+    rules: Linter.RulesRecord,
+    predicate: (name: string) => boolean
+  ) =>
     Object.fromEntries(
       Object.entries(rules).filter(([name]) => predicate(name))
     )
@@ -1098,7 +1134,7 @@ describe("compatibility with external HTML plugins", () => {
       describe,
       `with html-eslint's ${setupName}`,
       () => {
-        const baseConfig = (rules) => [
+        const baseConfig = (rules: Linter.RulesRecord): Linter.Config[] => [
           {
             files: ["**/*.html"],
             plugins: {
@@ -1154,7 +1190,7 @@ describe("compatibility with external HTML plugins", () => {
         })
 
         it("keeps the HTML comments of this plugin", async () => {
-          const eslintOptions = {
+          const eslintOptions: eslint.ESLint.Options = {
             baseConfig: [
               ...baseConfig({ "@html-eslint/require-img-alt": "error" }),
               { linterOptions: { reportUnusedDisableDirectives: "error" } },
@@ -1174,7 +1210,7 @@ describe("compatibility with external HTML plugins", () => {
             ...eslintOptions,
             fix: true,
           })
-          assert.ok(output.startsWith(pluginComments))
+          assert.ok(output?.startsWith(pluginComments))
 
           const textWithBOM =
             "\uFEFF<!-- eslint-disable --><script>{{ template }}</script>\n"
@@ -1193,7 +1229,9 @@ describe("remapping", () => {
     const text =
       "<div>\n  <script>\n    console.log(1);\n    foo();\n  </script>\n</div>\n"
     const [message] = await executeText(text)
-    const { range, text: replacement } = message.suggestions[0].fix
+    const suggestion = message.suggestions?.[0]
+    assert.ok(suggestion)
+    const { range, text: replacement } = suggestion.fix
     assert.strictEqual(
       text.slice(0, range[0]) + replacement + text.slice(range[1]),
       "<div>\n  <script>\n    \n    foo();\n  </script>\n</div>\n"
@@ -1209,7 +1247,7 @@ describe("remapping", () => {
       ],
     })
     const start = text.indexOf("foo()")
-    assert.deepStrictEqual(message.fix.range, [start, start])
+    assert.deepStrictEqual(message.fix?.range, [start, start])
   })
 
   it("should indent the lines that fixes add like the script", async () => {
@@ -1243,26 +1281,23 @@ describe("remapping", () => {
     // Replaces the whole script, like formatters do
     const formatted =
       "/**\n * Documented\n */\nfunction foo() {\n  return 1\n}\n"
-    const formatPlugin = {
-      rules: {
-        format: {
-          meta: { fixable: "code" },
-          create: (context) => ({
-            Program: () => {
-              const { text } = context.sourceCode
-              if (text !== formatted) {
-                context.report({
-                  loc: { line: 1, column: 0 },
-                  message: "Not formatted",
-                  fix: (fixer) =>
-                    fixer.replaceTextRange([0, text.length], formatted),
-                })
-              }
-            },
-          }),
+    const formatRule: Rule.RuleModule = {
+      meta: { fixable: "code" },
+      create: (context) => ({
+        Program: () => {
+          const { text } = context.sourceCode
+          if (text !== formatted) {
+            context.report({
+              loc: { line: 1, column: 0 },
+              message: "Not formatted",
+              fix: (fixer) =>
+                fixer.replaceTextRange([0, text.length], formatted),
+            })
+          }
         },
-      },
+      }),
     }
+    const formatPlugin = { rules: { format: formatRule } }
 
     const result = await executeText(
       "<div>\n  <script>\n    function foo() { return 1 }\n  </script>\n</div>\n",
@@ -1287,7 +1322,7 @@ describe("remapping", () => {
 })
 
 describe("edge cases", () => {
-  const fixWith = (text, rules) =>
+  const fixWith = (text: string, rules: Linter.RulesRecord) =>
     executeText(text, {
       baseConfig: [DEFAULT_HTML_CONFIG, { ...DEFAULT_JS_CONFIG, rules }],
       fix: true,
@@ -1379,7 +1414,7 @@ describe("edge cases", () => {
   })
 
   it("should return the plugin from require()", () => {
-    const required = require("../index.js")
+    const required = require("../main.ts")
     assert.strictEqual(required, eslintPluginHtml)
     assert.strictEqual(required.processor, eslintPluginHtmlProcessor)
     assert.strictEqual(required.parser, eslintPluginHtmlParser)
@@ -1462,10 +1497,11 @@ it("should lint HTML code blocks of Markdown files", async () => {
 })
 
 it("should give processors with different options different cache ids", () => {
-  const { version } = eslintPluginHtmlProcessor().meta
-  assert.strictEqual(eslintPluginHtmlProcessor().meta.version, version)
+  const version = eslintPluginHtmlProcessor().meta?.version
+  assert.ok(version)
+  assert.strictEqual(eslintPluginHtmlProcessor().meta?.version, version)
   assert.notStrictEqual(
-    eslintPluginHtmlProcessor({ reportBadIndent: true }).meta.version,
+    eslintPluginHtmlProcessor({ reportBadIndent: true }).meta?.version,
     version
   )
 })

@@ -1,15 +1,67 @@
 import crypto from "node:crypto"
 import path from "node:path"
-import { parseCssSelector } from "./cssSelector.js"
-import { extract } from "./extract.js"
-import { PACKAGE_META } from "./packageMeta.js"
-import { remapMessages } from "./remapMessages.js"
-import { lineStarts as getLineStarts } from "./transformableString.js"
+import type { Linter } from "eslint"
+import { parseCssSelector } from "./cssSelector.ts"
+import { extract } from "./extract.ts"
+import { PACKAGE_META } from "./packageMeta.ts"
+import { remapMessages } from "./remapMessages.ts"
 import {
   deleteFileScripts,
   getScriptFilename,
   setFileScripts,
-} from "./scopeSharing.js"
+} from "./scopeSharing.ts"
+import { lineStarts as getLineStarts } from "./transformableString.ts"
+
+export interface ScriptRule {
+  /**
+   * CSS selector matching the tags whose content is a script, like `script[type="text/babel" i]`
+   */
+  match: string
+
+  /**
+   * Whether the matched scripts are modules. Module scripts get an `.mjs` virtual filename and don't
+   * share their declarations with other scripts.
+   * @default false
+   */
+  module?: boolean
+}
+
+export interface ProcessorOptions {
+  /**
+   * Report lines that are less indented than the script (`true` is the same as `"error"`)
+   * @default false
+   */
+  reportBadIndent?: boolean | "warn" | "error"
+
+  /**
+   * Which tags contain scripts, and which of them are modules. The first matching rule wins.
+   * @default <script> without `src`, with no `type`, an empty one, or a JavaScript or `module` one
+   */
+  rules?: readonly ScriptRule[]
+
+  /**
+   * Expected indentation of scripts: a number of spaces or `tab`, with a `+` prefix to make it
+   * relative to the indentation of the tag. By default, it's the indentation of the first line.
+   */
+  indent?: number | `${"+" | ""}${number}` | `${"+" | ""}tab`
+
+  /**
+   * Parse files as XML (CDATA sections are removed from scripts)
+   * @default false
+   */
+  xml?: boolean
+
+  /**
+   * Also lint the whole file with the file's own config, without this processor. Use it together
+   * with an HTML parser or language, like html-eslint.
+   * @default false
+   */
+  lintMarkup?: boolean
+}
+
+interface PreprocessResult extends ReturnType<typeof extract> {
+  text: string
+}
 
 // Same as eslint-plugin-html v8: no type, an empty type, or (application|text)/(x-)?(javascript|babel|ecmascript-6)
 const CLASSIC_SCRIPT_TYPES = Object.freeze(
@@ -22,7 +74,7 @@ const CLASSIC_SCRIPT_TYPES = Object.freeze(
   )
 )
 
-const DEFAULT_RULES = Object.freeze([
+const DEFAULT_RULES: readonly ScriptRule[] = Object.freeze([
   Object.freeze({
     match: [
       "script:not([type]):not([src])",
@@ -36,22 +88,28 @@ const DEFAULT_RULES = Object.freeze([
   Object.freeze({ match: 'script[type="module" i]:not([src])', module: true }),
 ])
 
-const BAD_INDENT_SEVERITIES = Object.freeze({ warn: 1, error: 2 })
+const BAD_INDENT_SEVERITIES: ReadonlyMap<
+  ProcessorOptions["reportBadIndent"],
+  1 | 2
+> = new Map<ProcessorOptions["reportBadIndent"], 1 | 2>([
+  [true, 2],
+  ["warn", 1],
+  ["error", 2],
+])
 
-export default function ({
+export default function processor({
   reportBadIndent = false,
   rules = DEFAULT_RULES,
-  indent = undefined,
+  indent,
   xml = false,
   lintMarkup = false,
-} = {}) {
-  const preprocessResults = new Map()
+}: ProcessorOptions = {}): Linter.Processor {
+  const preprocessResults = new Map<string, PreprocessResult>()
   const parsedRules = rules.map((rule) => ({
     ...rule,
     match: parseCssSelector(rule.match).match,
   }))
-  const badIndentSeverity =
-    reportBadIndent === true ? 2 : BAD_INDENT_SEVERITIES[reportBadIndent] || 0
+  const badIndentSeverity = BAD_INDENT_SEVERITIES.get(reportBadIndent)
   const optionsHash = crypto
     .createHash("sha1")
     .update(JSON.stringify({ reportBadIndent, rules, indent, xml, lintMarkup }))
@@ -95,11 +153,24 @@ export default function ({
 
     postprocess: (messages, filename) => {
       const preprocessResult = preprocessResults.get(filename)
+      if (!preprocessResult) {
+        return messages.flat()
+      }
+
       const { scripts, badIndentationLines, hasBOM, text } = preprocessResult
       preprocessResults.delete(filename)
       deleteFileScripts(filename)
 
       const scriptMessages = lintMarkup ? messages.slice(1) : messages
+      const badIndentationMessages: Linter.LintMessage[] = badIndentSeverity
+        ? badIndentationLines.map((line) => ({
+            message: "Bad line indentation.",
+            line,
+            column: 1,
+            ruleId: "(html plugin)",
+            severity: badIndentSeverity,
+          }))
+        : []
       return [
         ...(lintMarkup
           ? omitDirectiveCommentMessages(messages[0], preprocessResult)
@@ -111,15 +182,7 @@ export default function ({
             script: scripts[index],
           })
         ),
-        ...(badIndentSeverity
-          ? badIndentationLines.map((line) => ({
-              message: "Bad line indentation.",
-              line,
-              column: 1,
-              ruleId: "(html plugin)",
-              severity: badIndentSeverity,
-            }))
-          : []),
+        ...badIndentationMessages,
       ].sort(
         (first, second) =>
           first.line - second.line || first.column - second.column
@@ -133,8 +196,8 @@ export default function ({
  * and reports them as unused (`--fix` would even empty them). Those messages are dropped.
  */
 const omitDirectiveCommentMessages = (
-  messages,
-  { directiveComments, hasBOM, text }
+  messages: Linter.LintMessage[],
+  { directiveComments, hasBOM, text }: PreprocessResult
 ) => {
   if (directiveComments.length === 0) {
     return messages
@@ -158,15 +221,16 @@ const omitDirectiveCommentMessages = (
   })
 }
 
-function parseIndent(indent) {
+function parseIndent(indent: ProcessorOptions["indent"]) {
   if (indent === undefined) {
     return
   }
-  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(indent)
+  const parsedIndent = /^(\+)?(tab|\d+)$/.exec(String(indent))
   return (
     parsedIndent && {
       relative: parsedIndent[1] === "+",
-      spaces: parsedIndent[2] === "tab" ? "\t" : " ".repeat(parsedIndent[2]),
+      spaces:
+        parsedIndent[2] === "tab" ? "\t" : " ".repeat(Number(parsedIndent[2])),
     }
   )
 }

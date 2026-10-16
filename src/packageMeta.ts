@@ -1,6 +1,6 @@
 import fs from "node:fs"
 
-const { name, version } = JSON.parse(
+const { name, version }: { name: string; version: string } = JSON.parse(
   fs.readFileSync(new URL("../package.json", import.meta.url), "utf8")
 )
 

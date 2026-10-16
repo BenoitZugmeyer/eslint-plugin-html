@@ -1,6 +1,7 @@
 import { execSync as exec } from "node:child_process"
 import { readFileSync as read } from "node:fs"
 import { request } from "node:https"
+import packageJson from "../package.json" with { type: "json" }
 
 interface WorkflowRun {
   head_sha: string
@@ -9,9 +10,7 @@ interface WorkflowRun {
   html_url: string
 }
 
-const { version: currentVersion }: { version: string } = JSON.parse(
-  read(new URL("../package.json", import.meta.url), "utf8")
-)
+const currentVersion = packageJson.version
 
 const REPO = "BenoitZugmeyer/eslint-plugin-html"
 const PACKAGE_FILES = [

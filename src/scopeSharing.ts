@@ -1,10 +1,10 @@
 import path from "node:path"
 import { ConfigCommentParser } from "@eslint/plugin-kit"
 import type { AST, Linter, Rule, Scope } from "eslint"
-import type { Program } from "estree"
 import * as eslintScope from "eslint-scope"
-import * as espree from "espree"
 import * as evk from "eslint-visitor-keys"
+import * as espree from "espree"
+import type { Program } from "estree"
 import { PACKAGE_META } from "./packageMeta.ts"
 
 // What ESLint gives to parsers, plus the parser this one wraps
@@ -32,7 +32,7 @@ interface FileScript {
 interface FileState {
   scripts: FileScript[]
   parserOptions: ParseOptions | undefined
-  reportedParser: boolean
+  reportedParserNotUsed: boolean
 }
 
 // Scripts of the files being linted, keyed by the filename given to `preprocess`, which is also the
@@ -58,7 +58,7 @@ export const setFileScripts = (
       parse: undefined,
     })),
     parserOptions: undefined,
-    reportedParser: false,
+    reportedParserNotUsed: false,
   })
 }
 
@@ -100,7 +100,7 @@ const getSiblingFilePath = (
 
 const isProgram = (ast: unknown): ast is AST.Program =>
   typeof ast === "object" &&
-  ast !== null &&
+  ast != null &&
   "type" in ast &&
   ast.type === "Program"
 
@@ -109,7 +109,7 @@ const analyzeScope = (
   ast: AST.Program,
   parserOptions: Linter.ParserOptions,
   visitorKeys: Linter.ESLintParseResult["visitorKeys"]
-): Scope.ScopeManager => {
+) => {
   const ecmaFeatures = parserOptions.ecmaFeatures || {}
   return eslintScope.analyze(ast, {
     ignoreEval: true,
@@ -155,14 +155,14 @@ const callParser = (
 const parseWithInnerParser = (
   code: string,
   { parser, ...parserOptions }: ParseOptions
-): ParseResult => {
+) => {
   const { ast, scopeManager, ...result } = callParser(
     parser,
     code,
     parserOptions
   )
   if (!isProgram(ast)) {
-    throw new Error("The parser of eslint-plugin-html needs an ESTree parser")
+    throw new Error(`The parser of ${PACKAGE_META.name} needs an ESTree parser`)
   }
 
   return {
@@ -175,7 +175,7 @@ const parseWithInnerParser = (
 }
 
 const isScopeManager = (value: unknown): value is Scope.ScopeManager =>
-  typeof value === "object" && value !== null && "addGlobals" in value
+  typeof value === "object" && value != null && "globalScope" in value
 
 const getInlineGlobalNames = (ast: AST.Program) =>
   (ast.comments || [])
@@ -200,7 +200,7 @@ const getTopLevelScope = (globalScope: Scope.Scope, ast: AST.Program) => {
 const collectGlobals = (
   { ast, scopeManager }: ParseResult,
   module: boolean
-): ScriptGlobals => {
+) => {
   const { globalScope } = scopeManager
   if (!globalScope) {
     return EMPTY_GLOBALS
@@ -265,6 +265,23 @@ const getScriptGlobals = (
   return script.globals
 }
 
+// Names declared or used by the scripts from `start` to `end`, parsed if needed
+const collectScriptNames = (
+  file: FileState,
+  start: number,
+  end: number,
+  currentScript: FileScript,
+  kind: keyof ScriptGlobals
+) =>
+  new Set(
+    file.scripts
+      .slice(start, end)
+      .flatMap(
+        (_, offset) =>
+          getScriptGlobals(file, start + offset, currentScript)[kind]
+      )
+  )
+
 // Reuses (once) a parse made ahead of time with the same options
 const takeEarlyParse = (
   script: FileScript,
@@ -283,12 +300,12 @@ const takeEarlyParse = (
 /**
  * Parser for scripts extracted by the processor. It wraps `parserOptions.parser` (espree by
  * default), and declares the global variables coming from the previous classic scripts of the same
- * HTML file in the scope manager it returns.
+ * HTML file in the scope manager it returns
  */
 export const parser = {
   meta: { name: `${PACKAGE_META.name}/parser`, version: PACKAGE_META.version },
 
-  parseForESLint(code: string, options: ParseOptions = {}): ParseResult {
+  parseForESLint(code: string, options: ParseOptions = {}) {
     const context = getScriptContext(options.filePath)
     if (context == null) {
       return parseWithInnerParser(code, options)
@@ -303,18 +320,21 @@ export const parser = {
     const globals = collectGlobals(result, script.module)
     script.globals = globals
 
-    const declaredBefore = new Set(
-      file.scripts
-        .slice(0, index)
-        .flatMap(
-          (_, previousIndex) =>
-            getScriptGlobals(file, previousIndex, script).declared
-        )
+    const declaredBefore = collectScriptNames(
+      file,
+      0,
+      index,
+      script,
+      "declared"
     )
     const names = [...new Set(globals.through)].filter((name) =>
       declaredBefore.has(name)
     )
-    if (names.length > 0) {
+    // Scope managers of parsers made for older ESLint versions may not have it
+    if (
+      names.length > 0 &&
+      typeof result.scopeManager.addGlobals === "function"
+    ) {
       result.scopeManager.addGlobals(names)
     }
 
@@ -336,8 +356,7 @@ export const scopeSharingRule: Rule.RuleModule = {
     },
     schema: [],
     messages: {
-      parserNotUsed:
-        "The parser of eslint-plugin-html is not used for this script, so it doesn't see the global variables of the previous scripts. Set it in `languageOptions.parser`, and your parser in `parserOptions.parser`.",
+      parserNotUsed: `The parser of ${PACKAGE_META.name} is not used for this script, so it doesn't see the global variables of the previous scripts. Set it in \`languageOptions.parser\`, and your parser in \`parserOptions.parser\`.`,
     },
   },
 
@@ -350,15 +369,15 @@ export const scopeSharingRule: Rule.RuleModule = {
     const { file, index, script } = scriptContext
     const { languageOptions, sourceCode } = context
     // Once per file, for the first script that could use globals of previous scripts
-    const reportsParserNotUsed =
-      !file.reportedParser &&
+    const shouldReportParserNotUsed =
+      !file.reportedParserNotUsed &&
       !isPluginParser(languageOptions.parser) &&
       file.scripts.slice(0, index).some((previous) => !previous.module)
-    if (reportsParserNotUsed) {
-      file.reportedParser = true
+    if (shouldReportParserNotUsed) {
+      file.reportedParserNotUsed = true
     }
     const reportParserNotUsed = (node: Program) => {
-      if (reportsParserNotUsed) {
+      if (shouldReportParserNotUsed) {
         context.report({ node, messageId: "parserNotUsed" })
       }
     }
@@ -377,13 +396,12 @@ export const scopeSharingRule: Rule.RuleModule = {
     return {
       Program(node) {
         reportParserNotUsed(node)
-        new Set(
-          file.scripts
-            .slice(index + 1)
-            .flatMap(
-              (_, offset) =>
-                getScriptGlobals(file, index + 1 + offset, script).through
-            )
+        collectScriptNames(
+          file,
+          index + 1,
+          file.scripts.length,
+          script,
+          "through"
         ).forEach((name) => sourceCode.markVariableAsUsed(name, node))
       },
     }

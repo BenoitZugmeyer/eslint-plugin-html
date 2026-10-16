@@ -27,7 +27,7 @@ export interface IndentDescriptor {
   spaces: string
 }
 
-export interface ExtractOptions {
+interface ExtractOptions {
   indent?: IndentDescriptor | null
   rules: ReadonlyArray<{
     match: (node: TagNode) => unknown
@@ -68,15 +68,10 @@ interface ScriptChunk {
 
 type Chunk = HtmlChunk | ScriptChunk
 
-interface RemovedRange {
-  from: number
-  to: number
-}
-
 type DedentAction =
-  | { type: "dedent"; range: RemovedRange; isFirstNonEmptyLine: boolean }
-  | { type: "empty"; range: RemovedRange | undefined }
-  | { type: "bad-indent"; range: RemovedRange | undefined; index: number }
+  | { type: "dedent"; range: Range; isFirstNonEmptyLine: boolean }
+  | { type: "empty"; range: Range | undefined }
+  | { type: "bad-indent"; range: Range | undefined; index: number }
 
 export function extract(
   html: string,
@@ -113,14 +108,14 @@ export function extract(
       for (const action of dedent(indent, indentSlice, blankTagLineStart)) {
         if (action.range) {
           transformedCode.replace(
-            start + action.range.from,
-            start + action.range.to,
+            start + action.range.start,
+            start + action.range.end,
             ""
           )
         }
         if (action.type === "dedent") {
-          if (blankTagLineStart === undefined && action.isFirstNonEmptyLine) {
-            baseLineStart = start + action.range.to
+          if (blankTagLineStart == null && action.isFirstNonEmptyLine) {
+            baseLineStart = start + action.range.end
           }
         } else if (action.type === "bad-indent") {
           htmlLineStarts ||= lineStarts(html)
@@ -188,7 +183,7 @@ function parseHtml(html: string, xmlMode: boolean, options: ExtractOptions) {
           type: "script",
           start: parser.endIndex + 1,
           end: undefined,
-          module: matchingRule.module === true,
+          module: Boolean(matchingRule.module),
           tagName,
           cdata: [],
         })
@@ -232,11 +227,11 @@ function parseHtml(html: string, xmlMode: boolean, options: ExtractOptions) {
       },
 
       oncomment(comment) {
-        const chunk = currentChunk()
         const ignore = DIRECTIVE_COMMENTS.get(comment.trim())
-        if (chunk.type !== "html" || ignore === undefined) return
+        if (ignore == null) return
 
-        chunk.ignore = ignore
+        const chunk = currentChunk()
+        if (chunk.type === "html") chunk.ignore = ignore
         directiveComments.push({
           start: parser.startIndex,
           end: parser.endIndex + 1,
@@ -278,10 +273,10 @@ function computeIndent(
 }
 
 /**
- * Where the content of the tag line starts (after a CDATA start in XML) when it is blank, so it can be
- * left out of the script
+ * Where the content of the tag line starts (after a CDATA start in XML) when it is blank, so it can
+ * be left out of the script
  */
-function getBlankTagLineStart(slice: string, chunk: ScriptChunk) {
+const getBlankTagLineStart = (slice: string, chunk: ScriptChunk) => {
   const cdataStart = chunk.cdata.find((cdata) =>
     INDENTATION_OR_EMPTY_RE.test(slice.slice(0, cdata.start - chunk.start))
   )
@@ -295,6 +290,7 @@ function* dedent(
   blankTagLineStart: number | undefined
 ): Generator<DedentAction> {
   let hadNonEmptyLine = false
+  // Not U+2028 and U+2029, which ESLint counts as line breaks too: they can be in strings
   const re = /(\r\n|\n|\r)([ \t]*)(.*)/g
   let lastIndex = 0
   let isFirstLine = true
@@ -305,8 +301,8 @@ function* dedent(
 
     // The tag line is not part of the script when it's blank
     const tagLine =
-      isFirstLine && blankTagLineStart !== undefined
-        ? { from: blankTagLineStart, to: match.index + match[1].length }
+      isFirstLine && blankTagLineStart != null
+        ? { start: blankTagLineStart, end: match.index + match[1].length }
         : undefined
     isFirstLine = false
 
@@ -328,8 +324,8 @@ function* dedent(
       yield {
         type: "dedent",
         range: {
-          from: tagLine ? tagLine.from : match.index + newLine.length,
-          to: lastIndex,
+          start: tagLine ? tagLine.start : match.index + newLine.length,
+          end: lastIndex,
         },
         isFirstNonEmptyLine,
       }
@@ -357,8 +353,8 @@ function* dedent(
     yield {
       type: "dedent",
       range: {
-        from: slice.length - endSpaces,
-        to: slice.length,
+        start: slice.length - endSpaces,
+        end: slice.length,
       },
       isFirstNonEmptyLine: false,
     }

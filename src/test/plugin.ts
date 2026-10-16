@@ -4,6 +4,7 @@ import * as semver from "semver"
 import { it, describe } from "node:test"
 import * as assert from "node:assert"
 import { createRequire } from "node:module"
+import path from "node:path"
 import { fileURLToPath } from "node:url"
 import markdown from "@eslint/markdown"
 import * as espree from "espree"
@@ -11,7 +12,9 @@ import * as espree from "espree"
 import eslintPluginHtml, {
   parser as eslintPluginHtmlParser,
   processor as eslintPluginHtmlProcessor,
+  type ProcessorOptions,
 } from "../index.ts"
+import { deleteFileScripts, setFileScripts } from "../scopeSharing.ts"
 
 const require = createRequire(import.meta.url)
 const eslintVersion: string = require("eslint/package.json").version
@@ -113,6 +116,12 @@ async function executeText(
 
   return eslintOptions.fix ? result : result.messages
 }
+
+const fixWith = (text: string, jsConfig: Linter.Config) =>
+  executeText(text, {
+    baseConfig: [DEFAULT_HTML_CONFIG, { ...DEFAULT_JS_CONFIG, ...jsConfig }],
+    fix: true,
+  })
 
 const toLocatedMessages = (messages: Linter.LintMessage[]) =>
   messages.map(
@@ -440,6 +449,44 @@ describe("processor reports bad indent", () => {
     assert.strictEqual(messages[2].message, "Bad line indentation.")
     assert.strictEqual(messages[2].line, 11)
     assert.strictEqual(messages[2].column, 1)
+  })
+
+  it("should report with the severity of the option", async () => {
+    const SEVERITIES: ReadonlyArray<
+      [ProcessorOptions["reportBadIndent"], number[]]
+    > = [
+      [false, []],
+      [0, []],
+      ["off", []],
+      [1, [1]],
+      ["warn", [1]],
+      [true, [2]],
+      [2, [2]],
+      ["error", [2]],
+    ]
+    for (const [reportBadIndent, severities] of SEVERITIES) {
+      const messages = await execute("report-bad-indent-setting.html", {
+        baseConfig: [
+          {
+            ...DEFAULT_HTML_CONFIG,
+            processor: eslintPluginHtmlProcessor({ reportBadIndent }),
+          },
+        ],
+      })
+      assert.deepStrictEqual(
+        messages.map(({ severity }) => severity),
+        severities,
+        `reportBadIndent: ${String(reportBadIndent)}`
+      )
+    }
+  })
+
+  it("should throw on invalid values", () => {
+    assert.throws(
+      // @ts-expect-error Not a severity
+      () => eslintPluginHtmlProcessor({ reportBadIndent: "warning" }),
+      /Invalid value for reportBadIndent: warning/
+    )
   })
 })
 
@@ -1251,24 +1298,17 @@ describe("remapping", () => {
   })
 
   it("should indent the lines that fixes add like the script", async () => {
-    const result = await executeText(
+    const result = await fixWith(
       "<div>\n  <script>\n    const a = {b: 1}\n    foo()\n    bar()\n  </script>\n</div>\n",
       {
-        baseConfig: [
-          DEFAULT_HTML_CONFIG,
-          {
-            ...DEFAULT_JS_CONFIG,
-            rules: {
-              "object-curly-newline": ["error", "always"],
-              indent: ["error", 2],
-              "padding-line-between-statements": [
-                "error",
-                { blankLine: "always", prev: "expression", next: "expression" },
-              ],
-            },
-          },
-        ],
-        fix: true,
+        rules: {
+          "object-curly-newline": ["error", "always"],
+          indent: ["error", 2],
+          "padding-line-between-statements": [
+            "error",
+            { blankLine: "always", prev: "expression", next: "expression" },
+          ],
+        },
       }
     )
     assert.strictEqual(
@@ -1299,19 +1339,9 @@ describe("remapping", () => {
     }
     const formatPlugin = { rules: { format: formatRule } }
 
-    const result = await executeText(
+    const result = await fixWith(
       "<div>\n  <script>\n    function foo() { return 1 }\n  </script>\n</div>\n",
-      {
-        baseConfig: [
-          DEFAULT_HTML_CONFIG,
-          {
-            ...DEFAULT_JS_CONFIG,
-            plugins: { test: formatPlugin },
-            rules: { "test/format": "error" },
-          },
-        ],
-        fix: true,
-      }
+      { plugins: { test: formatPlugin }, rules: { "test/format": "error" } }
     )
     assert.strictEqual(
       result.output,
@@ -1322,16 +1352,10 @@ describe("remapping", () => {
 })
 
 describe("edge cases", () => {
-  const fixWith = (text: string, rules: Linter.RulesRecord) =>
-    executeText(text, {
-      baseConfig: [DEFAULT_HTML_CONFIG, { ...DEFAULT_JS_CONFIG, rules }],
-      fix: true,
-    })
-
   it("should not leave the indentation in lines joined by a fix", async () => {
     const { output } = await fixWith(
       "<div>\n  <script>\n    function foo()\n    {\n      return 1\n    }\n  </script>\n</div>\n",
-      { "brace-style": "error" }
+      { rules: { "brace-style": "error" } }
     )
     assert.strictEqual(
       output,
@@ -1342,7 +1366,7 @@ describe("edge cases", () => {
   it("should keep the code on its own line when blank lines before it are removed", async () => {
     const { output } = await fixWith(
       "<div>\n  <script>\n\n\n    foo()\n  </script>\n</div>\n",
-      { "no-multiple-empty-lines": ["error", { max: 1, maxBOF: 0 }] }
+      { rules: { "no-multiple-empty-lines": ["error", { max: 1, maxBOF: 0 }] } }
     )
     assert.strictEqual(
       output,
@@ -1353,7 +1377,7 @@ describe("edge cases", () => {
   it("should not indent again and again a script starting on its tag line", async () => {
     const text =
       "<div>\n<script>foo(function () {\n          bar()\n        baz()\n})\n</script>\n</div>\n"
-    const result = await fixWith(text, { indent: ["error", 2] })
+    const result = await fixWith(text, { rules: { indent: ["error", 2] } })
     assert.strictEqual(
       result.output,
       "<div>\n<script>foo(function () {\n          bar()\n  baz()\n})\n</script>\n</div>\n"
@@ -1411,6 +1435,40 @@ describe("edge cases", () => {
       }
     )
     assert.deepStrictEqual(messages, [])
+  })
+
+  it("should keep the scope managers of parsers that cannot add globals", () => {
+    // Like the ones of parsers made for ESLint 9, which doesn't call `addGlobals` itself
+    const filename = getFixturePath("legacy-parser.html")
+    const innerParser: Linter.Parser = {
+      parseForESLint: (code: string) => {
+        const result = eslintPluginHtmlParser.parseForESLint(code)
+        Object.defineProperty(result.scopeManager, "addGlobals", {
+          value: undefined,
+        })
+        return result
+      },
+    }
+    setFileScripts(filename, [
+      { code: "var shared = 1", module: false },
+      { code: "shared", module: false },
+    ])
+
+    try {
+      const { scopeManager } = eslintPluginHtmlParser.parseForESLint("shared", {
+        parser: innerParser,
+        filePath: path.join(filename, "1_part-1.js"),
+      })
+      assert.strictEqual(scopeManager.addGlobals, undefined)
+      assert.deepStrictEqual(
+        scopeManager.globalScope?.through.map(
+          ({ identifier }) => identifier.name
+        ),
+        ["shared"]
+      )
+    } finally {
+      deleteFileScripts(filename)
+    }
   })
 
   it("should return the plugin from require()", () => {

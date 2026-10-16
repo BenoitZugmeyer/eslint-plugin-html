@@ -127,28 +127,34 @@ selectors: tag names, `*`, `#id`, `.class`, attributes (with the `i` and `s` fla
 
 By default, the content of `<script>` tags without a `src` attribute is linted if they don't have a
 `type` attribute, or if it's empty, `module` or matches
-`(application|text)/(x-)?(javascript|babel|ecmascript-6)` (case-insensitive). Examples:
+`(application|text)/(x-)?(javascript|babel|ecmascript-6)` (case-insensitive). The `rules` option
+replaces the default rules, so the examples below restate the ones they keep (with only the
+`text/javascript` type, for brevity):
 
 ```javascript
 // Also lint <customscript> tags as classic scripts
 processor({
   rules: [
     { match: 'script[type="module" i]:not([src])', module: true },
-    { match: "script:not([src]), customscript" },
+    { match: 'script[type="text/javascript" i]:not([src])' },
+    { match: "script:not([type]):not([src]), customscript" },
   ],
 })
 
-// Only lint scripts with a JavaScript type, like ignore-tags-without-type in v8
+// Skip scripts without a type, like `html/ignore-tags-without-type` in v8
 processor({
   rules: [
-    { match: 'script[type="text/javascript" i]' },
-    { match: 'script[type="module" i]', module: true },
+    { match: 'script[type="module" i]:not([src])', module: true },
+    { match: 'script[type="text/javascript" i]:not([src])' },
   ],
 })
 
-// Treat every script as a module: scripts don't share global variables anymore
+// Treat scripts without a type as modules too: they don't share global variables anymore
 processor({
-  rules: [{ match: "script", module: true }],
+  rules: [
+    { match: 'script[type="module" i]:not([src])', module: true },
+    { match: "script:not([type]):not([src])", module: true },
+  ],
 })
 ```
 
@@ -169,7 +175,8 @@ processor({ indent: "tab" }) // indentation is one tab at the beginning of the l
 
 By default, this plugin won't warn if it encounters a problematic indentation (ex: a line is under
 indented). If you want to make sure the indentation is correct, use `reportBadIndent` in conjunction
-with the `indent` rule. Pass `"warn"` to display warnings, `"error"` or `true` to display errors.
+with the `indent` rule. Pass `"warn"` (or `1`) to display warnings, `"error"` (or `2`, `true`) to
+display errors.
 
 ### `xml`
 
@@ -405,6 +412,7 @@ still returns the plugin, with `processor` and `parser` as properties.
 
 - `sourceType: "module"` doesn't stop scripts from sharing global variables anymore: use the
   [`rules`](#rules) option to treat scripts as modules.
+- Scripts with an empty `src` attribute aren't linted anymore, as browsers don't run them either.
 - To lint HTML with html-eslint, use the [`lintMarkup`](#lintmarkup) option.
 
 ### To v4

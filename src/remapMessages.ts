@@ -4,13 +4,14 @@ import type TransformableString from "./transformableString.ts"
 
 type Fix = NonNullable<Linter.LintMessage["fix"]>
 
+// Only CR and LF, like when scripts are dedented: U+2028 and U+2029 can be in strings
 const LINE_BREAK_CHAR_RE = /[\r\n]/
 const INNER_LINE_BREAK_RE = /(\r\n|\r|\n)(?=[^\r\n])/g
 const TRAILING_LINE_BREAK_RE = /(?:\r\n|\r|\n)$/
 const INDENTATION_RE = /^[ \t]+$/
 const INDENTATION_OR_EMPTY_RE = /^[ \t]*$/
 
-export interface RemapContext {
+interface RemapContext {
   // The original text, which the script was extracted from
   html: string
   hasBOM: boolean
@@ -21,7 +22,7 @@ export function remapMessages(
   messages: Linter.LintMessage[],
   context: RemapContext
 ): Linter.LintMessage[] {
-  const newMessages: Linter.LintMessage[] = []
+  const newMessages = []
 
   for (const message of messages) {
     if (remapMessage(message, context)) {
@@ -101,7 +102,7 @@ const remapFix = (
   // Indenting the base line of a script starting on its tag line would only move the base
   // indentation, so the fix would apply again and again
   if (
-    originalStart === undefined ||
+    originalStart == null ||
     (start === end &&
       originalStart === script.baseLineStart &&
       INDENTATION_RE.test(fix.text))
@@ -115,12 +116,10 @@ const remapFix = (
     ? !TRAILING_LINE_BREAK_RE.test(fix.text)
     : start > 0 && !LINE_BREAK_CHAR_RE.test(virtualText[start - 1])
   const originalEnd =
-    end > start
-      ? remapRangeEnd(end, codePart, html, virtualText.length, joinsLines)
-      : originalStart
+    end > start ? remapRangeEnd(end, codePart, html, joinsLines) : originalStart
   const scriptEnd = codePart.originalIndex(virtualText.length)
   // Only inserted text, which this plugin never adds, has no original index
-  if (originalEnd === undefined || scriptEnd === undefined) {
+  if (originalEnd == null || scriptEnd == null) {
     return
   }
 
@@ -142,33 +141,33 @@ const remapFix = (
 /**
  * The range end is exclusive, so it's mapped from the last targeted character. When the next
  * character starts a line that lost its indentation and the fix joins it to the previous line, the
- * indentation is replaced too, so that it doesn't stay in the middle of the line.
+ * indentation is replaced too, so that it doesn't stay in the middle of the line
  */
 const remapRangeEnd = (
   end: number,
   codePart: TransformableString,
   html: string,
-  virtualLength: number,
   joinsLines: boolean
 ) => {
   const lastCharacter = codePart.originalIndex(end - 1)
-  if (lastCharacter === undefined) {
+  if (lastCharacter == null) {
     return
   }
 
   const afterLastCharacter = lastCharacter + 1
-  if (!joinsLines || end >= virtualLength) {
+  if (!joinsLines || end >= codePart.toString().length) {
     return afterLastCharacter
   }
 
   const nextCharacter = codePart.originalIndex(end)
-  return nextCharacter !== undefined &&
+  return nextCharacter != null &&
     INDENTATION_OR_EMPTY_RE.test(html.slice(afterLastCharacter, nextCharacter))
     ? nextCharacter
     : afterLastCharacter
 }
 
-// Lines added by a fix need the indentation that was removed from the script. Empty lines stay empty.
+// Lines added by a fix need the indentation that was removed from the script. Empty lines stay
+// empty
 const reindent = (
   text: string,
   indent: string,

@@ -19,8 +19,8 @@ export interface ScriptRule {
   match: string
 
   /**
-   * Whether the matched scripts are modules. Module scripts get an `.mjs` virtual filename and don't
-   * share their declarations with other scripts.
+   * Whether the matched scripts are modules. Module scripts get an `.mjs` virtual filename and
+   * don't share their declarations with other scripts.
    * @default false
    */
   module?: boolean
@@ -28,10 +28,11 @@ export interface ScriptRule {
 
 export interface ProcessorOptions {
   /**
-   * Report lines that are less indented than the script (`true` is the same as `"error"`)
+   * Report lines that are less indented than the script, as `"warn"` (or `1`), `"error"` (or `2`,
+   * `true`), or not (`"off"`, `0`, `false`)
    * @default false
    */
-  reportBadIndent?: boolean | "warn" | "error"
+  reportBadIndent?: boolean | "off" | "warn" | "error" | 0 | 1 | 2
 
   /**
    * Which tags contain scripts, and which of them are modules. The first matching rule wins.
@@ -41,7 +42,7 @@ export interface ProcessorOptions {
 
   /**
    * Expected indentation of scripts: a number of spaces or `tab`, with a `+` prefix to make it
-   * relative to the indentation of the tag. By default, it's the indentation of the first line.
+   * relative to the indentation of the tag. By default, it's the indentation of the first line
    */
   indent?: number | `${"+" | ""}${number}` | `${"+" | ""}tab`
 
@@ -63,7 +64,8 @@ interface PreprocessResult extends ReturnType<typeof extract> {
   text: string
 }
 
-// Same as eslint-plugin-html v8: no type, an empty type, or (application|text)/(x-)?(javascript|babel|ecmascript-6)
+// Same as eslint-plugin-html v8: no type, an empty type, or
+// (application|text)/(x-)?(javascript|babel|ecmascript-6)
 const CLASSIC_SCRIPT_TYPES = Object.freeze(
   ["application", "text"].flatMap((prefix) =>
     ["", "x-"].flatMap((variant) =>
@@ -88,14 +90,29 @@ const DEFAULT_RULES: readonly ScriptRule[] = Object.freeze([
   Object.freeze({ match: 'script[type="module" i]:not([src])', module: true }),
 ])
 
-const BAD_INDENT_SEVERITIES: ReadonlyMap<
-  ProcessorOptions["reportBadIndent"],
-  1 | 2
-> = new Map<ProcessorOptions["reportBadIndent"], 1 | 2>([
-  [true, 2],
-  ["warn", 1],
-  ["error", 2],
-])
+// Same values as eslint-plugin-html v8, except `true`, which was `"warn"`
+const getBadIndentSeverity = (
+  reportBadIndent: ProcessorOptions["reportBadIndent"]
+) => {
+  switch (reportBadIndent) {
+    case undefined:
+    case false:
+    case 0:
+    case "off":
+      return 0
+    case 1:
+    case "warn":
+      return 1
+    case true:
+    case 2:
+    case "error":
+      return 2
+    default:
+      throw new Error(
+        `Invalid value for reportBadIndent: ${String(reportBadIndent)}, expected one of 0, 1, 2, "off", "warn", "error", true or false`
+      )
+  }
+}
 
 export default function processor({
   reportBadIndent = false,
@@ -109,7 +126,7 @@ export default function processor({
     ...rule,
     match: parseCssSelector(rule.match).match,
   }))
-  const badIndentSeverity = BAD_INDENT_SEVERITIES.get(reportBadIndent)
+  const badIndentSeverity = getBadIndentSeverity(reportBadIndent)
   const optionsHash = crypto
     .createHash("sha1")
     .update(JSON.stringify({ reportBadIndent, rules, indent, xml, lintMarkup }))
@@ -141,8 +158,8 @@ export default function processor({
       )
 
       return [
-        // Same text and extension as the file: ESLint lints it with the file's own config, including
-        // `language`, and without this processor
+        // Same text and extension as the file: ESLint lints it with the file's own config,
+        // including `language`, and without this processor
         ...(lintMarkup ? [{ text, filename: path.basename(filename) }] : []),
         ...scripts.map((script, index) => ({
           text: codes[index],
@@ -192,8 +209,9 @@ export default function processor({
 }
 
 /**
- * When it lints the markup, ESLint also reads the HTML comments of this plugin as its own directives,
- * and reports them as unused (`--fix` would even empty them). Those messages are dropped.
+ * When it lints the markup, ESLint also reads the HTML comments of this plugin as its own
+ * directives, and reports them as unused (`--fix` would even empty them). Those messages are
+ * dropped
  */
 const omitDirectiveCommentMessages = (
   messages: Linter.LintMessage[],

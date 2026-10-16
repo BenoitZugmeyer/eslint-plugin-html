@@ -7,7 +7,7 @@ interface Block {
   str: string
 }
 
-export interface Location {
+interface Location {
   line: number
   column: number
 }
@@ -126,10 +126,7 @@ function locationToIndex(location: Location, lineStarts: readonly number[]) {
   return lineStarts[location.line - 1] + location.column - 1
 }
 
-export function indexToLocation(
-  index: number,
-  lineStarts: readonly number[]
-): Location {
+export function indexToLocation(index: number, lineStarts: readonly number[]) {
   if (index < 0) throw new Error("Invalid index")
 
   let line = 0

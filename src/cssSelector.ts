@@ -70,7 +70,7 @@ function matchAttribute(
   caseInsensitive = false
 ) {
   if (!Object.hasOwn(node.attributes, name)) return false
-  if (operator === undefined) return true
+  if (operator == null) return true
 
   // The value always comes with an operator
   const value = normalizeCase(rawValue || "", caseInsensitive)

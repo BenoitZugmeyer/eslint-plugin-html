@@ -6,7 +6,9 @@ Unreleased v9.0.0
 - Lint `<script type="module">` tags as modules and other scripts as classic scripts, in the same file
 - Support html-eslint's `language` option, with the `lintMarkup` processor option #312 #338
 - Fix suggestions applied at the wrong place
-- Fix crash on fixes inserting text at the start of a script
+- Fix crash on fixes inserting text at the start of a script #305
+- Fix lines added by fixes not indented like the rest of the script #131
+- Fix this plugin's HTML comments reported as unused directives, and emptied by `--fix`, when linting the HTML
 
 2026-09-23 v8.2.1
 

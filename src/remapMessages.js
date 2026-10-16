@@ -1,8 +1,13 @@
-export function remapMessages(messages, hasBOM, codePart) {
+const LINE_BREAK_CHAR_RE = /[\r\n]/
+const INNER_LINE_BREAK_RE = /(\r\n|\r|\n)(?=[^\r\n])/g
+const TRAILING_LINE_BREAK_RE = /(?:\r\n|\r|\n)$/
+
+// `context`: the original `html` and its `hasBOM`, and the `script` (its `code` and removed `indent`)
+export function remapMessages(messages, context) {
   const newMessages = []
 
   for (const message of messages) {
-    if (remapMessage(message, hasBOM, codePart)) {
+    if (remapMessage(message, context)) {
       newMessages.push(message)
     }
   }
@@ -10,7 +15,9 @@ export function remapMessages(messages, hasBOM, codePart) {
   return newMessages
 }
 
-function remapMessage(message, hasBOM, codePart) {
+function remapMessage(message, context) {
+  const codePart = context.script.code
+
   if (!message.line || !message.column) {
     // Some messages apply to the whole file instead of a particular code location. In particular:
     // * @typescript-eslint/parser may send messages with no line/column
@@ -35,13 +42,13 @@ function remapMessage(message, hasBOM, codePart) {
   message.source = codePart.getOriginalLine(location.line)
 
   if (message.fix && message.fix.range) {
-    message.fix = remapFix(message.fix, hasBOM, codePart)
+    message.fix = remapFix(message.fix, context)
   }
 
   if (message.suggestions) {
     message.suggestions = message.suggestions.map((suggestion) => ({
       ...suggestion,
-      fix: remapFix(suggestion.fix, hasBOM, codePart),
+      fix: remapFix(suggestion.fix, context),
     }))
   }
 
@@ -60,20 +67,43 @@ function remapMessage(message, hasBOM, codePart) {
   return true
 }
 
-const remapFix = (fix, hasBOM, codePart) => {
-  const bomOffset = hasBOM ? -1 : 0
+const remapFix = (fix, { html, hasBOM, script }) => {
+  const { code: codePart, indent } = script
   const [start, end] = fix.range
-  const originalStart = codePart.originalIndex(start) + bomOffset
+  const originalStart = codePart.originalIndex(start)
+  // The range end is exclusive, meaning it should replace all characters with indexes from start
+  // to end - 1. We have to get the original index of the last targeted character. Insertions
+  // (empty ranges) keep an empty range.
+  const originalEnd =
+    end > start ? codePart.originalIndex(end - 1) + 1 : originalStart
+  const bomOffset = hasBOM ? -1 : 0
+
   return {
     ...fix,
-    range: [
-      originalStart,
-      // The range end is exclusive, meaning it should replace all characters  with indexes from
-      // start to end - 1. We have to get the original index of the last targeted character.
-      // Insertions (empty ranges) keep an empty range.
-      end > start
-        ? codePart.originalIndex(end - 1) + 1 + bomOffset
-        : originalStart,
-    ],
+    range: [originalStart + bomOffset, originalEnd + bomOffset],
+    text: indent
+      ? reindent(
+          fix.text,
+          indent,
+          TRAILING_LINE_BREAK_RE.test(fix.text) &&
+            isInsideScriptLine(
+              html,
+              originalEnd,
+              codePart.originalIndex(codePart.toString().length)
+            )
+        )
+      : fix.text,
   }
 }
+
+// Lines added by a fix need the indentation that was removed from the script. Empty lines stay empty.
+const reindent = (text, indent, isFollowedByLineContent) => {
+  const reindented = text.replace(INNER_LINE_BREAK_RE, `$1${indent}`)
+  return isFollowedByLineContent ? reindented + indent : reindented
+}
+
+const isInsideScriptLine = (html, index, scriptEnd) =>
+  index > 0 &&
+  index < scriptEnd &&
+  !LINE_BREAK_CHAR_RE.test(html[index - 1]) &&
+  !LINE_BREAK_CHAR_RE.test(html[index])

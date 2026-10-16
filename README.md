@@ -21,6 +21,7 @@
 - [Troubleshooting](#troubleshooting)
   - [My rules don't apply to module scripts](#my-rules-dont-apply-to-module-scripts)
   - [Type-aware linting fails on scripts](#type-aware-linting-fails-on-scripts)
+  - [Prettier doesn't format scripts](#prettier-doesnt-format-scripts)
   - [Linting templates (or PHP)](#linting-templates-or-php)
   - [Linting VUE files](#linting-vue-files)
 - [Migration from older versions](#migration-from-older-versions)
@@ -237,6 +238,10 @@ export default defineConfig([
 Both plugins use `html` as their default name, so register html-eslint under another name, like
 `@html-eslint` (its `flat/recommended` configuration does this).
 
+ESLint also reads the [HTML comments of this plugin](#disabling-eslint) as its own directives when
+it lints the HTML. The plugin hides what ESLint reports about them, so they are never reported as
+unused or removed by `--fix`.
+
 ## Multiple scripts tags in a HTML file
 
 When linting a HTML with multiple script tags, this plugin emulates the browser behavior:
@@ -321,6 +326,11 @@ linting for them, for example with typescript-eslint:
   extends: [tseslint.configs.disableTypeChecked],
 }
 ```
+
+### Prettier doesn't format scripts
+
+`eslint-plugin-prettier` skips the scripts extracted from HTML files, because Prettier can format the
+whole HTML file, scripts included. Run Prettier on your HTML files directly.
 
 ### Linting templates (or PHP)
 

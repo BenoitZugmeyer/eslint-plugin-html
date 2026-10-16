@@ -35,6 +35,7 @@ const DEFAULT_RULES = Object.freeze([
 ])
 
 const BAD_INDENT_SEVERITIES = Object.freeze({ warn: 1, error: 2 })
+const LINE_BREAK_RE = /\r\n|\r|\n/g
 
 export default function ({
   reportBadIndent = false,
@@ -64,11 +65,12 @@ export default function ({
     },
     supportsAutofix: true,
     preprocess: (text, filename) => {
-      const { scripts, badIndentationLines, hasBOM } = extract(text, xml, {
+      const extractResult = extract(text, xml, {
         indent: parseIndent(indent),
         rules: parsedRules,
       })
-      preprocessResults.set(filename, { scripts, badIndentationLines, hasBOM })
+      const { scripts } = extractResult
+      preprocessResults.set(filename, { ...extractResult, text })
 
       const codes = scripts.map((script) => script.code.toString())
       setFileScripts(
@@ -91,16 +93,22 @@ export default function ({
     },
 
     postprocess: (messages, filename) => {
-      const { scripts, badIndentationLines, hasBOM } =
-        preprocessResults.get(filename)
+      const preprocessResult = preprocessResults.get(filename)
+      const { scripts, badIndentationLines, hasBOM, text } = preprocessResult
       preprocessResults.delete(filename)
       deleteFileScripts(filename)
 
       const scriptMessages = lintMarkup ? messages.slice(1) : messages
       return [
-        ...(lintMarkup ? messages[0] : []),
+        ...(lintMarkup
+          ? omitDirectiveCommentMessages(messages[0], preprocessResult)
+          : []),
         ...scriptMessages.flatMap((blockMessages, index) =>
-          remapMessages(blockMessages, hasBOM, scripts[index].code)
+          remapMessages(blockMessages, {
+            html: text,
+            hasBOM,
+            script: scripts[index],
+          })
         ),
         ...(badIndentSeverity
           ? badIndentationLines.map((line) => ({
@@ -117,6 +125,42 @@ export default function ({
       )
     },
   }
+}
+
+/**
+ * When it lints the markup, ESLint also reads the HTML comments of this plugin as its own directives,
+ * and reports them as unused (`--fix` would even empty them). Those messages are dropped.
+ */
+const omitDirectiveCommentMessages = (
+  messages,
+  { directiveComments, hasBOM, text }
+) => {
+  if (directiveComments.length === 0) {
+    return messages
+  }
+
+  const lineStarts = [
+    0,
+    ...Array.from(
+      text.matchAll(LINE_BREAK_RE),
+      (match) => match.index + match[0].length
+    ),
+  ]
+  return messages.filter((message) => {
+    if (message.ruleId != null || !message.line || !message.column) {
+      return true
+    }
+
+    // ESLint's columns don't count the BOM
+    const index =
+      lineStarts[message.line - 1] +
+      message.column -
+      1 +
+      (hasBOM && message.line === 1 ? 1 : 0)
+    return !directiveComments.some(
+      (comment) => index >= comment.start && index < comment.end
+    )
+  })
 }
 
 function parseIndent(indent) {

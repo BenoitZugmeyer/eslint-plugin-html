@@ -1132,6 +1132,37 @@ describe("compatibility with external HTML plugins", () => {
 `
           )
         })
+
+        it("keeps the HTML comments of this plugin", async () => {
+          const eslintOptions = {
+            baseConfig: [
+              ...baseConfig({ "@html-eslint/require-img-alt": "error" }),
+              { linterOptions: { reportUnusedDisableDirectives: "error" } },
+            ],
+          }
+          const pluginComments =
+            "<!-- eslint-disable -->\n<script>{{ template }}</script>\n<!-- eslint-enable -->\n<!-- eslint-disable-next-script -->\n<script>{{ other }}</script>\n"
+          const text = `${pluginComments}<!-- eslint-disable-next-line @html-eslint/require-img-alt -->\n<div></div>\n`
+
+          assert.deepStrictEqual(
+            toLocatedMessages(await executeText(text, eslintOptions)),
+            [
+              "6:5 null Unused eslint-disable directive (no problems were reported from '@html-eslint/require-img-alt').",
+            ]
+          )
+          const { output } = await executeText(text, {
+            ...eslintOptions,
+            fix: true,
+          })
+          assert.ok(output.startsWith(pluginComments))
+
+          const textWithBOM =
+            "\uFEFF<!-- eslint-disable --><script>{{ template }}</script>\n"
+          assert.deepStrictEqual(
+            await executeText(textWithBOM, eslintOptions),
+            []
+          )
+        })
       }
     )
   }
@@ -1159,6 +1190,79 @@ describe("remapping", () => {
     })
     const start = text.indexOf("foo()")
     assert.deepStrictEqual(message.fix.range, [start, start])
+  })
+
+  it("should indent the lines that fixes add like the script", async () => {
+    const result = await executeText(
+      "<div>\n  <script>\n    const a = {b: 1}\n    foo()\n    bar()\n  </script>\n</div>\n",
+      {
+        baseConfig: [
+          DEFAULT_HTML_CONFIG,
+          {
+            ...DEFAULT_JS_CONFIG,
+            rules: {
+              "object-curly-newline": ["error", "always"],
+              indent: ["error", 2],
+              "padding-line-between-statements": [
+                "error",
+                { blankLine: "always", prev: "expression", next: "expression" },
+              ],
+            },
+          },
+        ],
+        fix: true,
+      }
+    )
+    assert.strictEqual(
+      result.output,
+      "<div>\n  <script>\n    const a = {\n      b: 1\n    }\n    foo()\n\n    bar()\n  </script>\n</div>\n"
+    )
+  })
+
+  it("should indent a script replaced by a fix like the script", async () => {
+    // Replaces the whole script, like formatters do
+    const formatted =
+      "/**\n * Documented\n */\nfunction foo() {\n  return 1\n}\n"
+    const formatPlugin = {
+      rules: {
+        format: {
+          meta: { fixable: "code" },
+          create: (context) => ({
+            Program: () => {
+              const { text } = context.sourceCode
+              if (text !== formatted) {
+                context.report({
+                  loc: { line: 1, column: 0 },
+                  message: "Not formatted",
+                  fix: (fixer) =>
+                    fixer.replaceTextRange([0, text.length], formatted),
+                })
+              }
+            },
+          }),
+        },
+      },
+    }
+
+    const result = await executeText(
+      "<div>\n  <script>\n    function foo() { return 1 }\n  </script>\n</div>\n",
+      {
+        baseConfig: [
+          DEFAULT_HTML_CONFIG,
+          {
+            ...DEFAULT_JS_CONFIG,
+            plugins: { test: formatPlugin },
+            rules: { "test/format": "error" },
+          },
+        ],
+        fix: true,
+      }
+    )
+    assert.strictEqual(
+      result.output,
+      "<div>\n  <script>\n    /**\n     * Documented\n     */\n    function foo() {\n      return 1\n    }\n  </script>\n</div>\n"
+    )
+    assert.deepStrictEqual(result.messages, [])
   })
 })
 

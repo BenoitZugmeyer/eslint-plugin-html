@@ -5,13 +5,19 @@ const NO_IGNORE = 0
 const IGNORE_NEXT = 1
 const IGNORE_UNTIL_ENABLE = 2
 
+const DIRECTIVE_COMMENTS = new Map([
+  ["eslint-disable", IGNORE_UNTIL_ENABLE],
+  ["eslint-enable", NO_IGNORE],
+  ["eslint-disable-next-script", IGNORE_NEXT],
+])
+
 export function extract(html, xmlMode, options) {
   const badIndentationLines = []
   const scripts = []
   let lineNumber = 1
   let previousHTML = ""
 
-  const chunks = parseHtml(html, xmlMode, options)
+  const { chunks, directiveComments } = parseHtml(html, xmlMode, options)
 
   for (const chunk of chunks) {
     const slice = html.slice(chunk.start, chunk.end)
@@ -30,10 +36,8 @@ export function extract(html, xmlMode, options) {
       }
       transformedCode.replace(0, chunk.start, "")
       transformedCode.replace(chunk.end, html.length, "")
-      for (const action of dedent(
-        computeIndent(options.indent, previousHTML, indentSlice),
-        indentSlice
-      )) {
+      const indent = computeIndent(options.indent, previousHTML, indentSlice)
+      for (const action of dedent(indent, indentSlice)) {
         lineNumber += 1
         if (action.type === "dedent") {
           transformedCode.replace(
@@ -48,6 +52,7 @@ export function extract(html, xmlMode, options) {
       scripts.push({
         code: transformedCode,
         module: chunk.module,
+        indent,
       })
     }
   }
@@ -55,12 +60,15 @@ export function extract(html, xmlMode, options) {
   return {
     scripts,
     badIndentationLines,
+    directiveComments,
     hasBOM: html.startsWith("\uFEFF"),
   }
 }
 
 function parseHtml(html, xmlMode, options) {
-  if (!html) return []
+  // Ranges of the HTML comments this plugin reacts to
+  const directiveComments = []
+  if (!html) return { chunks: [], directiveComments }
 
   const chunks = [
     {
@@ -142,15 +150,14 @@ function parseHtml(html, xmlMode, options) {
       },
 
       oncomment(comment) {
-        const currentChunk = chunks.at(-1)
-        comment = comment.trim()
-        if (comment === "eslint-disable") {
-          currentChunk.ignore = IGNORE_UNTIL_ENABLE
-        } else if (comment === "eslint-enable") {
-          currentChunk.ignore = NO_IGNORE
-        } else if (comment === "eslint-disable-next-script") {
-          currentChunk.ignore = IGNORE_NEXT
-        }
+        const ignore = DIRECTIVE_COMMENTS.get(comment.trim())
+        if (ignore === undefined) return
+
+        chunks.at(-1).ignore = ignore
+        directiveComments.push({
+          start: parser.startIndex,
+          end: parser.endIndex + 1,
+        })
       },
 
       onend() {
@@ -164,7 +171,7 @@ function parseHtml(html, xmlMode, options) {
 
   parser.parseComplete(html)
 
-  return chunks
+  return { chunks, directiveComments }
 }
 
 function computeIndent(descriptor, previousHTML, slice) {

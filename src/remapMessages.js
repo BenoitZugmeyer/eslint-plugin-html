@@ -1,6 +1,4 @@
-module.exports = { remapMessages }
-
-function remapMessages(messages, hasBOM, codePart) {
+export function remapMessages(messages, hasBOM, codePart) {
   const newMessages = []
 
   for (const message of messages) {

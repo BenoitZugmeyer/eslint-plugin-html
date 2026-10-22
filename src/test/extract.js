@@ -1,8 +1,8 @@
 /*eslint no-sparse-arrays: 0*/
-const { it, describe } = require("node:test")
-const assert = require("assert")
+import { it, describe } from "node:test"
+import assert from "assert"
 
-const extract = require("../extract")
+import { extract } from "../extract.js"
 
 function dedent(str) {
   if (str[0] === "\n") str = str.slice(1)
@@ -23,12 +23,12 @@ function dedent(str) {
 function test(params) {
   const infos = extract(dedent(params.input), params.xmlMode, {
     indent: params.indent,
-    javaScriptTagNames: params.javaScriptTagNames || ["script"],
-    isJavaScriptMIMEType: params.isJavaScriptMIMEType,
-    ignoreTagsWithoutType: params.ignoreTagsWithoutType,
+    getScriptType:
+      params.getScriptType ??
+      (({ tagName }) => (tagName === "script" ? "classic" : undefined)),
   })
   assert.deepStrictEqual(
-    infos.code.map((code) => code.toString()),
+    infos.scripts.map((script) => script.code.toString()),
     params.expected
   )
   assert.deepStrictEqual(
@@ -289,7 +289,7 @@ it("works with CDATA", () => {
   })
 })
 
-it("handles the isJavaScriptMIMEType option", () => {
+it("custom type", () => {
   test({
     input: `
     <script>
@@ -304,9 +304,11 @@ it("handles the isJavaScriptMIMEType option", () => {
       c
     </script>
     `,
-    isJavaScriptMIMEType(type) {
-      return type === "foo/bar"
-    },
+    getScriptType: ({ tagName, attributes }) =>
+      tagName === "script" &&
+      (!attributes.type || attributes.type === "foo/bar")
+        ? "classic"
+        : undefined,
     expected: ["a\n", "b\n"],
   })
 })
@@ -342,6 +344,8 @@ it("handles self closing script tags in xhtml mode", () => {
 it("skips script with src attributes", () => {
   test({
     input: '<script src="foo"></script>',
+    getScriptType: ({ tagName, attributes }) =>
+      tagName === "script" && !attributes.src ? "classic" : undefined,
     expected: [],
   })
 })
@@ -349,7 +353,8 @@ it("skips script with src attributes", () => {
 it("skips script without type attribute", () => {
   test({
     input: "<script></script>",
-    ignoreTagsWithoutType: true,
+    getScriptType: ({ tagName, attributes }) =>
+      tagName === "script" && attributes.type ? "classic" : undefined,
     expected: [],
   })
 })
@@ -366,7 +371,10 @@ it("extract multiple tags types", () => {
         var bar = 1;
       </customscript>
     `,
-    javaScriptTagNames: ["script", "customscript"],
+    getScriptType: ({ tagName }) =>
+      tagName === "script" || tagName === "customscript"
+        ? "classic"
+        : undefined,
     expected: ["var foo = 1;\n", "var bar = 1;\n"],
   })
 })

@@ -1,3 +1,9 @@
+UNRELEASED v9.0.0
+
+- **Breaking: rewrite the plugin to remove (most) hacks**
+- **Breaking: drop Node < 22 support**
+- **Breaking: drop ESLint < 9 support**
+
 2026-09-23 v8.2.1
 
 - Fix compatibility with ESLint 10.11.0 #342

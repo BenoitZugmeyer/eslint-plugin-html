@@ -1,7 +1,7 @@
-const TransformableString = require("../TransformableString")
+import TransformableString from "../transformableString.js"
 
-const { it, describe } = require("node:test")
-const assert = require("assert")
+import { it, describe } from "node:test"
+import assert from "assert"
 
 it("should be a function", () => {
   assert.strictEqual(typeof TransformableString, "function")

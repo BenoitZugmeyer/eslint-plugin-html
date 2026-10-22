@@ -7,10 +7,8 @@
 </div>
 
 - [Usage](#usage)
-- [Disabling ESLint](#disabling-eslint)
+- [Disabling ESLint within HTML files](#disabling-eslint-within-html-files)
 - [Linting HTML](#linting-html)
-  - [Manual configuration](#manual-configuration)
-  - [Use two configuration files](#use-two-configuration-files)
 - [Multiple scripts tags in a HTML file](#multiple-scripts-tags-in-a-html-file)
   - [History](#history)
 - [XML support](#xml-support)
@@ -33,12 +31,9 @@
 
 ## Usage
 
-Simply install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
+Install via `npm install --save-dev eslint-plugin-html` and add the plugin to your ESLint
 configuration. See
-[ESLint documentation](http://eslint.org/docs/user-guide/configuring#configuring-plugins).
-
-<details open>
-  <summary>Example with ESLint 9 and above (flat config)</summary>
+[ESLint documentation](https://eslint.org/docs/latest/use/configure/plugins).
 
 ```javascript
 import html from "eslint-plugin-html"
@@ -47,24 +42,33 @@ export default [
   {
     files: ["**/*.html"],
     plugins: { html },
+    processor: "html/html",
+  },
+  {
+    files: ["**/*.js"],
+    // Your js configuration
   },
 ]
 ```
 
-</details>
+For more advanced usages, use the `createHtmlProcessor` function with options. Example:
 
-<details>
-  <summary>Example with ESLint 8 and below</summary>
+```javascript
+import { createHtmlProcessor } from "eslint-plugin-html"
 
-```json
-{
-  "plugins": ["html"]
-}
+export default [
+  {
+    files: ["**/*.html"],
+    processor: createHtmlProcessor({ xml: true }),
+  },
+  {
+    files: ["**/*.js"],
+    // Your js configuration
+  },
+]
 ```
 
-</details>
-
-## Disabling ESLint
+## Disabling ESLint within HTML files
 
 To temporarily disable ESLint, use the `<!-- eslint-disable -->` HTML comment. Re-enable it with
 `<!-- eslint enable -->`. Example:
@@ -93,54 +97,33 @@ use this to disable script tags containing template syntax.
 ## Linting HTML
 
 This plugin focuses on applying ESLint rules on inline scripts contained in HTML. It does not
-provide any rule related to HTML. For that, you can use other plugins like
-[@html-eslint](https://html-eslint.org) or
-[@angular-eslint](https://github.com/angular-eslint/angular-eslint). This plugin is not compatible
-with the ESLint `language` option (this is an ESLint limitation). To lint both HTML and JS within
-script tags, you have two alternatives:
-
-### Manual configuration
-
-Provide the [`html-eslint`](https://html-eslint.org/) plugin option manually, without relying on the
-`language` option:
+provide any rule related to HTML. For that, you can use [@html-eslint](https://html-eslint.org).
+To lint both HTML and JS within script tags, use `@html-eslint` and `elint-plugin-html` side by
+side. Make sure to pass `lintHtml: true` to the `elint-plugin-html` processor:
 
 ```javascript
 import { defineConfig } from "eslint/config"
-import parserHtml from "@html-eslint/parser"
-import pluginHtml from "@html-eslint/eslint-plugin"
-import pluginJs from "@eslint/js"
-import pluginJsInHtml from "eslint-plugin-html"
+import { createHtmlProcessor } from "eslint-plugin-html"
+import html from "@html-eslint/eslint-plugin"
 
 export default defineConfig([
   {
     files: ["**/*.html"],
     plugins: {
-      html: pluginHtml,
-      jsInHtml: pluginJsInHtml,
-      js: pluginJs,
+      html,
     },
-    languageOptions: {
-      parser: parserHtml,
-    },
-    extends: ["js/recommended", "html/recommended"],
+    processor: createHtmlProcessor({ lintHtml: true }),
+    extends: ["html/recommended"],
+    language: "html/html",
+  },
+  {
+    files: ["**/*.js"],
+    // Your js configuration
   },
 ])
 ```
 
-### Use two configuration files
-
-`eslint.config.js` with the `eslint-plugin-html` plugin to lint all JavaScript code and
-`eslint.config-html.js` with the [`html-eslint`](https://html-eslint.org/) plugin for HTML rules.
-
-Run ESLint once with each configuration:
-
-```sh
-eslint .                              # lints JS
-eslint -c eslint.config-html.js .     # lints HTML
-```
-
-This alternative works well in CI and hooks, but might be limited in text editors where only one
-config is applied.
+----- TODO ------
 
 ## Multiple scripts tags in a HTML file
 
@@ -510,7 +493,7 @@ documentation](http://eslint.org/docs/user-guide/command-line-interface#ext).
 your script tags, the resulting script may not be valid JavaScript, so `ESLint` will fail to parse
 it. Here are some workarounds:
 
-- You can use [HTML comments to disable ESLint](#disabling-eslint) for specific script tags.
+- You can use [HTML comments to disable ESLint](#disabling-eslint-within-html-files) for specific script tags.
 
 - For PHP, you can use
   [`eslint-plugin-php-markup`](https://github.com/tengattack/eslint-plugin-php-markup) to lint php
